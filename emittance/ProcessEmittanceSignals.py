@@ -467,7 +467,6 @@ class DesignerMainWindow(QMainWindow):
         for i in range(1, nx) :
             x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
             ndh[i-1] = self.readParameter(i, 'ndh', 0.0, float)
-        ix0 = np.argsort(x0)
             #print('%d ndh %f'%(i,ndh[i-1]))
 #R  = 2.0e5        ; Ohm   Resistor for beamlet scaner FC
 #d1 = 0.4          ; mm    Analyzer hole diameter
@@ -485,7 +484,7 @@ class DesignerMainWindow(QMainWindow):
         a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
         # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
-        # maximum and integral profiles
+        # calculate maximum and integral profiles
         profilemax = np.zeros(nx-1)
         profileint = np.zeros(nx-1)
         for i in range(1, nx) :
@@ -497,20 +496,21 @@ class DesignerMainWindow(QMainWindow):
             if xi[0] < xi[-1]:
                 k = -1.0
             profileint[i-1] = k * simps(yi,xi) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
-        # remove average x
-        #xavg = np.average(x0 * profilemax)
-        x0 = x0[ix0]
+        # sort x0
+        ix0 = np.argsort(x0)
+        x0s = x0[ix0]
         profileint = profileint[ix0]
         profilemax = profilemax[ix0]
-        xavg = simps(x0 * profilemax, x0) / simps(profilemax, x0)
+        # remove average x
+        xavg = simps(x0s * profilemax, x0s) / simps(profilemax, x0s)
         printl('Average X %f mm'%xavg)
-        x0 = x0 - xavg
+        x0s = x0s - xavg
         # calculate total current
-        index = np.where(x0 >= 0.0)[0]
-        Ir = simps(x0[index]*profileint[index], x0[index])*2.0*np.pi/a1/1000.0
+        index = np.where(x0s >= 0.0)[0]
+        Ir = simps(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
         print('Total current right %f [mA]'%Ir)
-        index = np.where(x0 <= 0.0)[0]
-        Il = -1.0*simps(x0[index]*profileint[index], x0[index])*2.0*np.pi/a1/1000.0
+        index = np.where(x0s <= 0.0)[0]
+        Il = -1.0*simps(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
         print('Total current left %f [mA]'%Il)
         I = (Il + Ir)/2.0
         printl('Total current %f [mA]'%I)
@@ -546,10 +546,10 @@ class DesignerMainWindow(QMainWindow):
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
             return
-        # plot contour emittance
+        # calculate emittance contour plot
         # number of points for emittance matrix
         N = 300
-        # calculate nx-1xN arrays
+        # calculate nx-1 x N arrays
         # X [mm]
         X = np.zeros((N,nx-1), dtype=np.float64)
         # X' [milliRadians]
@@ -581,6 +581,14 @@ class DesignerMainWindow(QMainWindow):
             f = interp1d(v[i][0], v[i][1], kind='linear', bounds_error=False, fill_value=0.0)
             Z[:,i] = f(Y[:,i] + X[:,i]/l1*1000.0)
             #Z[:,i] = f(Y[:,i])
+        # sort data according rising x0
+        X2 = X.copy()
+        Y2 = Y.copy()
+        Z2 = Z.copy()
+        for i in range(nx-1) :
+            X2[:,ix0[i]] = X[:,i]
+            Y2[:,ix0[i]] = Y[:,i]
+            Z2[:,ix0[i]] = Z[:,i]
         # calculate NxN array
         X1 = np.zeros((N, N), dtype=np.float64)
         Y1 = np.zeros((N, N), dtype=np.float64)
@@ -591,11 +599,10 @@ class DesignerMainWindow(QMainWindow):
             Y1[:,i] = xs
         for i in range(N) :
             #Z1[i,:] = np.interp(X1[i,:], X[i,:], Z[i,:])
-            f = interp1d(X[i,:], Z[i,:], kind='linear', bounds_error=False, fill_value=0.0)
+            f = interp1d(X2[i,:], Z2[i,:], kind='linear', bounds_error=False, fill_value=0.0)
             Z1[i,:] = f(X1[i,:])
         # remove negative currents
-        mask = Z1 < 0.0
-        Z1[mask] = 0.0
+        Z1[Z1 < 0.0] = 0.0
         # return regular divergence back
         for i in range(N) :
             #Z1[:,i] = np.interp(Y1[:,i] - X1[:,i]/l1*1000.0, Y1[:,i], Z1[:,i])
