@@ -176,6 +176,7 @@ class DesignerMainWindow(QMainWindow):
             axes.plot(y, *args, **kwargs)
             axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
             axes.grid(True)
+            axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
 
         def zoplot(v=0.0, color='k'):
@@ -240,13 +241,12 @@ class DesignerMainWindow(QMainWindow):
                 xr = r
         xi = np.arange(xr[0], xr[1])
         print('Using %s region of scan voltage'%str(xr))
-        #self.clearPicture()
-        #plot(xi, x)
+        # draw
+        #clear()
+        #plot(xi, x, label='Scan voltage')
         #plot(xi[xr[0]:xr[1]], x[xr[0]:xr[1]], '.')
                     
         # auto process data for zero line and offset
-        # approximation of zero line
-        #xx = np.interp(x,x[index],y[index])
         print('Processing zero line ...')
         for i in range(1,nx-1) :
             print('Channel %d'%(i))
@@ -256,7 +256,7 @@ class DesignerMainWindow(QMainWindow):
             y2 = data[i+1,:].copy()
             offset2 = params[i+1]['offset']
             y2 = y2 - offset2
-            # additionally smooth because zero line is slow 
+            # double smooth because zero line is slow 
             smooth(y1, params[i]['smooth']*2)
             smooth(y2, params[i+1]['smooth']*2)
             # offsets calculated from upper 10%
@@ -274,14 +274,13 @@ class DesignerMainWindow(QMainWindow):
             o2 = np.average(y2[index2])
             #print('Offset 2 %f'%o2)
             # draw
-            clear()
-            axes.legend(loc='best') 
-            plot(y1,'r', label='r'+str(i))
-            zoplot(o1,'r')
-            plot(y2,'b', label='r'+str(i+1))
-            zoplot(o2,'b')
-            plot(index1, y1[index1], '.')
-            plot(index2, y2[index2], '.')
+            #clear()
+            #plot(y1,'r', label='r'+str(i))
+            #zoplot(o1,'r')
+            #plot(y2,'b', label='r'+str(i+1))
+            #zoplot(o2,'b')
+            #plot(index1, y1[index1], '.')
+            #plot(index2, y2[index2], '.')
             # correct y2 and offset2 for calculated offsets
             y2 = y2 - o2 + o1
             offset2 = offset2 + o2 - o1 
@@ -289,26 +288,14 @@ class DesignerMainWindow(QMainWindow):
             mask = np.abs(y1 - y2) < 0.05*dy1
             index = np.where(mask)[0]
             #print(findRegionsText(index))
-            index = restoreFromRegions(findRegions(index, 50, 300, 100, 100))
+            index = restoreFromRegions(findRegions(index, 50, 300, 100, 100, length=ny))
             if len(index) <= 0:
                 index = np.where(mask)[0]
             #print(findRegionsText(index))
-            # draw
-            #self.clearPicture()
-            #axes.plot(y1,'r')
-            #axes.plot(y2,'b')
-            #axes.plot(index, y1[index], '.')
-            #self.mplWidget.canvas.draw()
-            # filter signal intersection
-            r1 = self.removeInersections(y1, y2, index)
-            i1 = restoreFromRegions(r1)
-            # draw
-            #self.clearPicture()
-            #axes.plot(y1)
-            #axes.plot(y2)
-            #axes.plot(i1, y1[i1], '.')
-            #self.mplWidget.canvas.draw()
-            
+            # filter signal intersections
+            #r1 = self.removeInersections(y1, y2, index)
+            #i1 = restoreFromRegions(r1)
+            # new offset
             offset = np.average(y2[index] - y1[index])
             #print('Offset for channel %d = %f'%((i+1), offset))
             # shift y2 and offset2
@@ -319,25 +306,10 @@ class DesignerMainWindow(QMainWindow):
             mask = np.abs(y1 - y2) < 0.04*dy1
             index = np.where(mask)[0]
             #print(findRegionsText(index))
-            # draw
-            #plot(y2)
-            #plot(index, y1[index], '.')
             # filter signal intersection
-            # calculate relative first derivatives
-            # area where derivatives are opposite = signals crossing
-            #mask = np.logical_and(mask, dify1*dify2 >= 0.0)
-            #index = np.where(mask)[0]
-            #print(findRegionsText(index))
             regions = findRegions(index, 50)
-            #print(regions)
             index = restoreFromRegions(regions, 0, 150, length=ny)
             #print(findRegionsText(index))
-            # draw
-            clear()
-            axes.plot(y1,'r')
-            axes.plot(y2,'b')
-            plot(index, y1[index], '.')
-            self.mplWidget.canvas.draw()
             # choose largest values
             mask[:] = False
             mask[index] = True
@@ -406,12 +378,12 @@ class DesignerMainWindow(QMainWindow):
                 #print('range %s'%paramsAuto[i]['range'].__str__())
             except:
                 pass
-            #self.clearPicture()
-            #axes.plot(ix[xi], y, label='p'+str(i))
-            #axes.plot(ix[i1:i2], y[i1 - xi[0]:i2 - xi[0]], '.', label='r'+str(i))
+            # draw
+            #clear()
+            #plot(ix[xi], y, label='p'+str(i))
+            #plot(ix[i1:i2], y[i1 - xi[0]:i2 - xi[0]], '.', label='r'+str(i))
             #voplot(index1 + xi[0], 'r')
             #voplot(index2 + xi[0], 'b')
-            #self.mplWidget.canvas.draw()
             #pass
         # filter scales
         sc = np.array([params[i]['scale'] for i in range(1,nx)])
@@ -868,7 +840,7 @@ class DesignerMainWindow(QMainWindow):
             xx = x[index]
             yy = -1.0*y[index]
             axes.plot(xx, yy, label='jet '+str(row))
-            axes.plot(xx, gaussfit(xx, yy), '--', label='gauss '+str(row))
+            #axes.plot(xx, gaussfit(xx, yy), '--', label='gauss '+str(row))
             pass
         # plot zero line
         axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
