@@ -263,24 +263,25 @@ class DesignerMainWindow(QMainWindow):
             y1min = np.min(y1)
             y1max = np.max(y1)
             dy1 = y1max - y1min
-            index1 = np.where(y1 > (y1max - 0.1*dy1))[0]
-            o1 = np.average(y1[index1])
-            #print('Offset 1 %f'%o1)
             y2min = np.min(y2)
             y2max = np.max(y2)
             dy2 = y2max - y2min
-            index2 = np.where(y2 > (y2max - 0.1*dy2))[0]
+            dy = max([dy1, dy2])
+            index1 = np.where(y1 > (y1max - 0.1*dy))[0]
+            o1 = np.average(y1[index1])
+            #print('Offset 1 %f'%o1)
+            index2 = np.where(y2 > (y2max - 0.1*dy))[0]
             o2 = np.average(y2[index2])
             #print('Offset 2 %f'%o2)
             # draw
-            #self.clearPicture()
-            #axes.plot(y1,'r')
-            #zoplot(o1,'r')
-            #axes.plot(y2,'b')
-            #zoplot(o2,'b')
-            #axes.plot(index1, y1[index1], '.')
-            #axes.plot(index2, y2[index2], '.')
-            #self.mplWidget.canvas.draw()
+            clear()
+            axes.legend(loc='best') 
+            plot(y1,'r', label='r'+str(i))
+            zoplot(o1,'r')
+            plot(y2,'b', label='r'+str(i+1))
+            zoplot(o2,'b')
+            plot(index1, y1[index1], '.')
+            plot(index2, y2[index2], '.')
             # correct y2 and offset2 for calculated offsets
             y2 = y2 - o2 + o1
             offset2 = offset2 + o2 - o1 
@@ -318,9 +319,9 @@ class DesignerMainWindow(QMainWindow):
             mask = np.abs(y1 - y2) < 0.04*dy1
             index = np.where(mask)[0]
             #print(findRegionsText(index))
-            #axes.plot(y2)
-            #axes.plot(index, y1[index], '.')
-            #self.mplWidget.canvas.draw()
+            # draw
+            #plot(y2)
+            #plot(index, y1[index], '.')
             # filter signal intersection
             # calculate relative first derivatives
             # area where derivatives are opposite = signals crossing
@@ -332,8 +333,11 @@ class DesignerMainWindow(QMainWindow):
             index = restoreFromRegions(regions, 0, 150, length=ny)
             #print(findRegionsText(index))
             # draw
-            #axes.plot(index, y1[index], '.')
-            #self.mplWidget.canvas.draw()
+            clear()
+            axes.plot(y1,'r')
+            axes.plot(y2,'b')
+            plot(index, y1[index], '.')
+            self.mplWidget.canvas.draw()
             # choose largest values
             mask[:] = False
             mask[index] = True
@@ -341,14 +345,14 @@ class DesignerMainWindow(QMainWindow):
             index3 = np.where(mask3)[0]
             # update zero for all channels
             for j in range(1,nx) :
-                w = 1.0/((abs(i - j)-1.0)**2 + 1.0)
+                w = 1.0/((abs(i - j))**2 + 1.0)
                 zero[j,index3] = (zero[j,index3]*count[j,index3] + y1[index3]*w)/(count[j,index3] + w)
                 count[j,index3] += w
             mask4 = np.logical_and(mask, y1 <= y2)
             index4 = np.where(mask4)[0]
             # update zero for all channels
             for j in range(1,nx) :
-                w = 1.0/((abs(i + 1 - j)-1.0)**2 + 1.0)
+                w = 1.0/((abs(i + 1 - j))**2 + 1.0)
                 zero[j,index4] = (zero[j,index4]*count[j,index4] + y2[index4]*w)/(count[j,index4] + w)
                 count[j,index4] += w
             # save processed parameters
