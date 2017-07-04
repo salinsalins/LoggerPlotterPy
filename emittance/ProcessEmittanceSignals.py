@@ -31,6 +31,7 @@ from findRegions import *
 from my_isfread import my_isfread as isfread
 from smooth import smooth
 from readTekFiles import readTekFiles
+import scipy.integrate
 from scipy.integrate import simps
 from scipy.interpolate import interp1d
 from printl import printl 
@@ -98,7 +99,9 @@ class DesignerMainWindow(QMainWindow):
             return
         # short file names list
         names = [name.replace(folder, '')[1:] for name in self.fileNames]
-        ## fill tableWidget
+        for i in range(nx):
+            names[i] = '%3d - %s'%(i,names[i])
+        # fill tableWidget
         #self.tableWidget.setRowCount(nx)
         #self.tableWidget.setColumnCount(2)
         #self.tableWidget.setHorizontalHeaderLabels(('File','Parameters'))
@@ -170,24 +173,30 @@ class DesignerMainWindow(QMainWindow):
         return regout
 
     def processFolder(self):
-    
-        def plot(y, *args, **kwargs):
+        def plot(*args, **kwargs):
             axes = self.mplWidget.canvas.ax
-            axes.plot(y, *args, **kwargs)
-            axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
+            axes.plot(*args, **kwargs)
+            zoplot()
             axes.grid(True)
+            axes.legend(loc='best') 
+            self.mplWidget.canvas.draw()
+
+        def draw():
             self.mplWidget.canvas.draw()
 
         def zoplot(v=0.0, color='k'):
             axes = self.mplWidget.canvas.ax
-            axes.plot(axes.get_xlim(), [v, v], color=color)
+            xlim = axes.get_xlim()
+            axes.plot(xlim, [v, v], color=color)
+            axes.set_xlim(xlim)
 
         def voplot(v=0.0, color='k'):
             axes = self.mplWidget.canvas.ax
-            print(axes.get_ylim())
-            axes.plot([v, v], axes.get_ylim(), color=color)
+            ylim = axes.get_ylim()
+            axes.plot([v, v], ylim, color=color)
+            axes.set_ylim(ylim)
 
-        def clear():
+        def cls():
             self.clearPicture()
             
         axes = self.mplWidget.canvas.ax
@@ -210,7 +219,7 @@ class DesignerMainWindow(QMainWindow):
         y = isfread(files[0])[1]
         ny = len(y)
         # default parameters array
-        params = [{'smooth':ns, 'offset':0.0, 'zero':np.zeros(ny)} for i in range(nx)]
+        params = [{'smooth':ns, 'offset':0.0, 'zero':np.zeros(ny), 'scale': 1.95} for i in range(nx)]
         # read data array
         # define arrays
         zero  = np.zeros((nx, ny), dtype=np.float64)
@@ -239,14 +248,14 @@ class DesignerMainWindow(QMainWindow):
             if r[1]-r[0] >= xr[1]-xr[0]:
                 xr = r
         xi = np.arange(xr[0], xr[1])
+        params[0]['range'] = xr
         print('Using %s region of scan voltage'%str(xr))
-        #self.clearPicture()
-        #plot(xi, x)
-        #plot(xi[xr[0]:xr[1]], x[xr[0]:xr[1]], '.')
+        # draw
+        cls()
+        plot(ix, x, label='Scan voltage')
+        plot(ix[xi], x[xi], '.')
                     
         # auto process data for zero line and offset
-        # approximation of zero line
-        #xx = np.interp(x,x[index],y[index])
         print('Processing zero line ...')
         for i in range(1,nx-1) :
             print('Channel %d'%(i))
@@ -256,31 +265,31 @@ class DesignerMainWindow(QMainWindow):
             y2 = data[i+1,:].copy()
             offset2 = params[i+1]['offset']
             y2 = y2 - offset2
-            # additionally smooth because zero line is slow 
+            # double smooth because zero line is slow 
             smooth(y1, params[i]['smooth']*2)
             smooth(y2, params[i+1]['smooth']*2)
             # offsets calculated from upper 10%
             y1min = np.min(y1)
             y1max = np.max(y1)
             dy1 = y1max - y1min
-            index1 = np.where(y1 > (y1max - 0.1*dy1))[0]
-            o1 = np.average(y1[index1])
-            #print('Offset 1 %f'%o1)
             y2min = np.min(y2)
             y2max = np.max(y2)
             dy2 = y2max - y2min
-            index2 = np.where(y2 > (y2max - 0.1*dy2))[0]
+            dy = max([dy1, dy2])
+            index1 = np.where(y1 > (y1max - 0.1*dy))[0]
+            o1 = np.average(y1[index1])
+            #print('Offset 1 %f'%o1)
+            index2 = np.where(y2 > (y2max - 0.1*dy))[0]
             o2 = np.average(y2[index2])
             #print('Offset 2 %f'%o2)
             # draw
-            #self.clearPicture()
-            #axes.plot(y1,'r')
+            #cls()
+            #plot(y1,'r', label='r'+str(i))
             #zoplot(o1,'r')
-            #axes.plot(y2,'b')
+            #plot(y2,'b', label='r'+str(i+1))
             #zoplot(o2,'b')
-            #axes.plot(index1, y1[index1], '.')
-            #axes.plot(index2, y2[index2], '.')
-            #self.mplWidget.canvas.draw()
+            #plot(index1, y1[index1], '.')
+            #plot(index2, y2[index2], '.')
             # correct y2 and offset2 for calculated offsets
             y2 = y2 - o2 + o1
             offset2 = offset2 + o2 - o1 
@@ -288,26 +297,14 @@ class DesignerMainWindow(QMainWindow):
             mask = np.abs(y1 - y2) < 0.05*dy1
             index = np.where(mask)[0]
             #print(findRegionsText(index))
-            index = restoreFromRegions(findRegions(index, 50, 300, 100, 100))
+            index = restoreFromRegions(findRegions(index, 50, 300, 100, 100, length=ny))
             if len(index) <= 0:
                 index = np.where(mask)[0]
             #print(findRegionsText(index))
-            # draw
-            #self.clearPicture()
-            #axes.plot(y1,'r')
-            #axes.plot(y2,'b')
-            #axes.plot(index, y1[index], '.')
-            #self.mplWidget.canvas.draw()
-            # filter signal intersection
-            r1 = self.removeInersections(y1, y2, index)
-            i1 = restoreFromRegions(r1)
-            # draw
-            #self.clearPicture()
-            #axes.plot(y1)
-            #axes.plot(y2)
-            #axes.plot(i1, y1[i1], '.')
-            #self.mplWidget.canvas.draw()
-            
+            # filter signal intersections
+            #r1 = self.removeInersections(y1, y2, index)
+            #i1 = restoreFromRegions(r1)
+            # new offset
             offset = np.average(y2[index] - y1[index])
             #print('Offset for channel %d = %f'%((i+1), offset))
             # shift y2 and offset2
@@ -318,22 +315,10 @@ class DesignerMainWindow(QMainWindow):
             mask = np.abs(y1 - y2) < 0.04*dy1
             index = np.where(mask)[0]
             #print(findRegionsText(index))
-            #axes.plot(y2)
-            #axes.plot(index, y1[index], '.')
-            #self.mplWidget.canvas.draw()
             # filter signal intersection
-            # calculate relative first derivatives
-            # area where derivatives are opposite = signals crossing
-            #mask = np.logical_and(mask, dify1*dify2 >= 0.0)
-            #index = np.where(mask)[0]
-            #print(findRegionsText(index))
             regions = findRegions(index, 50)
-            #print(regions)
             index = restoreFromRegions(regions, 0, 150, length=ny)
             #print(findRegionsText(index))
-            # draw
-            #axes.plot(index, y1[index], '.')
-            #self.mplWidget.canvas.draw()
             # choose largest values
             mask[:] = False
             mask[index] = True
@@ -348,7 +333,7 @@ class DesignerMainWindow(QMainWindow):
             index4 = np.where(mask4)[0]
             # update zero for all channels
             for j in range(1,nx) :
-                w = 1.0/((abs(i + 1 - j) )**2 + 1.0)
+                w = 1.0/((abs(i + 1 - j))**2 + 1.0)
                 zero[j,index4] = (zero[j,index4]*count[j,index4] + y2[index4]*w)/(count[j,index4] + w)
                 count[j,index4] += w
             # save processed parameters
@@ -386,28 +371,30 @@ class DesignerMainWindow(QMainWindow):
             mask = y < (ymax - 0.5*dy)
             index = np.where(mask)[0]
             ra = findRegions(index)
+            params[i]['scale'] = 10.0 / (xx.max() - xx.min())
+            params[i]['range'] = xr
             try:
                 index1 = np.argmin(y[ra[0][0]:ra[0][1]]) + ra[0][0]
                 index2 = np.argmin(y[ra[1][0]:ra[1][1]]) + ra[1][0]
                 params[i]['scale'] = 10./(xx[index1] - xx[index2])
-                #print('scale %f'%paramsAuto[i]['scale'])
+                #print('scale %f'%params[i]['scale'])
                 if np.abs(xx[index1]) < np.abs(xx[index2]) :
                     index = index1
                 else:
                     index = index2
                 di = int(abs(index2 - index1)/2.0)
-                i1 = np.maximum(0, index - di + xi[0])
-                i2 = np.minimum(ny, index + di + xi[0])
+                i1 = np.maximum(xi[0], index - di + xi[0])
+                i2 = np.minimum(xi[-1], index + di + xi[0])
                 params[i]['range'] = (i1, i2)
-                #print('range %s'%paramsAuto[i]['range'].__str__())
+                #print('range %s'%str(params[i]['range']))
             except:
                 pass
-            #self.clearPicture()
-            #axes.plot(ix[xi], y, label='p'+str(i))
-            #axes.plot(ix[i1:i2], y[i1 - xi[0]:i2 - xi[0]], '.', label='r'+str(i))
+            # draw
+            #cls()
+            #plot(ix[xi], y, label='p'+str(i))
+            #plot(ix[i1:i2], y[i1 - xi[0]:i2 - xi[0]], '.', label='r'+str(i))
             #voplot(index1 + xi[0], 'r')
             #voplot(index2 + xi[0], 'b')
-            #self.mplWidget.canvas.draw()
             #pass
         # filter scales
         sc = np.array([params[i]['scale'] for i in range(1,nx)])
@@ -454,6 +441,35 @@ class DesignerMainWindow(QMainWindow):
         return True
                 
     def calculateEmittance(self):
+        def plot(*args, **kwargs):
+            axes = self.mplWidget.canvas.ax
+            axes.plot(*args, **kwargs)
+            #zoplot()
+            #xlim = axes.get_xlim()
+            #axes.plot(xlim, [0.0,0.0], color='k')
+            #axes.set_xlim(xlim)
+            axes.grid(True)
+            axes.legend(loc='best') 
+            self.mplWidget.canvas.draw()
+
+        def draw():
+            self.mplWidget.canvas.draw()
+
+        def zoplot(v=0.0, color='k'):
+            axes = self.mplWidget.canvas.ax
+            xlim = axes.get_xlim()
+            axes.plot(xlim, [v, v], color=color)
+            axes.set_xlim(xlim)
+
+        def voplot(v=0.0, color='k'):
+            axes = self.mplWidget.canvas.ax
+            ylim = axes.get_ylim()
+            axes.plot([v, v], ylim, color=color)
+            axes.set_ylim(ylim)
+
+        def cls():
+            self.clearPicture()
+            
         if self.data is None :
             return
         nx = len(self.fileNames) 
@@ -474,7 +490,7 @@ class DesignerMainWindow(QMainWindow):
 #l1 = 213.0        ; mm    Distance From emission hole to analyzer hole
 #l2 = 200.0        ; mm    Distance From analyzer hole to slit collector
         # R
-        R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load rezistior
+        #R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load rezistior
         # l1
         l1 = self.readParameter(0, 'l1', 213.0, float)  # [mm] distance from source to analyzer aperture
         # l2
@@ -488,14 +504,21 @@ class DesignerMainWindow(QMainWindow):
         profilemax = np.zeros(nx-1)
         profileint = np.zeros(nx-1)
         for i in range(1, nx) :
-            x,y,index = self.processSignal(i)           # x - [milliRadians] y - [mkA]
-            yi = y[index]
-            xi = x[index]
-            profilemax[i-1] = -1.0 * np.min(yi)         # [mkA]
-            k = 1.0
-            if xi[0] < xi[-1]:
-                k = -1.0
-            profileint[i-1] = k * simps(yi,xi) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+            try:
+                x,y,index = self.processSignal(i)           # x - [milliRadians] y - [mkA]
+                yy = y[index]
+                xx = x[index]
+                h = np.where(np.diff(xx) != 0.0)[0]
+                xx = xx[h]
+                yy = yy[h]
+                profilemax[i-1] = -1.0 * np.min(yy)         # [mkA]
+                k = 1.0
+                if xx[0] < xx[-1]:
+                    k = -1.0
+                profileint[i-1] = k * scipy.integrate.simps(yy,xx) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                print(profileint[i-1])
+            except:
+                pass
         # sort x0
         ix0 = np.argsort(x0)
         x0s = x0[ix0]
@@ -755,7 +778,7 @@ class DesignerMainWindow(QMainWindow):
         # smooth
         ns = self.readParameter(0, "smooth", 1, int)
         smooth(u, ns)
-        # manual parameters
+        # parameters
         # scanner base
         l2 = self.readParameter(0, "l2", 200.0, float)
         # load resistor
@@ -776,10 +799,15 @@ class DesignerMainWindow(QMainWindow):
         # convert signal to microAmperes
         y = y/R*1.0e6
         # signal region
-        r = self.readParameter(row, "range", ())
-        index = range(0, len(y))
+        index = np.arange(len(y))
+        r = self.readParameter(0, "range", ())
         try:
-            index = range(r[0],r[1])
+            index = np.arange(r[0],r[1])
+        except:
+            pass
+        r = self.readParameter(row, "range", ())
+        try:
+            index = np.arange(r[0],r[1])
         except:
             pass
         # scale
@@ -788,7 +816,7 @@ class DesignerMainWindow(QMainWindow):
         ndh = self.readParameter(row, "ndh", 0.0, float)
         # x' in milliRadians
         x = (ndh + sc*u) / l2 * 1000.0
-        return (x, y, np.array(index))
+        return (x, y, index)
 
     def plotProcessed(self):
         """Plots processed signals"""
@@ -864,7 +892,7 @@ class DesignerMainWindow(QMainWindow):
             xx = x[index]
             yy = -1.0*y[index]
             axes.plot(xx, yy, label='jet '+str(row))
-            axes.plot(xx, gaussfit(xx, yy), '--', label='gauss '+str(row))
+            #axes.plot(xx, gaussfit(xx, yy), '--', label='gauss '+str(row))
             pass
         # plot zero line
         axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
