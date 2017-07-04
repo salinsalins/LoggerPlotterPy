@@ -341,14 +341,14 @@ class DesignerMainWindow(QMainWindow):
             index3 = np.where(mask3)[0]
             # update zero for all channels
             for j in range(1,nx) :
-                w = 1.0/((abs(i - j)-1.0)**2 + 1.0)
+                w = 1.0/((abs(i - j))**2 + 1.0)
                 zero[j,index3] = (zero[j,index3]*count[j,index3] + y1[index3]*w)/(count[j,index3] + w)
                 count[j,index3] += w
             mask4 = np.logical_and(mask, y1 <= y2)
             index4 = np.where(mask4)[0]
             # update zero for all channels
             for j in range(1,nx) :
-                w = 1.0/((abs(i + 1 - j)-1.0)**2 + 1.0)
+                w = 1.0/((abs(i + 1 - j) )**2 + 1.0)
                 zero[j,index4] = (zero[j,index4]*count[j,index4] + y2[index4]*w)/(count[j,index4] + w)
                 count[j,index4] += w
             # save processed parameters
