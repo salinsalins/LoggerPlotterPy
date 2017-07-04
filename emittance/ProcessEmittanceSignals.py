@@ -211,7 +211,7 @@ class DesignerMainWindow(QMainWindow):
         y = isfread(files[0])[1]
         ny = len(y)
         # default parameters array
-        params = [{'smooth':ns, 'offset':0.0, 'zero':np.zeros(ny)} for i in range(nx)]
+        params = [{'smooth':ns, 'offset':0.0, 'zero':np.zeros(ny), 'scale': 1.95} for i in range(nx)]
         # read data array
         # define arrays
         zero  = np.zeros((nx, ny), dtype=np.float64)
