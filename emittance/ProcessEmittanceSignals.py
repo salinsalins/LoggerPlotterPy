@@ -250,10 +250,11 @@ class DesignerMainWindow(QMainWindow):
         xi = np.arange(xr[0], xr[1])
         params[0]['range'] = xr
         print('Using %s region of scan voltage'%str(xr))
-        # draw
-        cls()
-        plot(ix, x, label='Scan voltage')
-        plot(ix[xi], x[xi], '.')
+        if int(self.comboBox.currentIndex()) == 8:
+            # draw
+            cls()
+            plot(ix, x, label='Scan voltage')
+            plot(ix[xi], x[xi], '.')
                     
         # auto process data for zero line and offset
         print('Processing zero line ...')
@@ -276,11 +277,11 @@ class DesignerMainWindow(QMainWindow):
             y2max = np.max(y2)
             dy2 = y2max - y2min
             dy = max([dy1, dy2])
-            index1 = np.where(y1 > (y1max - 0.1*dy))[0]
-            o1 = np.average(y1[index1])
+            i1 = np.where(y1 > (y1max - 0.1*dy))[0]
+            o1 = np.average(y1[i1])
             #print('Offset 1 %f'%o1)
-            index2 = np.where(y2 > (y2max - 0.1*dy))[0]
-            o2 = np.average(y2[index2])
+            i2 = np.where(y2 > (y2max - 0.1*dy))[0]
+            o2 = np.average(y2[i2])
             #print('Offset 2 %f'%o2)
             # draw
             #cls()
@@ -288,8 +289,8 @@ class DesignerMainWindow(QMainWindow):
             #zoplot(o1,'r')
             #plot(y2,'b', label='r'+str(i+1))
             #zoplot(o2,'b')
-            #plot(index1, y1[index1], '.')
-            #plot(index2, y2[index2], '.')
+            #plot(i1, y1[i1], '.')
+            #plot(i2, y2[i2], '.')
             # correct y2 and offset2 for calculated offsets
             y2 = y2 - o2 + o1
             offset2 = offset2 + o2 - o1 
@@ -357,7 +358,7 @@ class DesignerMainWindow(QMainWindow):
             params[i]['zero'] = zero[i]
         # determine signal area
         print('Processing signals ...')
-        xx = x[xi].copy()
+        xu = x[xi].copy()
         for i in range(1, nx) :
             #print('Channel %d'%i)
             y0 = data[i,:].copy()[xi]
@@ -371,29 +372,34 @@ class DesignerMainWindow(QMainWindow):
             mask = y < (ymax - 0.5*dy)
             index = np.where(mask)[0]
             ra = findRegions(index)
-            params[i]['scale'] = 10.0 / (xx.max() - xx.min())
+            params[i]['scale'] = 10.0 / (xu.max() - xu.min()) # [mm/Volt]
             params[i]['range'] = xr
+            i1 = 0
             try:
-                index1 = np.argmin(y[ra[0][0]:ra[0][1]]) + ra[0][0]
-                index2 = np.argmin(y[ra[1][0]:ra[1][1]]) + ra[1][0]
-                params[i]['scale'] = 10./(xx[index1] - xx[index2])
-                #print('scale %f'%params[i]['scale'])
-                if np.abs(xx[index1]) < np.abs(xx[index2]) :
-                    index = index1
-                else:
-                    index = index2
-                di = int(abs(index2 - index1)/2.0)
-                i1 = np.maximum(xi[0], index - di + xi[0])
-                i2 = np.minimum(xi[-1], index + di + xi[0])
-                params[i]['range'] = (i1, i2)
-                #print('range %s'%str(params[i]['range']))
+                i1 = np.argmin(y[ra[0][0]:ra[0][1]]) + ra[0][0]
             except:
                 pass
+            i2 = -1
+            try:
+                i2 = np.argmin(y[ra[1][0]:ra[1][1]]) + ra[1][0]
+            except:
+                pass
+            params[i]['scale'] = 10.0/(xu[i2] - xu[i1])   # [mm/Volt]
+            #print('scale %f'%params[i]['scale'])
+            if np.abs(xu[i1]) < np.abs(xu[i2]) :
+                index = i1
+            else:
+                index = i2
+            di = int(abs(i2 - i1)/2.0)
+            i1 = max([xi[0], index - di + xi[0]])
+            i2 = min([xi[-1], index + di + xi[0]])
+            params[i]['range'] = [i1, i2]
+            #print('range %s'%str(params[i]['range']))
             # draw
             #cls()
             #plot(ix[xi], y, label='p'+str(i))
             #plot(ix[i1:i2], y[i1 - xi[0]:i2 - xi[0]], '.', label='r'+str(i))
-            #voplot(index1 + xi[0], 'r')
+            #voplot(i1 + xi[0], 'r')
             #voplot(index2 + xi[0], 'b')
             #pass
         # filter scales
@@ -515,17 +521,22 @@ class DesignerMainWindow(QMainWindow):
                 k = 1.0
                 if xx[0] < xx[-1]:
                     k = -1.0
-                profileint[i-1] = k * scipy.integrate.simps(yy,xx) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
-                print(profileint[i-1])
+                # simps() returns nan if x of 2 points coincide
+                #profileint[i-1] = k * scipy.integrate.simps(yy,xx) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                # integrate by rectangles method
+                profileint[i-1] = k * np.sum(yy[:-1]*np.diff(xx)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                #print(profileint[i-1])
             except:
                 pass
-        # sort x0
+        # sort in x0 increasing order
         ix0 = np.argsort(x0)
+        print(ix0)
         x0s = x0[ix0]
         profileint = profileint[ix0]
         profilemax = profilemax[ix0]
         # remove average x
-        xavg = simps(x0s * profilemax, x0s) / simps(profilemax, x0s)
+        #xavg = simps(x0s * profilemax, x0s) / simps(profilemax, x0s)
+        xavg = simps(x0s * profileint, x0s) / simps(profileint, x0s)
         printl('Average X %f mm'%xavg)
         x0s = x0s - xavg
         # calculate total current
@@ -548,8 +559,8 @@ class DesignerMainWindow(QMainWindow):
         # plot integral profile
         if int(self.comboBox.currentIndex()) == 0:
             self.clearPicture()
-            axes.plot(x0, profileint, 'd-', label='Integral Profile')
-            axes.plot(x0, gaussfit(x0,profileint,x0), '--', label='Gaussian fit')
+            axes.plot(x0s, profileint, 'd-', label='Integral Profile')
+            #axes.plot(x0s, gaussfit(x0s,profileint,x0s), '--', label='Gaussian fit')
             axes.grid(True)
             axes.set_title('Integral profile')
             axes.set_xlabel('X, mm')
@@ -560,8 +571,8 @@ class DesignerMainWindow(QMainWindow):
         # plot maximal profile
         if int(self.comboBox.currentIndex()) == 1:
             self.clearPicture()
-            axes.plot(x0, profilemax, 'o-', label='Maximum Profile')
-            axes.plot(x0, gaussfit(x0,profilemax,x0), '--', label='Gaussian fit')
+            axes.plot(x0s, profilemax, 'o-', label='Maximum Profile')
+            #axes.plot(x0s, gaussfit(x0s,profilemax,x0s), '--', label='Gaussian fit')
             axes.grid(True)
             axes.set_title('Maximum profile')
             axes.set_xlabel('X, mm')
@@ -597,13 +608,13 @@ class DesignerMainWindow(QMainWindow):
                 xsmax = xx
         # X' range array
         xs = np.linspace(xsmin, xsmax, N)
-        # reduce regular divergence
+        # fill data arrays
         for i in range(nx-1) :
             Y[:,i] = xs
             #Z[:,i] = np.interp(Y[:,i] + x0[i]/l1*1000.0, v[i][0], v[i][1])
             f = interp1d(v[i][0], v[i][1], kind='linear', bounds_error=False, fill_value=0.0)
-            Z[:,i] = f(Y[:,i] + X[:,i]/l1*1000.0)
-            #Z[:,i] = f(Y[:,i])
+            #Z[:,i] = f(Y[:,i] + X[:,i]/l1*1000.0)
+            Z[:,i] = f(Y[:,i])
         # sort data according rising x0
         X2 = X.copy()
         Y2 = Y.copy()
@@ -612,6 +623,26 @@ class DesignerMainWindow(QMainWindow):
             X2[:,ix0[i]] = X[:,i]
             Y2[:,ix0[i]] = Y[:,i]
             Z2[:,ix0[i]] = Z[:,i]
+        # debug plot
+        if int(self.comboBox.currentIndex()) == 6:
+            self.clearPicture()
+            axes.contour(X2, Y2, Z2)
+            axes.grid(True)
+            axes.set_title('Calculated data')
+            self.mplWidget.canvas.draw()
+            return
+        # reduce regular divergence
+        for i in range(nx-1) :
+            f = interp1d(v[i][0], v[i][1], kind='linear', bounds_error=False, fill_value=0.0)
+            Z2[:,ix0[i]] = f(Y[:,ix0[i]] + X[:,ix0[i]]/l1*1000.0)
+        # debug plot
+        if int(self.comboBox.currentIndex()) == 7:
+            self.clearPicture()
+            axes.contour(X2, Y2, Z2)
+            axes.grid(True)
+            axes.set_title('Regular divergence reduced')
+            self.mplWidget.canvas.draw()
+            return
         # calculate NxN array
         X1 = np.zeros((N, N), dtype=np.float64)
         Y1 = np.zeros((N, N), dtype=np.float64)
@@ -799,24 +830,16 @@ class DesignerMainWindow(QMainWindow):
         # convert signal to microAmperes
         y = y/R*1.0e6
         # signal region
-        index = np.arange(len(y))
-        r = self.readParameter(0, "range", ())
-        try:
-            index = np.arange(r[0],r[1])
-        except:
-            pass
-        r = self.readParameter(row, "range", ())
-        try:
-            index = np.arange(r[0],r[1])
-        except:
-            pass
+        r0 = self.readParameter(0, "range", (0, len(y)))
+        r = self.readParameter(row, "range", r0)
+        index = np.arange(r[0],r[1])
         # scale
         sc = self.readParameter(row, "scale", 1.0, float)
         # ndh
         ndh = self.readParameter(row, "ndh", 0.0, float)
         # x' in milliRadians
-        x = (ndh + sc*u) / l2 * 1000.0
-        return (x, y, index)
+        xsub = (ndh - sc*u) / l2 * 1000.0
+        return (xsub, y, index)
 
     def plotProcessed(self):
         """Plots processed signals"""
@@ -856,7 +879,7 @@ class DesignerMainWindow(QMainWindow):
             # plot processed signal
             axes.plot(x, y, label='p'+str(row))
             # highlight signal region
-            axes.plot(x[index], y[index], label='r'+str(row))
+            axes.plot(x[index], y[index], label='range'+str(row))
             print('Signal %d'%row)
             self.readParameter(row, "smooth", 1, int, True)
             self.readParameter(row, "offset", 0.0, float, True)
