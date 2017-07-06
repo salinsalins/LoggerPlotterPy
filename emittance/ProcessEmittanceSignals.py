@@ -433,17 +433,15 @@ class DesignerMainWindow(QMainWindow):
             v = l2/l1*params[i]['x0'] + params[i]['scale']*x[index]
             params[i]['ndh'] = v
             #print('ndh %f'%v)
-        # save processed to member variable
-        self.paramsAuto = params
         # exec init script
         self.execInitScript()
         # X00 and ndh calculation
         x00 = np.zeros(nx-1)
         l1 = self.readParameter(0, "l1", 213.0, float)
         l2 = self.readParameter(0, "l2", 200.0, float)
-        np = 0
+        npt = 0
         sp = 0.0
-        nm = 0
+        nmt = 0
         sm = 0.0
         for i in range(1, nx) :
             u,y,index = self.readSignal(i)
@@ -455,30 +453,37 @@ class DesignerMainWindow(QMainWindow):
             if i > 1:
                 dx = x00[i-1] - x00[i-2]
             if dx > 0.0:
-                np += 1
+                npt += 1
                 sp += dx
             if dx < 0.0:
-                nm += 1
+                nmt += 1
                 sm += dx
             print('%d N=%d u=%f s=%f X0=%f DX=%f'%(i, j, x[j], s, x00[i-1], dx))
-        x0 = x00.copy()
+        x01 = x00.copy()
         h = x00.copy()*0.0
-        for i in range(1, nx) :
+        for i in range(1, nx-1) :
             dx = x00[i] - x00[i-1]
-            if np > nm :
-                x0[i] = x0[i-1] + sp/np
+            if npt > nmt :
+                x01[i] = x01[i-1] + sp/npt
                 if dx > 0.0:
                     h[i] = h[i-1]
                 else:
                     h[i] = h[i-1] + 10.0
             else:
-                x0[i] = x0[i-1] + sm/nm
+                x01[i] = x01[i-1] + sm/nmt
                 if dx < 0.0:
                     h[i] = h[i-1]
                 else:
                     h[i] = h[i-1] - 10.0
-        #print(x0)
-        #print(h)
+        x01 = x01 - np.average(x01)
+        j = int(np.argmin(np.abs(x01)))
+        h = h - h[j]
+        for i in range(1, nx) :
+            params[i]['x0'] = x01[i-1] 
+            params[i]['ndh'] = h[i-1]
+        # save processed to member variable
+        self.paramsAuto = params
+        print('Auto parameters has been calculated')
         return True
                 
     def readParameter(self, row, name, default=None, dtype=None, info=False, select='manual'):
@@ -783,7 +788,7 @@ class DesignerMainWindow(QMainWindow):
                 pass
         # sort in x0 increasing order
         ix0 = np.argsort(x0)
-        print(ix0)
+        #print(ix0)
         x0s = x0[ix0]
         profileint = profileint[ix0]
         profilemax = profilemax[ix0]
@@ -876,7 +881,9 @@ class DesignerMainWindow(QMainWindow):
             X2[:,ix0[i]] = X[:,i]
             Y2[:,ix0[i]] = Y[:,i]
             Z2[:,ix0[i]] = Z[:,i]
-        # debug plot
+        # remove negative data
+        Z2[Z2 < 0.0] = 0.0
+        # debug plot 1
         if int(self.comboBox.currentIndex()) == 6:
             self.clearPicture()
             axes.contour(X2, Y2, Z2)
@@ -888,6 +895,8 @@ class DesignerMainWindow(QMainWindow):
         for i in range(nx-1) :
             f = interp1d(v[i][0], v[i][1], kind='linear', bounds_error=False, fill_value=0.0)
             Z2[:,ix0[i]] = f(Y[:,ix0[i]] + X[:,ix0[i]]/l1*1000.0)
+        # remove negative data
+        Z2[Z2 < 0.0] = 0.0
         # debug plot
         if int(self.comboBox.currentIndex()) == 7:
             self.clearPicture()
@@ -910,6 +919,14 @@ class DesignerMainWindow(QMainWindow):
             Z1[i,:] = f(X1[i,:])
         # remove negative currents
         Z1[Z1 < 0.0] = 0.0
+        # debug plot
+        if int(self.comboBox.currentIndex()) == 9:
+            self.clearPicture()
+            axes.contour(X1, Y1, Z1)
+            axes.grid(True)
+            axes.set_title('N x N calculated data')
+            self.mplWidget.canvas.draw()
+            return
         # return regular divergence back
         for i in range(N) :
             #Z1[:,i] = np.interp(Y1[:,i] - X1[:,i]/l1*1000.0, Y1[:,i], Z1[:,i])
@@ -943,6 +960,7 @@ class DesignerMainWindow(QMainWindow):
         c=2.9979e8       # [m/s] speed of light
         #U=32.7*1000.0   # [V] beam energy
         U = self.readParameter(0, 'energy', 32000.0, float)
+        printl('Beam energy %f'%U)
         beta = np.sqrt(2.0*q*U/m)/c
         # RMS Emittance
         zt = np.sum(Z1)

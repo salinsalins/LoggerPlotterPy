@@ -481,6 +481,16 @@
           <string>Scan voltage range</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string>Debug Contour 3</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Debug Contour 4</string>
+         </property>
+        </item>
        </widget>
       </item>
      </layout>
