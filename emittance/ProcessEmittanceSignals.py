@@ -60,10 +60,13 @@ class DesignerMainWindow(QMainWindow):
         self.pushButton_4.clicked.connect(self.processFolder)
         self.pushButton_5.clicked.connect(self.plotXsub)
         self.pushButton_6.clicked.connect(self.calculateEmittance)
+        self.pushButton_7.clicked.connect(self.erasePicture)
+        self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         # variables definition
         self.data = None
         self.paramsAuto = None
         self.fleNames = []
+        self.folderName = ''
         # restore settings from default location
         self.restoreSettings()
         # read data files
@@ -81,77 +84,43 @@ class DesignerMainWindow(QMainWindow):
         dataFolder = fileOpenDialog.getExistingDirectory()
         # if a dataFolder is selected
         if dataFolder:
-            # update the lineEdit text with the selected filename
-            self.lineEdit.setText(dataFolder)
+            print(self.folderName)
+            print(dataFolder)
+            if self.folderName == dataFolder:
+                return
             # parse selected folder
             self.parseFolder(dataFolder)
             # restore local settings
-            if not self.restoreSettings(folder=dataFolder):
+            if not self.restoreSettings(folder=dataFolder, local=True):
                 self.processFolder()
- 
-    def parseFolder(self, folder, mask='*.isf'):
-        self.listWidget.clear()
-        # read data
-        self.data, self.fileNames = readTekFiles(folder, mask)
-        # number of files
-        nx = len(self.fileNames)
-        if nx <= 0 :
-            return
-        # short file names list
-        names = [name.replace(folder, '')[1:] for name in self.fileNames]
-        for i in range(nx):
-            names[i] = '%3d - %s'%(i,names[i])
-        # fill tableWidget
-        #self.tableWidget.setRowCount(nx)
-        #self.tableWidget.setColumnCount(2)
-        #self.tableWidget.setHorizontalHeaderLabels(('File','Parameters'))
-        #self.tableWidget.setVerticalHeaderLabels([str(i) for i in range(nx)])
-        #for i in range(nx):
-        #    self.tableWidget.setItem(i, 0, QTableWidgetItem(names[i]))
-        #self.tableWidget.resizeColumnToContents(0)
-        # fill listWidget
-        self.listWidget.addItems(names)
-        printl('', fileName = os.path.join(str(folder), _logFile))
     
+    def selectionChanged(self, i):
+        #print("Items in the list are :")
+        #for count in range(self.comboBox_2.count()):
+        #    print(self.comboBox_2.itemText(count))
+        print("Current index",i,"selection changed ",self.comboBox_2.currentText())
+        # static variables
+        if i < 0:
+            return
+        if self.folderName != self.comboBox_2.currentText():
+            #self.folderName = self.comboBox_2.currentText()
+            print('New folder %s'%self.folderName)
+ 
+    def onQuit(self) :
+        # save settings to folder
+        self.saveSettings(folder = self.lineEdit.text())
+        # save global settings
+        self.saveSettings()
+
     def clearPicture(self, force=False):
-        if force | self.checkBox.isChecked():
+        if force or self.checkBox.isChecked():
             # clear the axes
             self.mplWidget.canvas.ax.clear()
         
-    def plotRaw(self):
-        self.clearPicture()
-        if self.data is None :
-            return
-        # draw chart
-        ns = self.spinBox.value()
-        axes = self.mplWidget.canvas.ax
-        #table = self.tableWidget
-        #indexes = table.selectedIndexes()
-        indexes = self.listWidget.selectedIndexes()
-        y = self.data[0, :]
-        ix = self.spinBox_2.value()
-        if ix >= 0:
-            x = self.data[ix, :].copy()
-            smooth(x, self.spinBox.value())
-            xTitle = 'Scan Voltage, V'
-        else:
-            x = np.arange(len(y))
-            xTitle = 'Point index'
-        for i in indexes :
-            row = i.row()
-            y = self.data[row, :].copy()
-            smooth(y, ns)
-            z = self.readZero(row) + self.readParameter(row, 'offset')
-            axes.plot(x, y, label='raw'+str(row))
-            axes.plot(x, z, label='zero'+str(row))
-        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
-        axes.grid(True)
-        axes.set_title('Signals from Tektronix oscilloscope')
-        axes.set_xlabel(xTitle)
-        axes.set_ylabel('Signal Voltage, V')
-        axes.legend(loc='best') 
+    def erasePicture(self):
+        self.mplWidget.canvas.ax.clear()
         self.mplWidget.canvas.draw()
-
+        
     def removeInersections(self, y1, y2, index):
         # calculate relative first derivatives
         d1 = np.diff(y1)
@@ -172,6 +141,28 @@ class DesignerMainWindow(QMainWindow):
         #print('Filtered regions %s'%str(regout))
         return regout
 
+    def parseFolder(self, folder, mask='*.isf'):
+        # read data
+        self.data, self.fileNames = readTekFiles(folder, mask)
+        # number of files
+        nx = len(self.fileNames)
+        if nx <= 0 :
+            return
+        self.listWidget.clear()
+        self.folderName = folder
+        printl('Data in folder %s'%folder, fileName = os.path.join(str(folder), _logFile))
+        # short file names list
+        names = [name.replace(folder, '')[1:] for name in self.fileNames]
+        for i in range(nx):
+            names[i] = '%3d - %s'%(i,names[i])
+        # fill listWidget
+        self.listWidget.addItems(names)
+        # update the lineEdit text with the selected filename
+        self.lineEdit.setText(folder)
+        # add item to history  
+        self.comboBox_2.insertItem(-1, folder)
+        self.comboBox_2.setCurrentIndex(0)
+    
     def processFolder(self):
         def plot(*args, **kwargs):
             axes = self.mplWidget.canvas.ax
@@ -444,8 +435,243 @@ class DesignerMainWindow(QMainWindow):
             #print('ndh %f'%v)
         # save processed to member variable
         self.paramsAuto = params
+        # X0 and ndh calculation
+        dx = np.zeros(nx-2)
+        for i in range(1, nx) :
+            y0 = data[i,:].copy()
+            smooth(y0, params[i]['smooth'])
+            z = zero[i].copy() + params[i]['offset']
+            smooth(z, params[i]['smooth']*2)
+            y = y0 - z
+            r = self.readParameter(i, "range", (0,ny))
+            index = np.arange(r[0],r[1])
+            #sc = self.readParameter(i, "scale", 1.0, float)
+            #ndh = self.readParameter(i, "ndh", 0.0, float)
+            j = np.argmin(y[index]) + r[0]
+            #ym = np.min(y[index])
+            l1 = self.readParameter(0, "l1", 213.0, float)
+            l2 = self.readParameter(0, "l2", 200.0, float)
+            print('%d %d %f X=%f '%(i, j, x[j], sc[i-1]*x[j]/l2*l1))
         return True
                 
+    def readParameter(self, row, name, default=None, dtype=None, info=False, select='manual'):
+        if name == 'zero':
+            return self.readZero(row)
+        v = default
+        t = 'default'
+        vd = v
+        try:
+            v = self.paramsAuto[row][name]
+            t = 'auto'
+        except:
+            pass
+        va = v
+        try:
+            v = self.paramsManual[row][name]
+            t = 'manual'
+        except:
+            pass
+        vm = v
+        if dtype is not None :
+            v = dtype(v)
+            va = dtype(va)
+            vm = dtype(vm)
+            vd = dtype(vd)
+        if info :
+            print('row:%d name:%s %s value:%s default:%s auto:%s manual:%s'%(row, name, t, str(v), str(vd), str(va), str(vm)))
+        if select == 'manual':
+            return vm
+        if select == 'auto':
+            return va
+        if select == 'default':
+            return vd
+        return v
+
+    def readZero(self, row):
+        if self.data is None:
+            return None
+        try:
+            z = self.paramsAuto[row]['zero'].copy()
+        except:
+            z = np.zeros_like(self.data[0])
+        # manual zero line
+        try:
+            # manual regions
+            zr = self.paramsManual[row]['zero']
+            for zi in zr:
+                try:
+                    z0 = self.data[zi[0], :].copy()
+                    ns0 = self.readParameter(zi[0], "smooth", 1, int)
+                    of0 = self.readParameter(zi[0], "offset", 0.0, float)
+                    smooth(z0, 2*ns0)
+                    z[zi[1]:zi[2]] = z0[zi[1]:zi[2]] + of0
+                except:
+                    pass
+        except:
+            pass
+        return z
+
+    def readSignal(self, row):
+        if self.data is None :
+            return
+        #print('Processing %d'%row)
+        # scan voltage
+        u = self.data[0, :].copy()
+        # smooth
+        ns = self.readParameter(0, "smooth", 1, int)
+        smooth(u, ns)
+        # parameters
+        # scanner base
+        l2 = self.readParameter(0, "l2", 200.0, float)
+        # load resistor
+        R = self.readParameter(0, "R", 2.0e5, float)
+        # signal
+        y = self.data[row, :].copy()
+        # smooth
+        ns = self.readParameter(row, "smooth", 1, int)
+        # offset
+        of = self.readParameter(row, "offset", 0.0, float)
+        # zero line
+        z = self.readZero(row)
+        # smooth
+        smooth(y, ns)
+        smooth(z, 2*ns)
+        # subtract offset and zero
+        y = y - z - of
+        # convert signal to microAmperes
+        y = y/R*1.0e6
+        # signal region
+        r0 = self.readParameter(0, "range", (0, len(y)))
+        r = self.readParameter(row, "range", r0)
+        index = np.arange(r[0],r[1])
+        # scale
+        sc = self.readParameter(row, "scale", 1.0, float)
+        # ndh
+        ndh = self.readParameter(row, "ndh", 0.0, float)
+        # x' in milliRadians
+        xsub = (ndh - sc*u) / l2 * 1000.0
+        return (xsub, y, index)
+
+    def plotRaw(self):
+        self.clearPicture()
+        if self.data is None :
+            return
+        # draw chart
+        ns = self.spinBox.value()
+        axes = self.mplWidget.canvas.ax
+        #table = self.tableWidget
+        #indexes = table.selectedIndexes()
+        indexes = self.listWidget.selectedIndexes()
+        y = self.data[0, :]
+        ix = self.spinBox_2.value()
+        if ix >= 0:
+            x = self.data[ix, :].copy()
+            smooth(x, self.spinBox.value())
+            xTitle = 'Scan Voltage, V'
+        else:
+            x = np.arange(len(y))
+            xTitle = 'Point index'
+        for i in indexes :
+            row = i.row()
+            y = self.data[row, :].copy()
+            smooth(y, ns)
+            z = self.readZero(row) + self.readParameter(row, 'offset')
+            axes.plot(x, y, label='raw'+str(row))
+            axes.plot(x, z, label='zero'+str(row))
+        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
+        axes.grid(True)
+        axes.set_title('Signals from Tektronix oscilloscope')
+        axes.set_xlabel(xTitle)
+        axes.set_ylabel('Signal Voltage, V')
+        axes.legend(loc='best') 
+        self.mplWidget.canvas.draw()
+
+    def plotProcessed(self):
+        """Plots processed signals"""
+        if self.data is None :
+            return
+        self.execInitScript()
+        axes = self.mplWidget.canvas.ax
+        # clear the Axes
+        self.clearPicture()
+        # draw chart
+        #table = self.tableWidget
+        #indexes = table.selectedIndexes()
+        indexes = self.listWidget.selectedIndexes()
+        y = self.data[0, :]
+        ix = self.spinBox_2.value()
+        if ix >= 0:
+            x = self.data[ix, :].copy()
+            ns = 1
+            try:
+                ns = self.readParameter(ix, "smooth", 1, int)
+            except:
+                pass
+            try:
+                ns = int(self.spinBox.value())
+            except:
+                pass
+            smooth(x, ns)
+            xTitle = 'Scan Voltage, V'
+        else:
+            x = np.arange(len(y))
+            xTitle = 'Point index'
+        for i in indexes :
+            row = i.row()
+            u,y,index = self.readSignal(row)
+            # convert to volts
+            y = y * self.readParameter(0, "R", 2.0e5, float) / 1.0e6
+            # plot processed signal
+            axes.plot(x, y, label='p'+str(row))
+            # highlight signal region
+            axes.plot(x[index], y[index], label='range'+str(row))
+            print('Signal %d'%row)
+            self.readParameter(row, "smooth", 1, int, True)
+            self.readParameter(row, "offset", 0.0, float, True)
+            self.readParameter(row, "scale", 0.0, float, True)
+            self.readParameter(row, "zero", (), None, True)
+            self.readParameter(row, "range", (), None, True)
+            self.readParameter(row, "x0", 0.0, float, True)
+            self.readParameter(row, "ndh", 0.0, float, True)
+        # plot zero line
+        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
+        # decorate the plot
+        axes.grid(True)
+        axes.set_title('Processed Signals')
+        axes.set_xlabel(xTitle)
+        axes.set_ylabel('Voltage, V')
+        axes.legend(loc='best') 
+        # force an image redraw
+        self.mplWidget.canvas.draw()
+
+    def plotXsub(self):
+        """Plots processed signals vs Xsub"""
+        if self.data is None :
+            return
+        self.execInitScript()
+        axes = self.mplWidget.canvas.ax
+        self.clearPicture()
+        # draw chart
+        indexes = self.listWidget.selectedIndexes()
+        xTitle = 'X\', milliRadians'
+        for i in indexes :
+            row = i.row()
+            x,y,index = self.readSignal(row)
+            xx = x[index]
+            yy = -1.0*y[index]
+            axes.plot(xx, yy, label='jet '+str(row))
+            #axes.plot(xx, gaussfit(xx, yy), '--', label='gauss '+str(row))
+            pass
+        # plot zero line
+        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
+        # decorate the plot
+        axes.grid(True)
+        axes.set_title('Elementary jet profile')
+        axes.set_xlabel(xTitle)
+        axes.set_ylabel('Signal, mkA')
+        axes.legend(loc='best') 
+        self.mplWidget.canvas.draw()
+
     def calculateEmittance(self):
         def plot(*args, **kwargs):
             axes = self.mplWidget.canvas.ax
@@ -511,13 +737,13 @@ class DesignerMainWindow(QMainWindow):
         profileint = np.zeros(nx-1)
         for i in range(1, nx) :
             try:
-                x,y,index = self.processSignal(i)           # x - [milliRadians] y - [mkA]
+                x,y,index = self.readSignal(i)           # x - [milliRadians] y - [mkA]
                 yy = y[index]
                 xx = x[index]
                 h = np.where(np.diff(xx) != 0.0)[0]
                 xx = xx[h]
                 yy = yy[h]
-                profilemax[i-1] = -1.0 * np.min(yy)         # [mkA]
+                profilemax[i-1] = -1.0 * np.min(yy)      # [mkA]
                 k = 1.0
                 if xx[0] < xx[-1]:
                     k = -1.0
@@ -596,7 +822,7 @@ class DesignerMainWindow(QMainWindow):
         xsmax = -1e99
         for i in range(1, nx) :
             X[:,i-1] = self.readParameter(i, 'x0', 0.0, float) - xavg
-            x,y,index = self.processSignal(i)           # x in [milliRadians]; y < 0.0 in [mkA]
+            x,y,index = self.readSignal(i)           # x in [milliRadians]; y < 0.0 in [mkA]
             # center the plot over X
             x = x - xavg/l1 * 1000.0
             v.append((x[index], -y[index]))
@@ -753,187 +979,7 @@ class DesignerMainWindow(QMainWindow):
             axes.set_ylabel('X\', milliRadians')
             self.mplWidget.canvas.draw()
         
-    def readParameter(self, row, name, default=None, dtype=None, debug=False):
-        if name == 'zero':
-            return self.readZero(row)
-        v = default
-        t = 'default'
-        try:
-            v = self.paramsAuto[row][name]
-            t = 'auto'
-        except:
-            pass
-        try:
-            #s = eval(str(self.tableWidget.item(row,1).text()))
-            #v = s[name]
-            v = self.paramsManual[row][name]
-            t = 'manual'
-        except:
-            pass
-        if dtype is not None :
-            v = dtype(v)
-        if debug :
-            print('row:%d name:%s %s value:%s'%(row, name, t, str(v)))
-        return v
-
-    def readZero(self, row):
-        if self.data is None:
-            return None
-        try:
-            z = self.paramsAuto[row]['zero'].copy()
-        except:
-            z = np.zeros_like(self.data[0])
-        # manual zero line
-        try:
-            # manual regions
-            zr = self.paramsManual[row]['zero']
-            for zi in zr:
-                try:
-                    z0 = self.data[zi[0], :].copy()
-                    ns0 = self.readParameter(zi[0], "smooth", 1, int)
-                    of0 = self.readParameter(zi[0], "offset", 0.0, float)
-                    smooth(z0, 2*ns0)
-                    z[zi[1]:zi[2]] = z0[zi[1]:zi[2]] + of0
-                except:
-                    pass
-        except:
-            pass
-        return z
-
-    def processSignal(self, row):
-        if self.data is None :
-            return
-        #print('Processing %d'%row)
-        # scan voltage
-        u = self.data[0, :].copy()
-        # smooth
-        ns = self.readParameter(0, "smooth", 1, int)
-        smooth(u, ns)
-        # parameters
-        # scanner base
-        l2 = self.readParameter(0, "l2", 200.0, float)
-        # load resistor
-        R = self.readParameter(0, "R", 2.0e5, float)
-        # signal
-        y = self.data[row, :].copy()
-        # smooth
-        ns = self.readParameter(row, "smooth", 1, int)
-        # offset
-        of = self.readParameter(row, "offset", 0.0, float)
-        # zero line
-        z = self.readZero(row)
-        # smooth
-        smooth(y, ns)
-        smooth(z, 2*ns)
-        # subtract offset and zero
-        y = y - z - of
-        # convert signal to microAmperes
-        y = y/R*1.0e6
-        # signal region
-        r0 = self.readParameter(0, "range", (0, len(y)))
-        r = self.readParameter(row, "range", r0)
-        index = np.arange(r[0],r[1])
-        # scale
-        sc = self.readParameter(row, "scale", 1.0, float)
-        # ndh
-        ndh = self.readParameter(row, "ndh", 0.0, float)
-        # x' in milliRadians
-        xsub = (ndh - sc*u) / l2 * 1000.0
-        return (xsub, y, index)
-
-    def plotProcessed(self):
-        """Plots processed signals"""
-        if self.data is None :
-            return
-        self.execInitScript()
-        axes = self.mplWidget.canvas.ax
-        # clear the Axes
-        self.clearPicture()
-        # draw chart
-        #table = self.tableWidget
-        #indexes = table.selectedIndexes()
-        indexes = self.listWidget.selectedIndexes()
-        y = self.data[0, :]
-        ix = self.spinBox_2.value()
-        if ix >= 0:
-            x = self.data[ix, :].copy()
-            ns = 1
-            try:
-                ns = self.readParameter(ix, "smooth", 1, int)
-            except:
-                pass
-            try:
-                ns = int(self.spinBox.value())
-            except:
-                pass
-            smooth(x, ns)
-            xTitle = 'Scan Voltage, V'
-        else:
-            x = np.arange(len(y))
-            xTitle = 'Point index'
-        for i in indexes :
-            row = i.row()
-            u,y,index = self.processSignal(row)
-            # convert to volts
-            y = y * self.readParameter(0, "R", 2.0e5, float) / 1.0e6
-            # plot processed signal
-            axes.plot(x, y, label='p'+str(row))
-            # highlight signal region
-            axes.plot(x[index], y[index], label='range'+str(row))
-            print('Signal %d'%row)
-            self.readParameter(row, "smooth", 1, int, True)
-            self.readParameter(row, "offset", 0.0, float, True)
-            self.readParameter(row, "scale", 0.0, float, True)
-            self.readParameter(row, "zero", (), None, True)
-            self.readParameter(row, "range", (), None, True)
-            self.readParameter(row, "x0", 0.0, float, True)
-            self.readParameter(row, "ndh", 0.0, float, True)
-        # plot zero line
-        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
-        # decorate the plot
-        axes.grid(True)
-        axes.set_title('Processed Signals')
-        axes.set_xlabel(xTitle)
-        axes.set_ylabel('Voltage, V')
-        axes.legend(loc='best') 
-        # force an image redraw
-        self.mplWidget.canvas.draw()
-
-    def plotXsub(self):
-        """Plots processed signals vs Xsub"""
-        if self.data is None :
-            return
-        self.execInitScript()
-        axes = self.mplWidget.canvas.ax
-        self.clearPicture()
-        # draw chart
-        indexes = self.listWidget.selectedIndexes()
-        xTitle = 'X\', milliRadians'
-        for i in indexes :
-            row = i.row()
-            x,y,index = self.processSignal(row)
-            xx = x[index]
-            yy = -1.0*y[index]
-            axes.plot(xx, yy, label='jet '+str(row))
-            #axes.plot(xx, gaussfit(xx, yy), '--', label='gauss '+str(row))
-            pass
-        # plot zero line
-        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
-        # decorate the plot
-        axes.grid(True)
-        axes.set_title('Elementary jet profile')
-        axes.set_xlabel(xTitle)
-        axes.set_ylabel('Signal, mkA')
-        axes.legend(loc='best') 
-        self.mplWidget.canvas.draw()
-
-    def onQuit(self) :
-        # save settings to folder
-        self.saveSettings(folder = self.lineEdit.text())
-        # save global settings
-        self.saveSettings()
-
-    def saveSettings(self, folder='', fileName=_settingsFile) :
+    def saveSettings(self, folder='', fileName=_settingsFile, local=False) :
         fullName = os.path.join(str(folder), fileName)
         dbase = shelve.open(fullName, flag='n')
         # data folder
@@ -944,6 +990,10 @@ class DesignerMainWindow(QMainWindow):
         dbase['scan'] = int(self.spinBox_2.value())
         # result combo
         dbase['result'] = int(self.comboBox.currentIndex())
+        comboitems = [self.comboBox_2.itemText(count) for count in range(self.comboBox_2.count())]
+        if len(comboitems) > 10 :
+            comboitems = comboitems[-10:]
+        dbase['history'] = comboitems
         ## save table
         #table = self.tableWidget
         #n = table.rowCount()
@@ -964,13 +1014,18 @@ class DesignerMainWindow(QMainWindow):
         print('Configuration saved to %s'%fullName)
         return True
    
-    def restoreSettings(self, folder='', fileName=_settingsFile) :
+    def restoreSettings(self, folder='', fileName=_settingsFile, local=False) :
         self.execInitScript(folder)
         try :
             fullName = os.path.join(str(folder), fileName)
             dbase = shelve.open(fullName)
-            # data folder
-            self.lineEdit.setText(dbase['folder'])
+            # global settings
+            if not local :
+                # data folder
+                self.lineEdit.setText(dbase['folder'])
+                # history
+                self.comboBox_2.clear()
+                self.comboBox_2.addItems(dbase['history'])
             # default smooth
             self.spinBox.setValue(dbase['smooth'])
             # result combo
