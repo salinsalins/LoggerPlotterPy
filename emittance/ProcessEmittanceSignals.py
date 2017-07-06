@@ -404,7 +404,7 @@ class DesignerMainWindow(QMainWindow):
         for i in range(1,nx) :
             params[i]['scale'] = sc[i-1] 
         # common parameters
-        print('Set default parameters')
+        print('Set default parameters ...')
 # Parameters of Measurements
 #R  = 2.0e5        ; Ohm    Resistor for beamlet scanner FC
 #d1 = 0.4          ; mm    Analyzer hole diameter
@@ -435,23 +435,50 @@ class DesignerMainWindow(QMainWindow):
             #print('ndh %f'%v)
         # save processed to member variable
         self.paramsAuto = params
-        # X0 and ndh calculation
-        dx = np.zeros(nx-2)
+        # exec init script
+        self.execInitScript()
+        # X00 and ndh calculation
+        x00 = np.zeros(nx-1)
+        l1 = self.readParameter(0, "l1", 213.0, float)
+        l2 = self.readParameter(0, "l2", 200.0, float)
+        np = 0
+        sp = 0.0
+        nm = 0
+        sm = 0.0
         for i in range(1, nx) :
-            y0 = data[i,:].copy()
-            smooth(y0, params[i]['smooth'])
-            z = zero[i].copy() + params[i]['offset']
-            smooth(z, params[i]['smooth']*2)
-            y = y0 - z
-            r = self.readParameter(i, "range", (0,ny))
-            index = np.arange(r[0],r[1])
-            #sc = self.readParameter(i, "scale", 1.0, float)
-            #ndh = self.readParameter(i, "ndh", 0.0, float)
-            j = np.argmin(y[index]) + r[0]
+            u,y,index = self.readSignal(i)
+            j = np.argmin(y[index]) + index[0]
             #ym = np.min(y[index])
-            l1 = self.readParameter(0, "l1", 213.0, float)
-            l2 = self.readParameter(0, "l2", 200.0, float)
-            print('%d %d %f X=%f '%(i, j, x[j], sc[i-1]*x[j]/l2*l1))
+            s = self.readParameter(i, "scale", 2.0, float)
+            x00[i-1] = -s*x[j]*l1/l2
+            dx = 0.0
+            if i > 1:
+                dx = x00[i-1] - x00[i-2]
+            if dx > 0.0:
+                np += 1
+                sp += dx
+            if dx < 0.0:
+                nm += 1
+                sm += dx
+            print('%d N=%d u=%f s=%f X0=%f DX=%f'%(i, j, x[j], s, x00[i-1], dx))
+        x0 = x00.copy()
+        h = x00.copy()*0.0
+        for i in range(1, nx) :
+            dx = x00[i] - x00[i-1]
+            if np > nm :
+                x0[i] = x0[i-1] + sp/np
+                if dx > 0.0:
+                    h[i] = h[i-1]
+                else:
+                    h[i] = h[i-1] + 10.0
+            else:
+                x0[i] = x0[i-1] + sm/nm
+                if dx < 0.0:
+                    h[i] = h[i-1]
+                else:
+                    h[i] = h[i-1] - 10.0
+        #print(x0)
+        #print(h)
         return True
                 
     def readParameter(self, row, name, default=None, dtype=None, info=False, select='manual'):
