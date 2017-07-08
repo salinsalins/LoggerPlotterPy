@@ -194,24 +194,24 @@ class DesignerMainWindow(QMainWindow):
         folder = self.lineEdit.text()
         printl('Processing folder %s'%folder)
         print('Reading data ...')
+        # read data array
         data,files  = readTekFiles(folder)
+        # number of files
         nx = len(files)
         if nx <= 0 :
             print('Nothing to process')
             return False
         print('%d files fond'%nx)
-        # default smooth by
+        # Y size of data
+        ny = len(data[0])
+        # smooth
         ns = 1
         try:
             ns = int(self.spinBox.value())
         except:
             pass
-        # determine Y size of data for one scan - ny
-        y = isfread(files[0])[1]
-        ny = len(y)
         # default parameters array
         params = [{'smooth':ns, 'offset':0.0, 'zero':np.zeros(ny), 'scale': 1.95} for i in range(nx)]
-        # read data array
         # define arrays
         zero  = np.zeros((nx, ny), dtype=np.float64)
         count = np.zeros((nx, ny), dtype=np.float64)
@@ -241,8 +241,8 @@ class DesignerMainWindow(QMainWindow):
         xi = np.arange(xr[0], xr[1])
         params[0]['range'] = xr
         print('Using %s region of scan voltage'%str(xr))
+        # debug draw
         if int(self.comboBox.currentIndex()) == 8:
-            # draw
             cls()
             plot(ix, x, label='Scan voltage')
             plot(ix[xi], x[xi], '.')
@@ -353,7 +353,6 @@ class DesignerMainWindow(QMainWindow):
         for i in range(1, nx) :
             #print('Channel %d'%i)
             y0 = data[i,:].copy()[xi]
-            smooth(y0, params[i]['smooth'])
             z = zero[i].copy()[xi] + params[i]['offset']
             smooth(z, params[i]['smooth']*2)
             y = y0 - z
