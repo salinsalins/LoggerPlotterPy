@@ -38,7 +38,7 @@ from printl import printl
 from gaussfit import gaussfit 
 
 _progName = 'Emittance'
-_progVersion = '_1_0'
+_progVersion = '_1_1'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -487,9 +487,13 @@ class DesignerMainWindow(QMainWindow):
             print('%d X0 %f [mm] ndh=%f [mm]'%(i,params[i]['x0'],params[i]['ndh']))
             #params[i]['x0'] = x01[i-1] 
         # debug draw 12
+        x0 = x01.copy()
+        for i in range(1, nx) :
+            x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
         if int(self.comboBox.currentIndex()) == 12:
             cls()
-            plot(x01, label='X0'+str(i))
+            plot(x01-x01[k], 'o-', label='X0 calculated')
+            plot(x0-x0[k], 'd-', label='X0 auto')
             draw()
         
         # save processed to member variable
