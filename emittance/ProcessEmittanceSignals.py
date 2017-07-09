@@ -286,19 +286,17 @@ class DesignerMainWindow(QMainWindow):
             i2 = np.where(y2 > (y2max - 0.1*dy))[0]
             o2 = np.average(y2[i2])
             #print('Offset 2 %f'%o2)
-            # debug draw
+            # debug draw 9
             if int(self.comboBox.currentIndex()) == 9 :
-                self.stopFlag = True
-                cls()
-                plot(y1,'r', label='r'+str(i))
-                zoplot(o1,'r')
-                plot(y2,'b', label='r'+str(i+1))
-                zoplot(o2,'b')
-                plot(i1, y1[i1], '.')
-                plot(i2, y2[i2], '.')
-                #print('Press continue')
-                #while self.stopFlag :
-                #    pass
+                indexes = self.listWidget.selectedIndexes()
+                if (len(indexes) > 0) and (i == indexes[0].row()):
+                    cls()
+                    plot(y1,'r', label='r'+str(i))
+                    zoplot(o1,'r')
+                    plot(y2,'b', label='r'+str(i+1))
+                    zoplot(o2,'b')
+                    plot(i1, y1[i1], '.')
+                    plot(i2, y2[i2], '.')
             # correct y2 and offset2 for calculated offsets
             y2 = y2 - o2 + o1
             offset2 = offset2 + o2 - o1 
@@ -345,15 +343,16 @@ class DesignerMainWindow(QMainWindow):
             # save processed parameters
             params[i+1]['offset'] = offset2
             # plot intermediate results
-            indexes = self.listWidget.selectedIndexes()
-            if len(indexes) > 0:
-                k = indexes[0].row()             
-                cls()
-                plot(ix, data[k,:], label='s'+str(k))
-                z = zero[k].copy() + params[k]['offset']
-                smooth(z, params[k]['smooth']*2)
-                plot(ix, z, label='z'+str(k))
-                pass
+            if int(self.comboBox.currentIndex()) == 10 :
+                indexes = self.listWidget.selectedIndexes()
+                if len(indexes) > 0:
+                    k = indexes[0].row()             
+                    cls()
+                    plot(ix, data[k,:], label='s'+str(k))
+                    z = zero[k].copy() + params[k]['offset']
+                    smooth(z, params[k]['smooth']*2)
+                    plot(ix, z, label='z'+str(k))
+            pass
         # save processed zero line
         for i in range(nx) :
             params[i]['zero'] = zero[i]
@@ -380,28 +379,29 @@ class DesignerMainWindow(QMainWindow):
             if len(ra) >= 2:
                 is2 = np.argmin(y[ra[1][0]:ra[1][1]]) + ra[1][0] + xi[0]
             params[i]['scale'] = 10.0/(x[is2] - x[is1])   # [mm/Volt]
-            print('scale %f'%params[i]['scale'])
+            print('raw scale %f [mm/V]'%params[i]['scale'])
             if np.abs(x[is1]) < np.abs(x[is2]) :
                 index = is1
             else:
                 index = is2
             params[i]['minindex'] = index
             params[i]['minvoltage'] = x[index]
-            print('index=%d %f'%(index,x[index]))
+            print('minindex=%d u=%f [V]'%(index,x[index]))
             di = int(abs(is2 - is1)/2.0)
             ir1 = max([xi[ 0], index - di])
             ir2 = min([xi[-1], index + di])
             params[i]['range'] = [ir1, ir2]
             print('range %s'%str(params[i]['range']))
-            # debug draw
-            if int(self.comboBox.currentIndex()) == 10:
-                cls()
-                plot(xi, y, label='p'+str(i))
-                plot(ix[ir1:ir2], y[ir1 - xi[0]:ir2 - xi[0]], '.', label='range'+str(i))
-                voplot(is1, 'r')
-                voplot(is2, 'b')
-                draw()
-                pass
+            # debug draw 11
+            if int(self.comboBox.currentIndex()) == 11:
+                indexes = self.listWidget.selectedIndexes()
+                if (len(indexes) > 0) and (i == indexes[0].row()):
+                    cls()
+                    plot(xi, y, label='p'+str(i))
+                    plot(ix[ir1:ir2], y[ir1 - xi[0]:ir2 - xi[0]], '.', label='range'+str(i))
+                    voplot(is1, 'r')
+                    voplot(is2, 'b')
+                    draw()
         # filter scales
         sc = np.array([params[i]['scale'] for i in range(1,nx)])
         asc = np.average(sc)
@@ -412,6 +412,7 @@ class DesignerMainWindow(QMainWindow):
         sc[index] = asc1
         for i in range(1,nx) :
             params[i]['scale'] = sc[i-1] 
+            print('%d filtered scale %f [mm/V]'%(i,params[i]['scale']))
 
         # common parameters
         print('Set common parameters ...')
@@ -457,7 +458,7 @@ class DesignerMainWindow(QMainWindow):
                 nmt += 1
                 sm += dx
             print('%3d N=%d u=%f s=%f X0=%f DX=%f'%(i, j, x[j], s, x00[i-1], dx))
-        print('npt=%d %f nmt=%d %f %f'%(npt,sp/npt,nmt,sm/nmt,sp/npt-l1/l2*10.))
+        #print('npt=%d %f nmt=%d %f %f'%(npt,sp/npt,nmt,sm/nmt,sp/npt-l1/l2*10.))
         x01 = x00.copy()
         h = x00.copy()*0.0
         for i in range(1, nx-1) :
@@ -478,8 +479,18 @@ class DesignerMainWindow(QMainWindow):
         k = int(np.argmin(np.abs(x01)))
         h = h - h[k]
         for i in range(1, nx) :
-            params[i]['x0'] = x01[i-1] 
             params[i]['ndh'] = h[i-1]
+            s = self.readParameter(i, "scale", 2.0, float)
+            u = self.readParameter(i, "minvoltage", 0.0, float)
+            x01[i-1] = (h[i-1] - s*u)*l1/l2 
+            params[i]['x0'] = (h[i-1] - s*u)*l1/l2 
+            print('%d X0 %f [mm] ndh=%f [mm]'%(i,params[i]['x0'],params[i]['ndh']))
+            #params[i]['x0'] = x01[i-1] 
+        # debug draw 12
+        if int(self.comboBox.currentIndex()) == 12:
+            cls()
+            plot(x01, label='X0'+str(i))
+            draw()
         
         # save processed to member variable
         self.paramsAuto = params
@@ -575,12 +586,41 @@ class DesignerMainWindow(QMainWindow):
         r = self.readParameter(row, "range", r0)
         index = np.arange(r[0],r[1])
         # scale
-        sc = self.readParameter(row, "scale", 1.0, float)
+        s = self.readParameter(row, "scale", 1.0, float)
         # ndh
         ndh = self.readParameter(row, "ndh", 0.0, float)
         # x' in milliRadians
-        xsub = (ndh - sc*u) / l2 * 1000.0
+        xsub = (ndh - s*u) / l2 * 1000.0
         return (xsub, y, index)
+
+    def plot(self, *args, **kwargs):
+        axes = self.mplWidget.canvas.ax
+        axes.plot(*args, **kwargs)
+        #zoplot()
+        #xlim = axes.get_xlim()
+        #axes.plot(xlim, [0.0,0.0], color='k')
+        #axes.set_xlim(xlim)
+        axes.grid(True)
+        axes.legend(loc='best') 
+        self.mplWidget.canvas.draw()
+
+    def draw(self):
+        self.mplWidget.canvas.draw()
+
+    def zoplot(self, v=0.0, color='k'):
+        axes = self.mplWidget.canvas.ax
+        xlim = axes.get_xlim()
+        axes.plot(xlim, [v, v], color=color)
+        axes.set_xlim(xlim)
+
+    def voplot(self, v=0.0, color='k'):
+        axes = self.mplWidget.canvas.ax
+        ylim = axes.get_ylim()
+        axes.plot([v, v], ylim, color=color)
+        axes.set_ylim(ylim)
+
+    def cls(self):
+        self.clearPicture()
 
     def plotRaw(self):
         self.clearPicture()
@@ -652,28 +692,32 @@ class DesignerMainWindow(QMainWindow):
             # convert to volts
             y = y * self.readParameter(0, "R", 2.0e5, float) / 1.0e6
             # plot processed signal
-            axes.plot(x, y, label='p'+str(row))
+            self.plot(x, y, label='p'+str(row))
             # highlight signal region
-            axes.plot(x[index], y[index], label='range'+str(row))
+            self.plot(x[index], y[index], label='range'+str(row))
             print('Signal %d'%row)
             self.readParameter(row, "smooth", 1, int, True)
             self.readParameter(row, "offset", 0.0, float, True)
             self.readParameter(row, "scale", 0.0, float, True)
             self.readParameter(row, "zero", (), None, True)
-            self.readParameter(row, "range", (), None, True)
+            r = self.readParameter(row, "range", (0,-1), None, True)
             self.readParameter(row, "x0", 0.0, float, True)
             self.readParameter(row, "ndh", 0.0, float, True)
+            mi = self.readParameter(row, "minindex", 0, int, True)
+            mv = self.readParameter(row, "minvoltage", 0.0, float, True)
+            self.zoplot(y[mi])
+            self.voplot(x[mi])
+            self.voplot(x[r[0]])
+            self.voplot(x[r[1]])
         # plot zero line
-        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
-        # decorate the plot
-        axes.grid(True)
+        self.zoplot()
         axes.set_title('Processed Signals')
         axes.set_xlabel(xTitle)
         axes.set_ylabel('Voltage, V')
         axes.legend(loc='best') 
         # force an image redraw
-        self.mplWidget.canvas.draw()
-
+        self.draw()
+ 
     def plotXsub(self):
         """Plots processed signals vs Xsub"""
         if self.data is None :

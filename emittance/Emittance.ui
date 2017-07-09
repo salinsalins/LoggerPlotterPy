@@ -458,27 +458,27 @@
         </property>
         <item>
          <property name="text">
-          <string>Integral profile</string>
+          <string>0 Integral profile</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Maximum profile</string>
+          <string>1 Maximum profile</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Contour plot</string>
+          <string>2 Contour plot</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Color contour plot</string>
+          <string>3 Color contour plot</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Contour levels</string>
+          <string>4 Contour levels</string>
          </property>
         </item>
         <item>
@@ -488,32 +488,37 @@
         </item>
         <item>
          <property name="text">
-          <string>Calculated data</string>
+          <string>6 Calculated data cuntours</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Regular divergence reduced</string>
+          <string>7 Regular divergence reduced</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Scan voltage range</string>
+          <string>8 Scan voltage range</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Debug Contour 3</string>
+          <string>9 Regions and offsets</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Debug Contour 4</string>
+          <string>10 Zero line debug</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Debug Contour 5</string>
+          <string>11 Scale and range</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>12 Calculated X0</string>
          </property>
         </item>
        </widget>
