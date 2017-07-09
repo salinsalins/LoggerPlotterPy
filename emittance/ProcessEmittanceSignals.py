@@ -800,7 +800,7 @@ class DesignerMainWindow(QMainWindow):
 #l1 = 213.0        ; mm    Distance From emission hole to analyzer hole
 #l2 = 200.0        ; mm    Distance From analyzer hole to slit collector
         # R
-        #R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load rezistior
+        R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load rezistior
         # l1
         l1 = self.readParameter(0, 'l1', 213.0, float)  # [mm] distance from source to analyzer aperture
         # l2
@@ -810,6 +810,7 @@ class DesignerMainWindow(QMainWindow):
         a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
         # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
+        printl('R=%f l1=%f l2=%f d1=%f d2=%f'%(R,l1,l2,d1,d2))
         # calculate maximum and integral profiles
         profilemax = np.zeros(nx-1)
         profileint = np.zeros(nx-1)
@@ -871,7 +872,7 @@ class DesignerMainWindow(QMainWindow):
             axes.set_ylabel('Beamlet current, mkA')
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
-            return
+            #return
         # plot maximal profile
         if int(self.comboBox.currentIndex()) == 1:
             self.clearPicture()
@@ -883,7 +884,7 @@ class DesignerMainWindow(QMainWindow):
             axes.set_ylabel('Maximal current, mkA')
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
-            return
+            #return
         # calculate emittance contour plot
         # number of points for emittance matrix
         N = 300
@@ -934,7 +935,7 @@ class DesignerMainWindow(QMainWindow):
             Z1[:,ix0[i]] = Z0[:,i]
         # remove negative data
         Z1[Z1 < 0.0] = 0.0
-        # debug plot 1
+        # debug plot 6
         if int(self.comboBox.currentIndex()) == 6:
             self.clearPicture()
             axes.contour(X1, Y1, Z1)
@@ -948,7 +949,7 @@ class DesignerMainWindow(QMainWindow):
             Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + X0[:,ix0[i]]/l1*1000.0)
         # remove negative data
         Z1[Z1 < 0.0] = 0.0
-        # debug plot
+        # debug plot 7
         if int(self.comboBox.currentIndex()) == 7:
             self.clearPicture()
             axes.contour(X1, Y1, Z1)
@@ -956,11 +957,10 @@ class DesignerMainWindow(QMainWindow):
             axes.set_title('Regular divergence reduced')
             self.mplWidget.canvas.draw()
             return
-        if int(self.comboBox.currentIndex()) == 9:
+        # debug plot 13
+        if int(self.comboBox.currentIndex()) == 13:
             cls()
             indexes = self.listWidget.selectedIndexes()
-            R = self.readParameter(0, "R", 2.0e5, float)
-            l2 = self.readParameter(0, "l2", 200.0, float)
             for j in indexes:
                 k = j.row()             
                 plot(Y1[:,k-1], Z1[:,k-1], label='-d'+str(k))
@@ -985,12 +985,12 @@ class DesignerMainWindow(QMainWindow):
             Z2[i,:] = f(X2[i,:])
         # remove negative currents
         Z2[Z2 < 0.0] = 0.0
-        # debug plot
-        if int(self.comboBox.currentIndex()) == 9:
+        # debug plot 14
+        if int(self.comboBox.currentIndex()) == 14:
             self.clearPicture()
             axes.contour(X2, Y2, Z2)
             axes.grid(True)
-            axes.set_title('N x N calculated data')
+            axes.set_title('N x N no divergence')
             self.mplWidget.canvas.draw()
             return
         # return regular divergence back
@@ -1007,19 +1007,6 @@ class DesignerMainWindow(QMainWindow):
         np.savetxt(fn, Y2, delimiter='; ' )
         fn = os.path.join(str(folder), _progName + '_PlotZ.gz')
         np.savetxt(fn, Z2, delimiter='; ' )
-        
-        self.clearPicture()
-        if int(self.comboBox.currentIndex()) == 2:
-            #print('Contour plot')
-            axes.contour(X2, Y2, Z2, linewidths=1.0)
-        if int(self.comboBox.currentIndex()) == 3:
-            axes.contourf(X2, Y2, Z2)
-        axes.grid(True)
-        axes.set_title('Emittance contour plot')
-        #axes.set_ylim([xsmin,xsmax])
-        axes.set_xlabel('X0, mm')
-        axes.set_ylabel('X0\', milliRadians')
-        self.mplWidget.canvas.draw()
         # calculate emittance values
         q=1.6e-19        # [Q] electron charge
         m=1.6726e-27     # [kg]  proton mass
@@ -1085,15 +1072,56 @@ class DesignerMainWindow(QMainWindow):
         printl('Current  Normalized emittance      Normalized RMS emittance')
         for i in range(len(levels)):
             printl('%2.0f %%     %5.3f Pi*mm*milliradians  %5.3f Pi*mm*milliradians'%(fractions[i]*100.0,emit[i],rms[i]))
+        # plot contours
+        if int(self.comboBox.currentIndex()) == 2:
+            self.clearPicture()
+            axes.contour(X2, Y2, Z2, linewidths=1.0)
+            axes.grid(True)
+            axes.set_title('Emittance contour plot')
+            #axes.set_ylim([xsmin,xsmax])
+            axes.set_xlabel('X0, mm')
+            axes.set_ylabel('X0\', milliRadians')
+            axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+                          xy=(.5, .2), xycoords='figure fraction',
+                          horizontalalignment='center', verticalalignment='top',
+                          fontsize=11)
+            #axes.annotate(' Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+            #              xy=(.5, .85), xycoords='figure fraction',
+            #              horizontalalignment='center', verticalalignment='top',
+            #              fontsize=12)
+            self.mplWidget.canvas.draw()
+        # plot filled contours
+        if int(self.comboBox.currentIndex()) == 3:
+            self.clearPicture()
+            axes.contourf(X2, Y2, Z2)
+            axes.grid(True)
+            axes.set_title('Emittance color plot')
+            #axes.set_ylim([xsmin,xsmax])
+            axes.set_xlabel('X0, mm')
+            axes.set_ylabel('X0\', milliRadians')
+            axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+                          xy=(.5, .2), xycoords='figure fraction',
+                          horizontalalignment='center', verticalalignment='top',
+                          fontsize=11, color='white')
+            self.mplWidget.canvas.draw()
         # plot levels
         if int(self.comboBox.currentIndex()) == 4:
             self.clearPicture()
-            axes.contour(X2, Y2, Z2, linewidths=1.0, levels=levels[::-1])
+            CS = axes.contour(X2, Y2, Z2, linewidths=1.0, levels=levels[::-1])
             axes.grid(True)
-            axes.set_title('Emittance contour plot')
-            axes.set_ylim([xsmin,xsmax])
-            axes.set_xlabel('X0, mm')
-            axes.set_ylabel('X0\', milliRadians')
+            axes.set_title('Emittance contours for levels')
+            #axes.set_ylim([xsmin,xsmax])
+            axes.set_xlabel('X, mm')
+            axes.set_ylabel('X\', milliRadians')
+            labels = ['%2d %% of current'%(fr*100) for fr in fractions]
+            for i in range(len(labels)):
+                CS.collections[i].set_label(labels[i])
+            axes.legend(loc='upper left')
+            #axes.annotate('some text here',(1.4,1.6))
+            axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+                          xy=(.5, .2), xycoords='figure fraction',
+                          horizontalalignment='center', verticalalignment='top',
+                          fontsize=11)
             self.mplWidget.canvas.draw()
         
     def saveSettings(self, folder='', fileName=_settingsFile, local=False) :

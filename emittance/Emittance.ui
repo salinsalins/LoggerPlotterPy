@@ -521,6 +521,16 @@
           <string>12 Calculated X0</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string>13 Shifted jets</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>14 N x N no divergence</string>
+         </property>
+        </item>
        </widget>
       </item>
      </layout>
