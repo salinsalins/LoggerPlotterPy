@@ -794,6 +794,9 @@ class DesignerMainWindow(QMainWindow):
                 x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
             ndh[i-1] = self.readParameter(i, 'ndh', 0.0, float)
             #print('%d ndh %f'%(i,ndh[i-1]))
+        x0c = np.zeros(nx-1)                        # [mm] X0 coordinates of scans
+        for i in range(1, nx) :
+            x0c[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
 #R  = 2.0e5        ; Ohm   Resistor for beamlet scaner FC
 #d1 = 0.4          ; mm    Analyzer hole diameter
 #d2 = 0.5          ; mm    Collector Slit Width
@@ -946,7 +949,9 @@ class DesignerMainWindow(QMainWindow):
         # reduce regular divergence
         for i in range(nx-1) :
             f = interp1d(v[i][0], v[i][1], kind='linear', bounds_error=False, fill_value=0.0)
-            Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + X0[:,ix0[i]]/l1*1000.0)
+            # using calculated X0
+            Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + x0c[i]/l1*1000.0)
+            #Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + X0[:,ix0[i]]/l1*1000.0)
         # remove negative data
         Z1[Z1 < 0.0] = 0.0
         # debug plot 7
@@ -972,41 +977,34 @@ class DesignerMainWindow(QMainWindow):
                 print('i=%d v=%f r=%s'%(m,(h - s*v) / l2 * 1000.0,str(r)))
             return
         # calculate NxN array
-        X2 = np.zeros((N, N), dtype=np.float64)
-        Y2 = np.zeros((N, N), dtype=np.float64)
-        Z2 = np.zeros((N, N), dtype=np.float64)
+        X = np.zeros((N, N), dtype=np.float64)
+        Y = np.zeros((N, N), dtype=np.float64)
+        Z = np.zeros((N, N), dtype=np.float64)
         for i in range(N) :
-            X2[i,: ] = np.linspace(x0.min(), x0.max(), N)
+            X[i,: ] = np.linspace(x0.min(), x0.max(), N)
         for i in range(N) :
-            Y2[:,i] = xs
+            Y[:,i] = xs
         for i in range(N) :
-            #Z2[i,:] = np.interp(X2[i,:], X0[i,:], Z0[i,:])
+            #Z[i,:] = np.interp(X[i,:], X0[i,:], Z0[i,:])
             f = interp1d(X1[i,:], Z1[i,:], kind='linear', bounds_error=False, fill_value=0.0)
-            Z2[i,:] = f(X2[i,:])
+            Z[i,:] = f(X[i,:])
         # remove negative currents
-        Z2[Z2 < 0.0] = 0.0
+        Z[Z < 0.0] = 0.0
         # debug plot 14
         if int(self.comboBox.currentIndex()) == 14:
             self.clearPicture()
-            axes.contour(X2, Y2, Z2)
+            axes.contour(X, Y, Z)
             axes.grid(True)
             axes.set_title('N x N no divergence')
             self.mplWidget.canvas.draw()
             return
         # return regular divergence back
         for i in range(N) :
-            #Z2[:,i] = np.interp(Y2[:,i] - X2[:,i]/l1*1000.0, Y2[:,i], Z2[:,i])
-            f = interp1d(Y2[:,i], Z2[:,i], kind='linear', bounds_error=False, fill_value=0.0)
-            Z2[:,i] = f(Y2[:,i] - X2[:,i]/l1*1000.0)
+            #Z[:,i] = np.interp(Y[:,i] - X[:,i]/l1*1000.0, Y[:,i], Z[:,i])
+            f = interp1d(Y[:,i], Z[:,i], kind='linear', bounds_error=False, fill_value=0.0)
+            Z[:,i] = f(Y[:,i] - X[:,i]/l1*1000.0)
         # remove negative currents
-        Z2[Z2 < 0.0] = 0.0
-        # save data to text file
-        fn = os.path.join(str(folder), _progName + '_PlotX.gz')
-        np.savetxt(fn, X2, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_PlotY.gz')
-        np.savetxt(fn, Y2, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_PlotZ.gz')
-        np.savetxt(fn, Z2, delimiter='; ' )
+        Z[Z < 0.0] = 0.0
         # calculate emittance values
         q=1.6e-19        # [Q] electron charge
         m=1.6726e-27     # [kg]  proton mass
@@ -1016,36 +1014,47 @@ class DesignerMainWindow(QMainWindow):
         printl('Beam energy %f'%U)
         beta = np.sqrt(2.0*q*U/m)/c
         # RMS Emittance
-        zt = np.sum(Z2)
-        XZ = X2*Z2
-        YZ = Y2*Z2
+        zt = np.sum(Z)
+        XZ = X*Z
+        YZ = Y*Z
         Xavg = np.sum(XZ)/zt
         Yavg = np.sum(YZ)/zt
-        XYavg = np.sum(X2*Y2*Z2)/zt
-        XXavg = np.sum(X2*XZ)/zt
-        YYavg = np.sum(Y2*YZ)/zt
+        # subtract average values 
+        X = X - Xavg
+        Y = Y - Yavg
+        XYavg = np.sum(X*Y*Z)/zt
+        XXavg = np.sum(X*XZ)/zt
+        YYavg = np.sum(Y*YZ)/zt
         RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg)
-        XX1avg = np.sum((X2-Xavg)*(X2-Xavg)*Z2)/zt
-        YY1avg = np.sum((Y2-Yavg)*(Y2-Yavg)*Z2)/zt
+        XX1avg = np.sum((X-Xavg)*(X-Xavg)*Z)/zt
+        YY1avg = np.sum((Y-Yavg)*(Y-Yavg)*Z)/zt
         RMS1 = np.sqrt(XX1avg*YY1avg)
         print('Xavg=%f Yavg=%f'%(Xavg,Yavg))
         print('RMS=%f RMS1=%f'%(RMS*beta,RMS1*beta))
         printl('Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta))
 
+        # save data to text file
+        fn = os.path.join(str(folder), _progName + '_PlotX.gz')
+        np.savetxt(fn, X, delimiter='; ' )
+        fn = os.path.join(str(folder), _progName + '_PlotY.gz')
+        np.savetxt(fn, Y, delimiter='; ' )
+        fn = os.path.join(str(folder), _progName + '_PlotZ.gz')
+        np.savetxt(fn, Z, delimiter='; ' )
+
         nz = 100
-        zl = np.linspace(0.0, Z2.max(), nz)
+        zl = np.linspace(0.0, Z.max(), nz)
         zi = np.zeros(nz)
         zn = np.zeros(nz)
         zr = np.zeros(nz)
 
         for i in range(nz):
-            mask = Z2 >= zl[i]
+            mask = Z >= zl[i]
             #print(len(index))
             zn[i] = np.sum(mask)
-            zi[i] = np.sum(Z2[mask])
-            za = Z2[mask]
-            xa = X2[mask]
-            ya = Y2[mask]
+            zi[i] = np.sum(Z[mask])
+            za = Z[mask]
+            xa = X[mask]
+            ya = Y[mask]
             zt = np.sum(za)
             xys = np.sum(xa*ya*za)/zt
             xxs = np.sum(xa*xa*za)/zt
@@ -1067,7 +1076,7 @@ class DesignerMainWindow(QMainWindow):
             emit[i] = zn[n]
             rms[i] = zr[n]
         
-        emit = emit*(X2[0,0]-X2[0,1])*(Y2[0,0]-Y2[1,0])/np.pi*beta
+        emit = emit*(X[0,0]-X[0,1])*(Y[0,0]-Y[1,0])/np.pi*beta
         rms = rms*beta
         printl('Current  Normalized emittance      Normalized RMS emittance')
         for i in range(len(levels)):
@@ -1075,7 +1084,7 @@ class DesignerMainWindow(QMainWindow):
         # plot contours
         if int(self.comboBox.currentIndex()) == 2:
             self.clearPicture()
-            axes.contour(X2, Y2, Z2, linewidths=1.0)
+            axes.contour(X, Y, Z, linewidths=1.0)
             axes.grid(True)
             axes.set_title('Emittance contour plot')
             #axes.set_ylim([xsmin,xsmax])
@@ -1093,7 +1102,7 @@ class DesignerMainWindow(QMainWindow):
         # plot filled contours
         if int(self.comboBox.currentIndex()) == 3:
             self.clearPicture()
-            axes.contourf(X2, Y2, Z2)
+            axes.contourf(X, Y, Z)
             axes.grid(True)
             axes.set_title('Emittance color plot')
             #axes.set_ylim([xsmin,xsmax])
@@ -1107,7 +1116,7 @@ class DesignerMainWindow(QMainWindow):
         # plot levels
         if int(self.comboBox.currentIndex()) == 4:
             self.clearPicture()
-            CS = axes.contour(X2, Y2, Z2, linewidths=1.0, levels=levels[::-1])
+            CS = axes.contour(X, Y, Z, linewidths=1.0, levels=levels[::-1])
             axes.grid(True)
             axes.set_title('Emittance contours for levels')
             #axes.set_ylim([xsmin,xsmax])
