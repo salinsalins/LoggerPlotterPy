@@ -56,21 +56,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="lineEdit">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QComboBox" name="comboBox_2">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -488,7 +473,7 @@
         </item>
         <item>
          <property name="text">
-          <string>6 Calculated data cuntours</string>
+          <string>6 Calculated data contours</string>
          </property>
         </item>
         <item>

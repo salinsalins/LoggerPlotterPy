@@ -38,7 +38,7 @@ from printl import printl
 from gaussfit import gaussfit 
 
 _progName = 'Emittance'
-_progVersion = '_1_1'
+_progVersion = '_2_0'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -62,55 +62,67 @@ class DesignerMainWindow(QMainWindow):
         self.pushButton_6.clicked.connect(self.calculateEmittance)
         self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-        self.pushButton_8.clicked.connect(self.flipStopFlag)
+        #self.pushButton_8.clicked.connect(self.flipStopFlag)
         # variables definition
         self.stopFlag = False
         self.data = None
         self.paramsAuto = None
         self.fleNames = []
         self.folderName = ''
-        # restore settings from default location
+        printl(_progName + _progVersion + ' started')
+        # restore global settings from default location
         self.restoreSettings()
+        # add dataFolder to history
+        i = self.comboBox_2.findText(self.folderName)
+        if i >= 0:
+            self.comboBox_2.setCurrentIndex(i)
+        else:
+            # add item to history  
+            self.comboBox_2.insertItem(-1, self.folderName)
+            self.comboBox_2.setCurrentIndex(0)
         # read data files
-        self.parseFolder(folder = self.lineEdit.text())
+        self.parseFolder(folder = self.folderName)
         # restore local settings
-        if not self.restoreSettings(folder = self.lineEdit.text()):
+        if not self.restoreSettings(folder = self.folderName):
             self.processFolder()
     
     def selectFolder(self):
         """Opens a dataFolder select dialog"""
         # open the dialog and get the selected dataFolder
-        folder = self.lineEdit.text()
+        folder = self.folderName
         fileOpenDialog = QFileDialog(caption='Select directory with data files', directory=folder)
         # select folder, not file
         dataFolder = fileOpenDialog.getExistingDirectory()
         # if a dataFolder is selected
         if dataFolder:
-            print(self.folderName)
-            print(dataFolder)
             if self.folderName == dataFolder:
                 return
+            i = self.comboBox_2.findText(dataFolder)
+            if i >= 0:
+                self.comboBox_2.setCurrentIndex(i)
+            else:
+                # add item to history  
+                self.comboBox_2.setCurrentIndex(-1)
+                self.comboBox_2.insertItem(-1, dataFolder)
+                self.comboBox_2.setCurrentIndex(0)
+    
+    def selectionChanged(self, i):
+        #print("Current index %s. Selection changed %s"%(i,str(self.comboBox_2.currentText())))
+        if i < 0:
+            return
+        dataFolder = str(self.comboBox_2.currentText())
+        if self.folderName != dataFolder:
+            #self.folderName = self.comboBox_2.currentText()
+            #print('New folder selected %s'%dataFolder)
             # parse selected folder
             self.parseFolder(dataFolder)
             # restore local settings
             if not self.restoreSettings(folder=dataFolder, local=True):
                 self.processFolder()
-    
-    def selectionChanged(self, i):
-        #print("Items in the list are :")
-        #for count in range(self.comboBox_2.count()):
-        #    print(self.comboBox_2.itemText(count))
-        print("Current index",i,"selection changed ",self.comboBox_2.currentText())
-        # static variables
-        if i < 0:
-            return
-        if self.folderName != self.comboBox_2.currentText():
-            #self.folderName = self.comboBox_2.currentText()
-            print('New folder %s'%self.folderName)
  
     def onQuit(self) :
         # save settings to folder
-        self.saveSettings(folder = self.lineEdit.text())
+        self.saveSettings(folder = self.folderName)
         # save global settings
         self.saveSettings()
 
@@ -147,26 +159,25 @@ class DesignerMainWindow(QMainWindow):
         return regout
 
     def parseFolder(self, folder, mask='*.isf'):
+        printl('Parsing folder %s'%folder)
         # read data
         self.data, self.fileNames = readTekFiles(folder, mask)
         # number of files
         nx = len(self.fileNames)
         if nx <= 0 :
             return
+        printl('%s%s Parsing folder %s'%(_progName, _progVersion, folder), 
+               fileName = os.path.join(str(folder), _logFile))
+        # fill list with file names
         self.listWidget.clear()
-        self.folderName = folder
-        printl('Data in folder %s'%folder, fileName = os.path.join(str(folder), _logFile))
         # short file names list
         names = [name.replace(folder, '')[1:] for name in self.fileNames]
         for i in range(nx):
             names[i] = '%3d - %s'%(i,names[i])
         # fill listWidget
         self.listWidget.addItems(names)
-        # update the lineEdit text with the selected filename
-        self.lineEdit.setText(folder)
-        # add item to history  
-        self.comboBox_2.insertItem(-1, folder)
-        self.comboBox_2.setCurrentIndex(0)
+        
+        self.folderName = folder
     
     def processFolder(self):
         def plot(*args, **kwargs):
@@ -196,7 +207,7 @@ class DesignerMainWindow(QMainWindow):
             self.clearPicture()
             
         axes = self.mplWidget.canvas.ax
-        folder = self.lineEdit.text()
+        folder = self.folderName
         printl('Processing folder %s'%folder)
         print('Reading data ...')
         # read data array
@@ -861,7 +872,7 @@ class DesignerMainWindow(QMainWindow):
         I = (Il + Ir)/2.0
         printl('Total current %f [mA]'%I)
         # save profile data
-        folder = self.lineEdit.text()
+        folder = self.folderName
         fn = os.path.join(str(folder), 'InegralProfile.txt')
         np.savetxt(fn, np.array([x0,profileint]).T, delimiter='; ' )
         fn = os.path.join(str(folder), 'MaximumProfile.txt')
@@ -1055,11 +1066,11 @@ class DesignerMainWindow(QMainWindow):
             mask = Z >= zl[i]
             #print(len(index))
             zn[i] = np.sum(mask)
-            zi[i] = np.sum(Z[mask])
             za = Z[mask]
             xa = X[mask]
             ya = Y[mask]
             zt = np.sum(za)
+            zi[i] = zt
             xys = np.sum(xa*ya*za)/zt
             xxs = np.sum(xa*xa*za)/zt
             yys = np.sum(ya*ya*za)/zt
@@ -1072,9 +1083,9 @@ class DesignerMainWindow(QMainWindow):
         levels = fractions*0.0
         emit = fractions*0.0
         rms = fractions*0.0
-        mzl = zi.max()
+        zs = np.sum(Z)
         for i in range(len(fractions)):
-            index = np.where(zi > fractions[i]*mzl)[0]
+            index = np.where(zi >= fractions[i]*zs)[0]
             n = index.max()
             levels[i] = zl[n]
             emit[i] = zn[n]
@@ -1126,7 +1137,7 @@ class DesignerMainWindow(QMainWindow):
             #axes.set_ylim([xsmin,xsmax])
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
-            labels = ['%2d %% of current'%(fr*100) for fr in fractions]
+            labels = ['%2d %% of current'%(fr*100) for fr in np.sort(fractions)[::-1]]
             for i in range(len(labels)):
                 CS.collections[i].set_label(labels[i])
             axes.legend(loc='upper left')
@@ -1141,7 +1152,7 @@ class DesignerMainWindow(QMainWindow):
         fullName = os.path.join(str(folder), fileName)
         dbase = shelve.open(fullName, flag='n')
         # data folder
-        dbase['folder'] = str(self.lineEdit.text())
+        dbase['folder'] = self.folderName
         # default smooth
         dbase['smooth'] = int(self.spinBox.value())
         # scan voltage channel number
@@ -1150,22 +1161,8 @@ class DesignerMainWindow(QMainWindow):
         dbase['result'] = int(self.comboBox.currentIndex())
         comboitems = [self.comboBox_2.itemText(count) for count in range(self.comboBox_2.count())]
         if len(comboitems) > 10 :
-            comboitems = comboitems[-10:]
+            comboitems = comboitems[:10]
         dbase['history'] = comboitems
-        ## save table
-        #table = self.tableWidget
-        #n = table.rowCount()
-        #dbase['tableRowCount'] = n
-        #m = table.columnCount()
-        #dbase['tableColumnCount'] = m
-        #for i in range(n) :
-        #    for j in range(m) :
-        #        item = table.item(i, j)
-        #        if item is None :
-        #            s = ''
-        #        else:
-        #            s = str(item.text())
-        #        dbase['table_%d_%d'%(i,j)] = s
         # save paramsAuto
         dbase['paramsAuto'] = self.paramsAuto
         dbase.close()
@@ -1173,14 +1170,16 @@ class DesignerMainWindow(QMainWindow):
         return True
    
     def restoreSettings(self, folder='', fileName=_settingsFile, local=False) :
+        # execute init script
         self.execInitScript(folder)
+        # read saved settings
         try :
             fullName = os.path.join(str(folder), fileName)
             dbase = shelve.open(fullName)
             # global settings
             if not local :
                 # data folder
-                self.lineEdit.setText(dbase['folder'])
+                self.folderName = dbase['folder']
                 # history
                 self.comboBox_2.clear()
                 self.comboBox_2.addItems(dbase['history'])
@@ -1190,22 +1189,6 @@ class DesignerMainWindow(QMainWindow):
             self.comboBox.setCurrentIndex(dbase['result'])
             # scan voltage channel number
             self.spinBox_2.setValue(dbase['scan'])
-            ## restore table
-            #table = self.tableWidget
-            #n = dbase['tableRowCount']
-            #table.setRowCount(n)
-            #m = dbase['tableColumnCount']
-            #table.setColumnCount(m)
-            #for i in range(n) :
-            #    for j in range(m) :
-            #        s = dbase['table_%d_%d'%(i,j)]
-            #        table.setItem(i, j, QTableWidgetItem(s))
-            #        #if j == 3 :
-            #        #    table.setItem(i, 1, QTableWidgetItem(s))
-            #table.setHorizontalHeaderLabels(('File','Parameters'))
-            #table.setVerticalHeaderLabels([str(i) for i in range(n)])
-            #table.resizeColumnsToContents()
-            ##table.resizeColumnToContents(0)
             # restore paramsAuto
             self.paramsAuto = dbase['paramsAuto']
             dbase.close()
@@ -1219,7 +1202,7 @@ class DesignerMainWindow(QMainWindow):
 
     def execInitScript(self, folder=None, fileName=_initScript):
         if folder is None :
-            folder = self.lineEdit.text()
+            folder = self.folderName
         try:
             fullName = os.path.join(str(folder), fileName)
             exec(open(fullName).read(), globals(), locals())
