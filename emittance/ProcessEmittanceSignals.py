@@ -38,7 +38,7 @@ from printl import printl
 from gaussfit import gaussfit 
 
 _progName = 'Emittance'
-_progVersion = '_2_1'
+_progVersion = '_2_2'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -941,12 +941,7 @@ class DesignerMainWindow(QMainWindow):
             y = v[i][1]
             index = np.unique(x, return_index=True)[1]
             #Z0[:,i] = np.interp(Y0[:,i], v[i][0], v[i][1])
-            try:
-                f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
-            except:
-                (type, value, traceback) = sys.exc_info()
-                print('Exception : %s'%value)
-                pass
+            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
             #f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0.0)
             Z0[:,i] = f(Y0[:,i])
         # sort data according rising x0
@@ -1043,7 +1038,7 @@ class DesignerMainWindow(QMainWindow):
         c=2.9979e8       # [m/s] speed of light
         #U=32.7*1000.0   # [V] beam energy
         U = self.readParameter(0, 'energy', 32000.0, float)
-        printl('Beam energy %f'%U)
+        printl('Beam energy U=%f'%U)
         beta = np.sqrt(2.0*q*U/m)/c
         # RMS Emittance
         zt = np.sum(Z)
