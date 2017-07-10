@@ -38,7 +38,7 @@ from printl import printl
 from gaussfit import gaussfit 
 
 _progName = 'Emittance'
-_progVersion = '_2_2'
+_progVersion = '_2_3'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -853,7 +853,7 @@ class DesignerMainWindow(QMainWindow):
                 profileint[i-1] = k * np.sum(yy[:-1]*np.diff(xx)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
                 #print(profileint[i-1])
             except:
-                pass
+                self.printExceptionInfo()
         # sort in x0 increasing order
         ix0 = np.argsort(x0)
         #print(ix0)
@@ -988,39 +988,47 @@ class DesignerMainWindow(QMainWindow):
             for j in indexes:
                 k = j.row()             
                 plot(Y1[:,k-1], Z1[:,k-1], label='-d'+str(k))
-                r = self.readParameter(k-1, 'range')
-                m = self.readParameter(k-1, 'minindex')
-                v = self.readParameter(k-1, 'minvoltage')/R*1.0e6
+                r = self.readParameter(k-1, 'range', [0,-1])
+                m = self.readParameter(k-1, 'minindex', 0)
+                v = self.readParameter(k-1, 'minvoltage', 0.0)/R*1.0e6
                 s = self.readParameter(k-1, "scale", 1.0, float)
                 h = self.readParameter(k-1, "ndh", 0.0, float)
-                print('i=%d v=%f r=%s'%(m,(h - s*v) / l2 * 1000.0,str(r)))
+                print('i=%d v=%f r=%s'%(m, (h - s*v) / l2 * 1000.0, str(r)))
             return
         # calculate NxN array
-        X = np.zeros((N, N), dtype=np.float64)
-        Y = np.zeros((N, N), dtype=np.float64)
-        Z = np.zeros((N, N), dtype=np.float64)
+        X2 = np.zeros((N, N), dtype=np.float64)
+        Y2 = np.zeros((N, N), dtype=np.float64)
+        Z2 = np.zeros((N, N), dtype=np.float64)
         for i in range(N) :
-            X[i,: ] = np.linspace(x0.min(), x0.max(), N)
+            X2[i,: ] = np.linspace(x0.min(), x0.max(), N)
         for i in range(N) :
-            Y[:,i] = xs
+            Y2[:,i] = xs
         for i in range(N) :
-            #Z[i,:] = np.interp(X[i,:], X0[i,:], Z0[i,:])
+            #Z2[i,:] = np.interp(X2[i,:], X0[i,:], Z0[i,:])
             x = X1[i,:]
             y = Z1[i,:]
             index = np.unique(x, return_index=True)[1]
             f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
             #f = interp1d(X1[i,:], Z1[i,:], kind='linear', bounds_error=False, fill_value=0.0)
-            Z[i,:] = f(X[i,:])
+            Z2[i,:] = f(X2[i,:])
         # remove negative currents
-        Z[Z < 0.0] = 0.0
+        Z2[Z2 < 0.0] = 0.0
         # debug plot 14
         if int(self.comboBox.currentIndex()) == 14:
             self.clearPicture()
-            axes.contour(X, Y, Z)
+            axes.contour(X2, Y2, Z2)
             axes.grid(True)
             axes.set_title('N x N no divergence')
             self.mplWidget.canvas.draw()
-            return
+            #return
+        # integrate emittance from cross-section to circular beam
+        X = X2
+        Y = Y2
+        Z = Z2.copy()
+        for i in range(1, int(N/2)+1) :
+            Z[:,i] = Z[:,i] + Z[:,i-1]
+        for i in range(N-2, int(N/2), -1) :
+            Z[:,i] = Z[:,i] + Z[:,i+1]
         # return regular divergence back
         for i in range(N) :
             #Z[:,i] = np.interp(Y[:,i] - X[:,i]/l1*1000.0, Y[:,i], Z[:,i])
@@ -1049,15 +1057,16 @@ class DesignerMainWindow(QMainWindow):
         # subtract average values 
         X = X - Xavg
         Y = Y - Yavg
-        XYavg = np.sum(X*Y*Z)/zt
+        XYavg = np.sum(X*YZ)/zt
         XXavg = np.sum(X*XZ)/zt
         YYavg = np.sum(Y*YZ)/zt
         RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg)
-        XX1avg = np.sum((X-Xavg)*(X-Xavg)*Z)/zt
-        YY1avg = np.sum((Y-Yavg)*(Y-Yavg)*Z)/zt
-        RMS1 = np.sqrt(XX1avg*YY1avg)
-        print('Xavg=%f Yavg=%f'%(Xavg,Yavg))
-        print('RMS=%f RMS1=%f'%(RMS*beta,RMS1*beta))
+        #XX1avg = np.sum((X-Xavg)*(X-Xavg)*Z)/zt
+        #YY1avg = np.sum((Y-Yavg)*(Y-Yavg)*Z)/zt
+        #XY1avg = np.sum((X-Xavg)*(Y-Yavg)*Z)/zt
+        #RMS1 = np.sqrt(XX1avg*YY1avg-XY1avg*XY1avg)
+        print('Xavg=%f Yavg=%f'%(Xavg, Yavg))
+        #print('RMS=%f RMS1=%f'%(RMS*beta, RMS1*beta))
         printl('Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta))
 
         # save data to text file
@@ -1095,7 +1104,7 @@ class DesignerMainWindow(QMainWindow):
         levels = fractions*0.0
         emit = fractions*0.0
         rms = fractions*0.0
-        zs = np.sum(Z)
+        zs = np.sum(Z2)
         for i in range(len(fractions)):
             index = np.where(zi >= fractions[i]*zs)[0]
             n = index.max()
@@ -1195,21 +1204,21 @@ class DesignerMainWindow(QMainWindow):
                 # history
                 self.comboBox_2.clear()
                 self.comboBox_2.addItems(dbase['history'])
-            # default smooth
+            # smooth
             self.spinBox.setValue(dbase['smooth'])
-            # result combo
+            # result comboBox
             self.comboBox.setCurrentIndex(dbase['result'])
             # scan voltage channel number
             self.spinBox_2.setValue(dbase['scan'])
             # restore paramsAuto
             self.paramsAuto = dbase['paramsAuto']
-            dbase.close()
-            print('Configuration restored from %s'%fullName)
+            print('Configuration restored from %s.'%fullName)
             return True
         except :
-            (type, value, traceback) = sys.exc_info()
-            print('Exception : %s'%value)
+            self.printExceptionUnfo()
             print('Configuration file %s restore error.'%fullName)
+        finally:
+            dbase.close()
             return False
 
     def execInitScript(self, folder=None, fileName=_initScript):
@@ -1220,9 +1229,13 @@ class DesignerMainWindow(QMainWindow):
             exec(open(fullName).read(), globals(), locals())
             print('Init script %s executed'%fullName)
         except:
-            (type, value, traceback) = sys.exc_info()
-            print('Exception : %s'%value)
-            print('Init script %s error'%fullName)
+            self.printExceptionUnfo()
+            print('Init script %s error.'%fullName)
+
+    def printExceptionInfo(self):
+            #(type, value, traceback) = sys.exc_info()
+            (type, value) = sys.exc_info()[:2]
+            print('Exception %s %s'%(str(type), str(value)))
 
 if __name__ == '__main__':
     # create the GUI application
