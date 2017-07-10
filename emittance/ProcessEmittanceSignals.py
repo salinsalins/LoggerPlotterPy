@@ -38,7 +38,7 @@ from printl import printl
 from gaussfit import gaussfit 
 
 _progName = 'Emittance'
-_progVersion = '_2_0'
+_progVersion = '_2_1'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -574,7 +574,8 @@ class DesignerMainWindow(QMainWindow):
         # scan voltage
         u = self.data[0, :].copy()
         # smooth
-        ns = self.readParameter(0, "smooth", 1, int)
+        ns = self.readParameter(0, "smooth", 100, int)
+        smooth(u, ns)
         smooth(u, ns)
         # parameters
         # scanner base
@@ -812,11 +813,11 @@ class DesignerMainWindow(QMainWindow):
         x0c = np.zeros(nx-1)                        # [mm] X0 coordinates of scans
         for i in range(1, nx) :
             x0c[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
-#R  = 2.0e5        ; Ohm   Resistor for beamlet scaner FC
-#d1 = 0.4          ; mm    Analyzer hole diameter
-#d2 = 0.5          ; mm    Collector Slit Width
-#l1 = 213.0        ; mm    Distance From emission hole to analyzer hole
-#l2 = 200.0        ; mm    Distance From analyzer hole to slit collector
+        #R  = 2.0e5        ; Ohm   Resistor for beamlet scaner FC
+        #d1 = 0.4          ; mm    Analyzer hole diameter
+        #d2 = 0.5          ; mm    Collector Slit Width
+        #l1 = 213.0        ; mm    Distance From emission hole to analyzer hole
+        #l2 = 200.0        ; mm    Distance From analyzer hole to slit collector
         # R
         R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load rezistior
         # l1
@@ -828,6 +829,8 @@ class DesignerMainWindow(QMainWindow):
         a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
         # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
+        printl('', stamp=False)
+        printl('Emittance calculation using parameters:')
         printl('R=%f l1=%f l2=%f d1=%f d2=%f'%(R,l1,l2,d1,d2))
         # calculate maximum and integral profiles
         profilemax = np.zeros(nx-1)
@@ -860,7 +863,7 @@ class DesignerMainWindow(QMainWindow):
         # remove average x
         #xavg = simps(x0s * profilemax, x0s) / simps(profilemax, x0s)
         xavg = simps(x0s * profileint, x0s) / simps(profileint, x0s)
-        printl('Average X0 %f mm'%xavg)
+        print('Average X0 %f mm'%xavg)
         x0s = x0s - xavg
         # calculate total current
         index = np.where(x0s >= 0.0)[0]
@@ -929,19 +932,22 @@ class DesignerMainWindow(QMainWindow):
             v.append((x[index], -y[index]))
             xsmin = min([xsmin, x[index].min()])
             xsmax = max([xsmax, x[index].max()])
-            #xx = x[index].min()
-            #if xsmin > xx:
-            #    xsmin = xx
-            #xx = x[index].max()
-            #if xsmax < xx:
-            #    xsmax = xx
         # X0' range array
         xs = np.linspace(xsmin, xsmax, N)
         # fill data arrays
         for i in range(nx-1) :
             Y0[:,i] = xs
+            x = v[i][0]
+            y = v[i][1]
+            index = np.unique(x, return_index=True)[1]
             #Z0[:,i] = np.interp(Y0[:,i], v[i][0], v[i][1])
-            f = interp1d(v[i][0], v[i][1], kind='linear', bounds_error=False, fill_value=0.0)
+            try:
+                f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
+            except:
+                (type, value, traceback) = sys.exc_info()
+                print('Exception : %s'%value)
+                pass
+            #f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0.0)
             Z0[:,i] = f(Y0[:,i])
         # sort data according rising x0
         X1 = X0.copy()
@@ -963,7 +969,10 @@ class DesignerMainWindow(QMainWindow):
             return
         # reduce regular divergence
         for i in range(nx-1) :
-            f = interp1d(v[i][0], v[i][1], kind='linear', bounds_error=False, fill_value=0.0)
+            x = v[i][0]
+            y = v[i][1]
+            index = np.unique(x, return_index=True)[1]
+            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
             # using calculated X0
             Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + x0c[i]/l1*1000.0)
             #Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + X0[:,ix0[i]]/l1*1000.0)
@@ -1001,7 +1010,11 @@ class DesignerMainWindow(QMainWindow):
             Y[:,i] = xs
         for i in range(N) :
             #Z[i,:] = np.interp(X[i,:], X0[i,:], Z0[i,:])
-            f = interp1d(X1[i,:], Z1[i,:], kind='linear', bounds_error=False, fill_value=0.0)
+            x = X1[i,:]
+            y = Z1[i,:]
+            index = np.unique(x, return_index=True)[1]
+            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
+            #f = interp1d(X1[i,:], Z1[i,:], kind='linear', bounds_error=False, fill_value=0.0)
             Z[i,:] = f(X[i,:])
         # remove negative currents
         Z[Z < 0.0] = 0.0
@@ -1016,7 +1029,11 @@ class DesignerMainWindow(QMainWindow):
         # return regular divergence back
         for i in range(N) :
             #Z[:,i] = np.interp(Y[:,i] - X[:,i]/l1*1000.0, Y[:,i], Z[:,i])
-            f = interp1d(Y[:,i], Z[:,i], kind='linear', bounds_error=False, fill_value=0.0)
+            x = Y[:,i]
+            y = Z[:,i]
+            index = np.unique(x, return_index=True)[1]
+            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
+            #f = interp1d(Y[:,i], Z[:,i], kind='linear', bounds_error=False, fill_value=0.0)
             Z[:,i] = f(Y[:,i] - X[:,i]/l1*1000.0)
         # remove negative currents
         Z[Z < 0.0] = 0.0
