@@ -6,6 +6,7 @@ Created on Jul 2, 2017
 '''
 # used to parse files more easily
 from __future__ import with_statement
+from __future__ import print_function
 
 import os.path
 import shelve
@@ -38,7 +39,7 @@ from printl import printl
 from gaussfit import gaussfit 
 
 _progName = 'Emittance'
-_progVersion = '_2_3'
+_progVersion = '_3_2'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -83,7 +84,7 @@ class DesignerMainWindow(QMainWindow):
         # read data files
         self.parseFolder(folder = self.folderName)
         # restore local settings
-        if not self.restoreSettings(folder = self.folderName):
+        if not self.restoreSettings(folder = self.folderName, local=True):
             self.processFolder()
     
     def selectFolder(self):
@@ -115,6 +116,7 @@ class DesignerMainWindow(QMainWindow):
             #self.folderName = self.comboBox_2.currentText()
             #print('New folder selected %s'%dataFolder)
             # parse selected folder
+            #self.folderName = dataFolder
             self.parseFolder(dataFolder)
             # restore local settings
             if not self.restoreSettings(folder=dataFolder, local=True):
@@ -176,7 +178,6 @@ class DesignerMainWindow(QMainWindow):
             names[i] = '%3d - %s'%(i,names[i])
         # fill listWidget
         self.listWidget.addItems(names)
-        
         self.folderName = folder
     
     def processFolder(self):
@@ -227,7 +228,7 @@ class DesignerMainWindow(QMainWindow):
         # index array
         ix = np.arange(ny)
         
-        # smooth
+        # default sooth
         ns = 1
         try:
             ns = int(self.spinBox.value())
@@ -242,9 +243,11 @@ class DesignerMainWindow(QMainWindow):
         for i in range(nx) :
             y = data[i,:]
             smooth(y, params[i]['smooth'])
+            data[i,:] = y
         
-        # channel 0 is scan voltage by default
+        # channel 0 is by default scan voltage 
         x = data[0,:].copy()
+        # smooth 
         smooth(x, params[0]['smooth']*2)
         # find longest monotonic region of scan voltage
         xdiff = np.diff(x)
@@ -252,28 +255,38 @@ class DesignerMainWindow(QMainWindow):
         mask = xdiff >= 0.0
         regions = findRegions(np.where(mask)[0])         
         # find longest region
-        xr = [0,0]
+        xr = [0,1]
+        xincrease = True
         for r in regions:
             if r[1]-r[0] >= xr[1]-xr[0]:
                 xr = r
+                xincrease = True
         mask = xdiff <= 0.0
         regions = findRegions(np.where(mask)[0])         
         for r in regions:
             if r[1]-r[0] >= xr[1]-xr[0]:
                 xr = r
+                xincrease = False
         xi = np.arange(xr[0], xr[1])
         params[0]['range'] = xr
-        print('Using %s region of scan voltage'%str(xr))
-        # debug draw
+        print('Scan voltage region %s'%str(xr))
+        # debug draw 8 Scan voltage region
         if int(self.comboBox.currentIndex()) == 8:
-            cls()
-            plot(ix, x, label='Scan voltage')
-            plot(ix[xi], x[xi], '.')
+            self.clearPicture()
+            axes.set_title('Scan voltage region')
+            axes.set_xlabel('Point index')
+            axes.set_ylabel('Voltage, V')
+            axes.plot(ix, x, label='Scan voltage')
+            axes.plot(ix[xi], x[xi], '.', label='Region')
+            zoplot()
+            axes.grid(True)
+            axes.legend(loc='best') 
+            self.mplWidget.canvas.draw()
                     
         # auto process data for zero line and offset
         print('Processing zero line ...')
         for i in range(1,nx-1) :
-            print('Channel %d'%(i))
+            #print('Channel %d'%(i))
             y1 = data[i,:].copy()
             offset1 = params[i]['offset']
             y1 = y1 - offset1
@@ -297,17 +310,23 @@ class DesignerMainWindow(QMainWindow):
             i2 = np.where(y2 > (y2max - 0.1*dy))[0]
             o2 = np.average(y2[i2])
             #print('Offset 2 %f'%o2)
-            # debug draw 9
+            # debug draw 9 Offset calculation
             if int(self.comboBox.currentIndex()) == 9 :
                 indexes = self.listWidget.selectedIndexes()
                 if (len(indexes) > 0) and (i == indexes[0].row()):
-                    cls()
-                    plot(y1,'r', label='r'+str(i))
+                    self.clearPicture()
+                    axes.set_title('Offset calculation')
+                    axes.set_xlabel('Point index')
+                    axes.set_ylabel('Signal, V')
+                    axes.plot(ix, y1,'r', label='raw'+str(i))
                     zoplot(o1,'r')
-                    plot(y2,'b', label='r'+str(i+1))
+                    axes.plot(ix, y2,'b', label='raw'+str(i+1))
                     zoplot(o2,'b')
-                    plot(i1, y1[i1], '.')
-                    plot(i2, y2[i2], '.')
+                    axes.plot(i1, y1[i1], '.')
+                    axes.plot(i2, y2[i2], '.')
+                    axes.grid(True)
+                    axes.legend(loc='best') 
+                    self.mplWidget.canvas.draw()
             # correct y2 and offset2 for calculated offsets
             y2 = y2 - o2 + o1
             offset2 = offset2 + o2 - o1 
@@ -325,6 +344,8 @@ class DesignerMainWindow(QMainWindow):
             # shift y2 and offset2
             y2 = y2 - offset
             offset2 = offset2 + offset 
+            # save processed offset
+            params[i+1]['offset'] = offset2
             # index with new offset
             #print('4% index with corrected offset')
             mask = np.abs(y1 - y2) < 0.04*dy1
@@ -351,26 +372,31 @@ class DesignerMainWindow(QMainWindow):
                 w = 1.0/((abs(i + 1 - j))**2 + 1.0)
                 zero[j,index4] = (zero[j,index4]*weight[j,index4] + y2[index4]*w)/(weight[j,index4] + w)
                 weight[j,index4] += w
-            # save processed parameters
-            params[i+1]['offset'] = offset2
-            # plot intermediate results
+            # debug plot 9 zero line intermediate results
             if int(self.comboBox.currentIndex()) == 10 :
                 indexes = self.listWidget.selectedIndexes()
                 if len(indexes) > 0:
                     k = indexes[0].row()             
-                    cls()
-                    plot(ix, data[k,:], label='s'+str(k))
+                    self.clearPicture()
+                    axes.set_title('Zero line calculation')
+                    axes.set_xlabel('Point index')
+                    axes.set_ylabel('Signal, V')
+                    axes.plot(ix, data[k,:], label='raw'+str(k))
                     z = zero[k].copy() + params[k]['offset']
                     smooth(z, params[k]['smooth']*2)
-                    plot(ix, z, label='z'+str(k))
+                    axes.plot(ix, z, label='zero'+str(k))
+                    axes.grid(True)
+                    axes.legend(loc='best') 
+                    self.mplWidget.canvas.draw()
             pass
         # save processed zero line
         for i in range(nx) :
             params[i]['zero'] = zero[i]
+        
         # determine signal area
         print('Processing signals ...')
         for i in range(1, nx) :
-            print('Channel %d'%i)
+            #print('Channel %d'%i)
             y0 = data[i,:].copy()[xi]
             z = zero[i].copy()[xi] + params[i]['offset']
             smooth(z, params[i]['smooth']*2)
@@ -378,7 +404,7 @@ class DesignerMainWindow(QMainWindow):
             ymin = np.min(y)
             ymax = np.max(y)
             dy = ymax - ymin
-            mask = y < (ymax - 0.5*dy)
+            mask = y < (ymax - 0.6*dy)
             index = np.where(mask)[0]
             ra = findRegions(index)
             params[i]['range'] = xr
@@ -390,40 +416,52 @@ class DesignerMainWindow(QMainWindow):
             if len(ra) >= 2:
                 is2 = np.argmin(y[ra[1][0]:ra[1][1]]) + ra[1][0] + xi[0]
             params[i]['scale'] = 10.0/(x[is2] - x[is1])   # [mm/Volt]
-            print('raw scale %f [mm/V]'%params[i]['scale'])
             if np.abs(x[is1]) < np.abs(x[is2]) :
                 index = is1
             else:
                 index = is2
             params[i]['minindex'] = index
             params[i]['minvoltage'] = x[index]
-            print('minindex=%d u=%f [V]'%(index,x[index]))
             di = int(abs(is2 - is1)/2.0)
             ir1 = max([xi[ 0], index - di])
             ir2 = min([xi[-1], index + di])
             params[i]['range'] = [ir1, ir2]
-            print('range %s'%str(params[i]['range']))
-            # debug draw 11
+            #print('raw scale %f mm/V'%params[i]['scale'], end='  ')
+            #print('minindex=%d Umin=%f V'%(index,x[index]), end='  ')
+            #print('range %s'%str(params[i]['range']))
+            # debug draw 11 Range and scale calculation
             if int(self.comboBox.currentIndex()) == 11:
                 indexes = self.listWidget.selectedIndexes()
                 if (len(indexes) > 0) and (i == indexes[0].row()):
-                    cls()
-                    plot(xi, y, label='p'+str(i))
-                    plot(ix[ir1:ir2], y[ir1 - xi[0]:ir2 - xi[0]], '.', label='range'+str(i))
+                    self.clearPicture()
+                    axes.set_title('Range and scale calculation')
+                    axes.set_xlabel('Point index')
+                    axes.set_ylabel('Signal, V')
+                    axes.plot(xi, y, label='proc.s.'+str(i))
+                    axes.plot(ix[ir1:ir2], y[ir1 - xi[0]:ir2 - xi[0]], '.', label='range'+str(i))
                     voplot(is1, 'r')
                     voplot(is2, 'b')
-                    draw()
+                    axes.grid(True)
+                    axes.legend(loc='best') 
+                    self.mplWidget.canvas.draw()
+        
         # filter scales
-        sc = np.array([params[i]['scale'] for i in range(1,nx)])
+        sc0 = np.array([params[i]['scale'] for i in range(1,nx)])
+        sc = sc0.copy()
         asc = np.average(sc)
         ssc = np.std(sc)
-        index = np.where(abs(sc - asc) < 2.0*ssc)[0]
-        asc1 = np.average(sc[index])
-        index = np.where(abs(sc - asc) >= 2.0*ssc)[0]
-        sc[index] = asc1
+        while ssc > 0.3*np.abs(asc):
+            index1 = np.where(abs(sc - asc) <= 2.0*ssc)[0]
+            index2 = np.where(abs(sc - asc) > 2.0*ssc)[0]
+            sc[index2] = np.average(sc[index1])
+            asc = np.average(sc)
+            ssc = np.std(sc)
         for i in range(1,nx) :
             params[i]['scale'] = sc[i-1] 
-            print('%d filtered scale %f [mm/V]'%(i,params[i]['scale']))
+            print('%3d'%i, end='  ')
+            print('Imin=%d Umin=%f V'%(params[i]['minindex'], params[i]['minvoltage']), end='  ')
+            print('range=%s'%str(params[i]['range']), end='  ')
+            print('scale=%f mm/V'%params[i]['scale'])
 
         # common parameters
         print('Set common parameters ...')
@@ -440,49 +478,51 @@ class DesignerMainWindow(QMainWindow):
         params[0]['l1'] = l1
         l2 = 200.0
         params[0]['l2'] = l2
-        # set member variable
+        
+        # save to member variable
         self.paramsAuto = params
 
         # exec init script
         self.execInitScript()
 
         # X0 and ndh calculation
-        x00 = np.zeros(nx-1)
         l1 = self.readParameter(0, "l1", 213.0, float)
         l2 = self.readParameter(0, "l2", 200.0, float)
-        npt = 0
-        sp = 0.0
-        nmt = 0
-        sm = 0.0
+        x00 = np.zeros(nx-1)
         for i in range(1, nx) :
             s = self.readParameter(i, "scale", 2.0, float)
             u = self.readParameter(i, "minvoltage", 0.0, float)
             j = self.readParameter(i, "minindex", 0, int)
             x00[i-1] = -s*u*l1/l2
-            dx = 0.0
-            if i > 1:
-                dx = x00[i-1] - x00[i-2]
-            if dx > 0.0:
+            print('%3d N=%d Umin=%f scale=%f X00=%f'%(i, j, u, s, x00[i-1]))
+        npt = 0
+        sp = 0.0
+        nmt = 0
+        sm = 0.0
+        dx = x00.copy()*0.0
+        #print('%3d X00=%f DX=%f'%(0, x00[0], 0.0))
+        for i in range(1, nx-1) :
+            dx[i] = x00[i] - x00[i-1]
+            if dx[i] > 0.0:
                 npt += 1
-                sp += dx
-            if dx < 0.0:
+                sp += dx[i]
+            if dx[i] < 0.0:
                 nmt += 1
-                sm += dx
-            print('%3d N=%d u=%f s=%f X0=%f DX=%f'%(i, j, x[j], s, x00[i-1], dx))
+                sm += dx[i]
+            #print('%3d X00=%f DX=%f'%(i, x00[i], dx[i]))
         #print('npt=%d %f nmt=%d %f %f'%(npt,sp/npt,nmt,sm/nmt,sp/npt-l1/l2*10.))
         x01 = x00.copy()
         h = x00.copy()*0.0
         for i in range(1, nx-1) :
-            dx = x00[i] - x00[i-1]
             if npt > nmt :
                 x01[i] = x01[i-1] + sp/npt
-                if dx > 0.0:
+                if dx[i] > 0.0:
                     h[i] = h[i-1]
                 else:
                     h[i] = h[i-1] + 10.0
             else:
                 x01[i] = x01[i-1] + sm/nmt
-                if dx < 0.0:
+                if dx[i] < 0.0:
                     h[i] = h[i-1]
                 else:
                     h[i] = h[i-1] - 10.0
@@ -494,18 +534,24 @@ class DesignerMainWindow(QMainWindow):
             s = self.readParameter(i, "scale", 2.0, float)
             u = self.readParameter(i, "minvoltage", 0.0, float)
             x01[i-1] = (h[i-1] - s*u)*l1/l2 
-            params[i]['x0'] = (h[i-1] - s*u)*l1/l2 
-            print('%d X0 %f [mm] ndh=%f [mm]'%(i,params[i]['x0'],params[i]['ndh']))
-            #params[i]['x0'] = x01[i-1] 
-        # debug draw 12
+            params[i]['x0'] = x01[i-1] 
+            print('%3d'%i, end='  ')
+            print('X0=%f mm ndh=%4.1f mm'%(params[i]['x0'],params[i]['ndh']), end='  ')
+            print('X00=%f mm DX=%f mm'%(x00[i-1], dx[i-1]))
+        # debug draw 12 X0 calculation
         x0 = x01.copy()
         for i in range(1, nx) :
             x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
         if int(self.comboBox.currentIndex()) == 12:
-            cls()
-            plot(x01-x01[k], 'o-', label='X0 calculated')
-            plot(x0-x0[k], 'd-', label='X0 auto')
-            draw()
+            self.clearPicture()
+            axes.set_title('X0 calculation')
+            axes.set_xlabel('Index')
+            axes.set_ylabel('X0, mm')
+            axes.plot(x01-x01[k], 'o-', label='X0 calculated')
+            axes.plot(x0-x0[k], 'd-', label='X0 from parameters')
+            axes.grid(True)
+            axes.legend(loc='best') 
+            self.mplWidget.canvas.draw()
         
         # save processed to member variable
         self.paramsAuto = params
@@ -724,7 +770,7 @@ class DesignerMainWindow(QMainWindow):
             self.zoplot(y[mi])
             self.voplot(x[mi])
             self.voplot(x[r[0]])
-            self.voplot(x[r[1]])
+            self.voplot(x[r[1]-1])
         # plot zero line
         self.zoplot()
         axes.set_title('Processed Signals')
@@ -803,6 +849,9 @@ class DesignerMainWindow(QMainWindow):
         x0 = np.zeros(nx-1)                         # [mm] X0 coordinates of scans
         ndh = np.zeros(nx-1)                        # [mm] displacement of analyzer slit (number n) from axis
         flag = self.readParameter(0, 'autox0', False)
+        printl('', stamp=False)
+        printl('Emittance calculation using parameters:')
+        printl('Use calculated X0 = %s'%str(flag))
         for i in range(1, nx) :
             if flag:
                 x0[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
@@ -829,9 +878,7 @@ class DesignerMainWindow(QMainWindow):
         a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
         # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
-        printl('', stamp=False)
-        printl('Emittance calculation using parameters:')
-        printl('R=%f l1=%f l2=%f d1=%f d2=%f'%(R,l1,l2,d1,d2))
+        printl('R=%fOhm l1=%fmm l2=%fmm d1=%fmm d2=%fmm'%(R,l1,l2,d1,d2))
         # calculate maximum and integral profiles
         profilemax = np.zeros(nx-1)
         profileint = np.zeros(nx-1)
@@ -865,15 +912,18 @@ class DesignerMainWindow(QMainWindow):
         xavg = simps(x0s * profileint, x0s) / simps(profileint, x0s)
         print('Average X0 %f mm'%xavg)
         x0s = x0s - xavg
+        # cross-section current
+        Ics = simps(profileint, x0s)*d1/a1/1000.0
+        printl('Cross-section current %f mA'%Ics)
         # calculate total current
         index = np.where(x0s >= 0.0)[0]
         Ir = simps(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
-        print('Total current right %f [mA]'%Ir)
+        print('Total current right %f mA'%Ir)
         index = np.where(x0s <= 0.0)[0]
         Il = -1.0*simps(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
-        print('Total current left %f [mA]'%Il)
+        print('Total current left %f mA'%Il)
         I = (Il + Ir)/2.0
-        printl('Total current %f [mA]'%I)
+        printl('Total current %f mA'%I)
         # save profile data
         folder = self.folderName
         fn = os.path.join(str(folder), 'InegralProfile.txt')
@@ -885,24 +935,24 @@ class DesignerMainWindow(QMainWindow):
         # plot integral profile
         if int(self.comboBox.currentIndex()) == 0:
             self.clearPicture()
-            axes.plot(x0s, profileint, 'd-', label='Integral Profile')
-            #axes.plot(x0s, gaussfit(x0s,profileint,x0s), '--', label='Gaussian fit')
-            axes.grid(True)
             axes.set_title('Integral profile')
             axes.set_xlabel('X0, mm')
             axes.set_ylabel('Beamlet current, mkA')
+            axes.plot(x0s, profileint, 'd-', label='Integral Profile')
+            #axes.plot(x0s, gaussfit(x0s,profileint,x0s), '--', label='Gaussian fit')
+            axes.grid(True)
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
             #return
         # plot maximal profile
         if int(self.comboBox.currentIndex()) == 1:
             self.clearPicture()
-            axes.plot(x0s, profilemax, 'o-', label='Maximum Profile')
-            #axes.plot(x0s, gaussfit(x0s,profilemax,x0s), '--', label='Gaussian fit')
-            axes.grid(True)
             axes.set_title('Maximum profile')
             axes.set_xlabel('X0, mm')
             axes.set_ylabel('Maximal current, mkA')
+            axes.plot(x0s, profilemax, 'o-', label='Maximum Profile')
+            #axes.plot(x0s, gaussfit(x0s,profilemax,x0s), '--', label='Gaussian fit')
+            axes.grid(True)
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
             #return
@@ -920,7 +970,6 @@ class DesignerMainWindow(QMainWindow):
         v = []
         xsmin = 1e99
         xsmax = -1e99
-        flag = self.readParameter(0, 'autox0', False)
         for i in range(1, nx) :
             if flag:
                 X0[:,i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto') - xavg
@@ -959,7 +1008,7 @@ class DesignerMainWindow(QMainWindow):
             self.clearPicture()
             axes.contour(X1, Y1, Z1)
             axes.grid(True)
-            axes.set_title('Calculated data')
+            axes.set_title('Interpolated N x (nx-1) and sorted X0 data')
             self.mplWidget.canvas.draw()
             return
         # reduce regular divergence
@@ -978,7 +1027,7 @@ class DesignerMainWindow(QMainWindow):
             self.clearPicture()
             axes.contour(X1, Y1, Z1)
             axes.grid(True)
-            axes.set_title('Regular divergence reduced')
+            axes.set_title('Regular divergence reduced N x (nx-1)')
             self.mplWidget.canvas.draw()
             return
         # debug plot 13
@@ -988,12 +1037,16 @@ class DesignerMainWindow(QMainWindow):
             for j in indexes:
                 k = j.row()             
                 plot(Y1[:,k-1], Z1[:,k-1], label='-d'+str(k))
+                axes.set_title('Shifted elementary jets')
+                axes.set_xlabel('X\', milliRadians')
+                axes.set_ylabel('Current, mkA')
+                self.mplWidget.canvas.draw()
                 r = self.readParameter(k-1, 'range', [0,-1])
                 m = self.readParameter(k-1, 'minindex', 0)
                 v = self.readParameter(k-1, 'minvoltage', 0.0)/R*1.0e6
                 s = self.readParameter(k-1, "scale", 1.0, float)
                 h = self.readParameter(k-1, "ndh", 0.0, float)
-                print('i=%d v=%f r=%s'%(m, (h - s*v) / l2 * 1000.0, str(r)))
+                print('i=%d Xmax=%fmm r=%s'%(m, (h - s*v) / l2 * 1000.0, str(r)))
             return
         # calculate NxN array
         X2 = np.zeros((N, N), dtype=np.float64)
@@ -1013,6 +1066,8 @@ class DesignerMainWindow(QMainWindow):
             Z2[i,:] = f(X2[i,:])
         # remove negative currents
         Z2[Z2 < 0.0] = 0.0
+        Z2t = np.sum(Z2) * (Y2[1,0]-Y2[0,0])/d2*l2/1000.0 * (X2[0,1]-X2[0,0])*d1/a1 / 1000.0
+        print('Total Z2 (cross-section current) = %f mA'%Z2t)
         # debug plot 14
         if int(self.comboBox.currentIndex()) == 14:
             self.clearPicture()
@@ -1021,14 +1076,36 @@ class DesignerMainWindow(QMainWindow):
             axes.set_title('N x N no divergence')
             self.mplWidget.canvas.draw()
             #return
+        X3 = X2
+        Y3 = Y2
+        Z3 = np.zeros((N, N), dtype=np.float64)
+        # return regular divergence back
+        for i in range(N) :
+            x = Y2[:,i]
+            y = Z2[:,i]
+            index = np.unique(x, return_index=True)[1]
+            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
+            Z3[:,i] = f(Y3[:,i] - X3[:,i]/l1*1000.0)
+        Z3[Z3 < 0.0] = 0.0
         # integrate emittance from cross-section to circular beam
         X = X2
         Y = Y2
-        Z = Z2.copy()
-        for i in range(1, int(N/2)+1) :
-            Z[:,i] = Z[:,i] + Z[:,i-1]
-        for i in range(N-2, int(N/2), -1) :
-            Z[:,i] = Z[:,i] + Z[:,i+1]
+        Z = np.zeros((N, N), dtype=np.float64)
+        # calculate average X
+        Xavg = np.sum(X2*Z2)/np.sum(Z2)
+        # Z for whole beam
+        sum = np.zeros((1, N), dtype=np.float64)
+        for i in range(N) :
+            sum *= 0.0
+            x = np.abs(X[0,i] - Xavg)
+            for j in range(N):
+                ksi = np.abs(X[0,j] - Xavg)
+                if ksi > x:
+                    sum += Z2[:,j]*ksi/np.sqrt(ksi*ksi - x*x)
+            Z[:,i] = sum
+        # convert Z to milliAmperes/cell
+        Z *= (Y[1,0]-Y[0,0])/d2*l2/1000.0 * (X[0,1]-X[0,0])**2/a1 / 1000.0
+        print('Total Z (beam current) = %f mA'%np.sum(Z))
         # return regular divergence back
         for i in range(N) :
             #Z[:,i] = np.interp(Y[:,i] - X[:,i]/l1*1000.0, Y[:,i], Z[:,i])
@@ -1046,9 +1123,10 @@ class DesignerMainWindow(QMainWindow):
         c=2.9979e8       # [m/s] speed of light
         #U=32.7*1000.0   # [V] beam energy
         U = self.readParameter(0, 'energy', 32000.0, float)
-        printl('Beam energy U=%f'%U)
+        printl('Beam energy U= %f V'%U)
         beta = np.sqrt(2.0*q*U/m)/c
         # RMS Emittance
+        # calculate average X and X'
         zt = np.sum(Z)
         XZ = X*Z
         YZ = Y*Z
@@ -1057,6 +1135,7 @@ class DesignerMainWindow(QMainWindow):
         # subtract average values 
         X = X - Xavg
         Y = Y - Yavg
+        # calculate moments 
         XYavg = np.sum(X*YZ)/zt
         XXavg = np.sum(X*XZ)/zt
         YYavg = np.sum(Y*YZ)/zt
@@ -1065,17 +1144,23 @@ class DesignerMainWindow(QMainWindow):
         #YY1avg = np.sum((Y-Yavg)*(Y-Yavg)*Z)/zt
         #XY1avg = np.sum((X-Xavg)*(Y-Yavg)*Z)/zt
         #RMS1 = np.sqrt(XX1avg*YY1avg-XY1avg*XY1avg)
-        print('Xavg=%f Yavg=%f'%(Xavg, Yavg))
+        print('Xavg=%f mm   X\'avg=%f mRad'%(Xavg, Yavg))
         #print('RMS=%f RMS1=%f'%(RMS*beta, RMS1*beta))
         printl('Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta))
 
         # save data to text file
-        fn = os.path.join(str(folder), _progName + '_PlotX.gz')
+        fn = os.path.join(str(folder), _progName + '_X.gz')
         np.savetxt(fn, X, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_PlotY.gz')
+        fn = os.path.join(str(folder), _progName + '_Y.gz')
         np.savetxt(fn, Y, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_PlotZ.gz')
+        fn = os.path.join(str(folder), _progName + '_Z.gz')
         np.savetxt(fn, Z, delimiter='; ' )
+        fn = os.path.join(str(folder), _progName + '_X_cs.gz')
+        np.savetxt(fn, X3, delimiter='; ' )
+        fn = os.path.join(str(folder), _progName + '_Y_cs.gz')
+        np.savetxt(fn, Y3, delimiter='; ' )
+        fn = os.path.join(str(folder), _progName + '_Z_cs.gz')
+        np.savetxt(fn, Z3, delimiter='; ' )
 
         nz = 100
         zl = np.linspace(0.0, Z.max(), nz)
@@ -1104,7 +1189,7 @@ class DesignerMainWindow(QMainWindow):
         levels = fractions*0.0
         emit = fractions*0.0
         rms = fractions*0.0
-        zs = np.sum(Z2)
+        zs = np.sum(Z)
         for i in range(len(fractions)):
             index = np.where(zi >= fractions[i]*zs)[0]
             n = index.max()
@@ -1114,9 +1199,10 @@ class DesignerMainWindow(QMainWindow):
         
         emit = emit*(X[0,0]-X[0,1])*(Y[0,0]-Y[1,0])/np.pi*beta
         rms = rms*beta
-        printl('Current  Normalized emittance      Normalized RMS emittance')
+        printl('% Current  Normalized emittance      Normalized RMS emittance')
         for i in range(len(levels)):
-            printl('%2.0f %%     %5.3f Pi*mm*milliradians  %5.3f Pi*mm*milliradians'%(fractions[i]*100.0,emit[i],rms[i]))
+            printl('%2.0f %%       %5.3f Pi*mm*milliRadians  %5.3f Pi*mm*milliRadians'%(fractions[i]*100.0, emit[i], rms[i]))
+        printl('%2.0f %%                                %5.3f Pi*mm*milliRadians'%(100.0, RMS*beta))
         # plot contours
         if int(self.comboBox.currentIndex()) == 2:
             self.clearPicture()
@@ -1124,8 +1210,8 @@ class DesignerMainWindow(QMainWindow):
             axes.grid(True)
             axes.set_title('Emittance contour plot')
             #axes.set_ylim([xsmin,xsmax])
-            axes.set_xlabel('X0, mm')
-            axes.set_ylabel('X0\', milliRadians')
+            axes.set_xlabel('X, mm')
+            axes.set_ylabel('X\', milliRadians')
             axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
@@ -1142,8 +1228,8 @@ class DesignerMainWindow(QMainWindow):
             axes.grid(True)
             axes.set_title('Emittance color plot')
             #axes.set_ylim([xsmin,xsmax])
-            axes.set_xlabel('X0, mm')
-            axes.set_ylabel('X0\', milliRadians')
+            axes.set_xlabel('X, mm')
+            axes.set_ylabel('X\', milliRadians')
             axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
@@ -1163,6 +1249,18 @@ class DesignerMainWindow(QMainWindow):
                 CS.collections[i].set_label(labels[i])
             axes.legend(loc='upper left')
             #axes.annotate('some text here',(1.4,1.6))
+            axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+                          xy=(.5, .2), xycoords='figure fraction',
+                          horizontalalignment='center', verticalalignment='top',
+                          fontsize=11)
+            self.mplWidget.canvas.draw()
+        if int(self.comboBox.currentIndex()) == 15:
+            self.clearPicture()
+            axes.contour(X3, Y3, Z3, linewidths=1.0)
+            axes.grid(True)
+            axes.set_title('Emittance of cross-section contour plot')
+            axes.set_xlabel('X, mm')
+            axes.set_ylabel('X\', milliRadians')
             axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
@@ -1202,8 +1300,10 @@ class DesignerMainWindow(QMainWindow):
                 # data folder
                 self.folderName = dbase['folder']
                 # history
+                self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
                 self.comboBox_2.clear()
                 self.comboBox_2.addItems(dbase['history'])
+                self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
             # smooth
             self.spinBox.setValue(dbase['smooth'])
             # result comboBox
@@ -1215,11 +1315,11 @@ class DesignerMainWindow(QMainWindow):
             print('Configuration restored from %s.'%fullName)
             return True
         except :
-            self.printExceptionUnfo()
+            self.printExceptionInfo()
             print('Configuration file %s restore error.'%fullName)
         finally:
             dbase.close()
-            return False
+        return False
 
     def execInitScript(self, folder=None, fileName=_initScript):
         if folder is None :
@@ -1229,7 +1329,7 @@ class DesignerMainWindow(QMainWindow):
             exec(open(fullName).read(), globals(), locals())
             print('Init script %s executed'%fullName)
         except:
-            self.printExceptionUnfo()
+            self.printExceptionInfo()
             print('Init script %s error.'%fullName)
 
     def printExceptionInfo(self):

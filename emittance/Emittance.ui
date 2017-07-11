@@ -516,6 +516,11 @@
           <string>14 N x N no divergence</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string>15 Cross section contours</string>
+         </property>
+        </item>
        </widget>
       </item>
      </layout>

@@ -6,12 +6,13 @@ Created on 31 мая 2017 г.
 '''
 def findRegions(index, glue=10, threshold=1, triml=0, trimr=0, length=None):
     n = len(index)
-    if n <= 0:
+    if n <= 1:
         return []
     if length is None:
         length = index[-1] + 2
     regions = []
     i1 = index[0]
+    i3 = index[0]
     for i in range(n-1) :
         i2 = index[i] + 1
         i3 = index[i+1]
@@ -22,8 +23,8 @@ def findRegions(index, glue=10, threshold=1, triml=0, trimr=0, length=None):
                         i1 += triml
                     if i2 < length :
                         i2 -= trimr
-                    if i2 > i1 :
-                        regions.append([i1,i2])
+                    if (i2-1) > i1 :
+                        regions.append([i1,i2-1])
             except:
                 pass
             i1 = i3
