@@ -825,7 +825,6 @@ class DesignerMainWindow(QMainWindow):
             self.plotElementaryJet()
             return
         self.calculateEmittance()
-        
     
     def calculateEmittance(self):
         def plot(*args, **kwargs):
@@ -906,12 +905,12 @@ class DesignerMainWindow(QMainWindow):
                 yu = yy[h]
                 profilemax[i-1] = -1.0 * np.min(yu)      # [mkA]
                 k = 1.0
-                if xx[0] < xx[-1]:
+                if xu[0] < xu[-1]:
                     k = -1.0
                 # simps() returns NaN if x values of 2 points coincide
-                profileint[i-1] = k * scipy.integrate.simps(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                #profileint[i-1] = k * scipy.integrate.simps(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
                 # integrate by rectangles method
-                #profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
                 #print(profileint[i-1])
             except:
                 self.printExceptionInfo()
