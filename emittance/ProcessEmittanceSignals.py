@@ -39,7 +39,7 @@ from printl import printl
 from gaussfit import gaussfit 
 
 _progName = 'Emittance'
-_progVersion = '_3_3'
+_progVersion = '_4_0'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -53,14 +53,14 @@ class DesignerMainWindow(QMainWindow):
         uic.loadUi('Emittance.ui', self)
         #self.setupUi(self)
         # connect the signals with the slots
-        self.pushButton.clicked.connect(self.plotRaw)
-        self.pushButton_3.clicked.connect(self.plotProcessed)
+        #self.pushButton.clicked.connect(self.plotRaw)
+        #self.pushButton_3.clicked.connect(self.plotProcessed)
         self.actionOpen.triggered.connect(self.selectFolder)
         self.pushButton_2.clicked.connect(self.selectFolder)
         self.actionQuit.triggered.connect(qApp.quit)
         self.pushButton_4.clicked.connect(self.processFolder)
-        self.pushButton_5.clicked.connect(self.plotXsub)
-        self.pushButton_6.clicked.connect(self.calculateEmittance)
+        #self.pushButton_5.clicked.connect(self.plotElementaryJet)
+        self.pushButton_6.clicked.connect(self.pushPlotButton)
         self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         #self.pushButton_8.clicked.connect(self.flipStopFlag)
@@ -780,8 +780,8 @@ class DesignerMainWindow(QMainWindow):
         # force an image redraw
         self.draw()
  
-    def plotXsub(self):
-        """Plots processed signals vs Xsub"""
+    def plotElementaryJet(self):
+        """Plot elementary jet profile"""
         if self.data is None :
             return
         self.execInitScript()
@@ -808,6 +808,25 @@ class DesignerMainWindow(QMainWindow):
         axes.legend(loc='best') 
         self.mplWidget.canvas.draw()
 
+    def pushPlotButton(self):
+        if self.data is None :
+            return
+        nx = len(self.fileNames) 
+        if nx <= 0 :
+            return
+        
+        if int(self.comboBox.currentIndex()) == 16:
+            self.plotRaw()
+            return
+        if int(self.comboBox.currentIndex()) == 17:
+            self.plotProcessed()
+            return
+        if int(self.comboBox.currentIndex()) == 18:
+            self.plotElementaryJet()
+            return
+        self.calculateEmittance()
+        
+    
     def calculateEmittance(self):
         def plot(*args, **kwargs):
             axes = self.mplWidget.canvas.ax
@@ -843,11 +862,13 @@ class DesignerMainWindow(QMainWindow):
         nx = len(self.fileNames) 
         if nx <= 0 :
             return
+        
         self.execInitScript()
         # calculate common values
         # x0
         x0 = np.zeros(nx-1)                         # [mm] X0 coordinates of scans
         ndh = np.zeros(nx-1)                        # [mm] displacement of analyzer slit (number n) from axis
+        x0c = np.zeros(nx-1)                        # [mm] X0 coordinates of scans
         flag = self.readParameter(0, 'autox0', False)
         printl('', stamp=False)
         printl('Emittance calculation using parameters:')
@@ -858,17 +879,10 @@ class DesignerMainWindow(QMainWindow):
             else:
                 x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
             ndh[i-1] = self.readParameter(i, 'ndh', 0.0, float)
-            #print('%d ndh %f'%(i,ndh[i-1]))
-        x0c = np.zeros(nx-1)                        # [mm] X0 coordinates of scans
-        for i in range(1, nx) :
             x0c[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
-        #R  = 2.0e5        ; Ohm   Resistor for beamlet scaner FC
-        #d1 = 0.4          ; mm    Analyzer hole diameter
-        #d2 = 0.5          ; mm    Collector Slit Width
-        #l1 = 213.0        ; mm    Distance From emission hole to analyzer hole
-        #l2 = 200.0        ; mm    Distance From analyzer hole to slit collector
+        # parameters
         # R
-        R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load rezistior
+        R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load resistior
         # l1
         l1 = self.readParameter(0, 'l1', 213.0, float)  # [mm] distance from source to analyzer aperture
         # l2
@@ -887,17 +901,17 @@ class DesignerMainWindow(QMainWindow):
                 x,y,index = self.readSignal(i)           # x - [milliRadians] y - [mkA]
                 yy = y[index]
                 xx = x[index]
-                h = np.where(np.diff(xx) != 0.0)[0]
-                xx = xx[h]
-                yy = yy[h]
-                profilemax[i-1] = -1.0 * np.min(yy)      # [mkA]
+                # select unique x values for spline interpolation
+                xu, h = np.unique(xx, return_index=True)
+                yu = yy[h]
+                profilemax[i-1] = -1.0 * np.min(yu)      # [mkA]
                 k = 1.0
                 if xx[0] < xx[-1]:
                     k = -1.0
-                # simps() returns nan if x of 2 points coincide
-                #profileint[i-1] = k * scipy.integrate.simps(yy,xx) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                # simps() returns NaN if x values of 2 points coincide
+                profileint[i-1] = k * scipy.integrate.simps(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
                 # integrate by rectangles method
-                profileint[i-1] = k * np.sum(yy[:-1]*np.diff(xx)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                #profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
                 #print(profileint[i-1])
             except:
                 self.printExceptionInfo()
@@ -1094,15 +1108,15 @@ class DesignerMainWindow(QMainWindow):
         # calculate average X
         Xavg = np.sum(X2*Z2)/np.sum(Z2)
         # Z for whole beam
-        sum = np.zeros((1, N), dtype=np.float64)
+        s = np.zeros((1, N), dtype=np.float64)
         for i in range(N) :
-            sum *= 0.0
+            s *= 0.0
             x = np.abs(X[0,i] - Xavg)
             for j in range(N):
                 ksi = np.abs(X[0,j] - Xavg)
                 if ksi > x:
-                    sum += Z2[:,j]*ksi/np.sqrt(ksi*ksi - x*x)
-            Z[:,i] = sum
+                    s += Z2[:,j]*ksi/np.sqrt(ksi*ksi - x*x)
+            Z[:,i] = s
         # convert Z to milliAmperes/cell
         Z *= (Y[1,0]-Y[0,0])/d2*l2/1000.0 * (X[0,1]-X[0,0])**2/a1 / 1000.0
         print('Total Z (beam current) = %f mA'%np.sum(Z))
@@ -1140,9 +1154,9 @@ class DesignerMainWindow(QMainWindow):
         XXavg = np.sum(X*XZ)/zt
         YYavg = np.sum(Y*YZ)/zt
         RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg)
-        #XX1avg = np.sum((X-Xavg)*(X-Xavg)*Z)/zt
-        #YY1avg = np.sum((Y-Yavg)*(Y-Yavg)*Z)/zt
-        #XY1avg = np.sum((X-Xavg)*(Y-Yavg)*Z)/zt
+        #XX1avg = np.s((X-Xavg)*(X-Xavg)*Z)/zt
+        #YY1avg = np.s((Y-Yavg)*(Y-Yavg)*Z)/zt
+        #XY1avg = np.s((X-Xavg)*(Y-Yavg)*Z)/zt
         #RMS1 = np.sqrt(XX1avg*YY1avg-XY1avg*XY1avg)
         print('Xavg=%f mm   X\'avg=%f mRad'%(Xavg, Yavg))
         #print('RMS=%f RMS1=%f'%(RMS*beta, RMS1*beta))
