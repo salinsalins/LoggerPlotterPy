@@ -14,8 +14,8 @@ def smooth(y, n):
     n2 = int(n/2) + int(n%2)
     y[n2:-n2+1] = (cumsum[n:] - cumsum[:-n]) / n
     for i in range(n2):
-        y[i] = cumsum[i+n2] / (i + n2)
-    for i in range(n2-1):
+        y[i] = cumsum[i+n2] / (i + n2 + 1)
+    for i in range(n2):
         y[-(i+1)] = (cumsum[-1]-cumsum[-i-n2-1]) / (i + n2)
     return y
 

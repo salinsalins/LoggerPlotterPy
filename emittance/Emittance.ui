@@ -56,21 +56,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="lineEdit">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QComboBox" name="comboBox_2">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -531,6 +516,11 @@
           <string>14 N x N no divergence</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string>15 Cross section contours</string>
+         </property>
+        </item>
        </widget>
       </item>
      </layout>
@@ -543,7 +533,7 @@
      <x>0</x>
      <y>0</y>
      <width>1120</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
