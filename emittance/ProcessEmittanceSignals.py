@@ -684,31 +684,34 @@ class DesignerMainWindow(QMainWindow):
     def cls(self):
         self.clearPicture()
 
+    def getX(self):
+        ix = self.spinBox_2.value()
+        if ix >= 0:
+            x = self.data[ix, :].copy()
+            ns = self.readParameter(ix, "smooth", self.spinBox.value(), int, True)
+            smooth(x, ns)
+            xTitle = 'Scan Voltage, V'
+        else:
+            x = np.arange(len(self.data[0, :]))
+            xTitle = 'Point index'
+        return (x,xTitle)
+
     def plotRaw(self):
+        self.execInitScript()
         self.clearPicture()
         if self.data is None :
             return
         # draw chart
-        ns = self.spinBox.value()
         axes = self.mplWidget.canvas.ax
-        #table = self.tableWidget
-        #indexes = table.selectedIndexes()
+        x,xTitle = self.getX()
         indexes = self.listWidget.selectedIndexes()
-        y = self.data[0, :]
-        ix = self.spinBox_2.value()
-        if ix >= 0:
-            x = self.data[ix, :].copy()
-            smooth(x, self.spinBox.value())
-            xTitle = 'Scan Voltage, V'
-        else:
-            x = np.arange(len(y))
-            xTitle = 'Point index'
         for i in indexes :
             row = i.row()
             y = self.data[row, :].copy()
+            ns = self.readParameter(row, "smooth", self.spinBox.value(), int, True)
             smooth(y, ns)
             z = self.readZero(row) + self.readParameter(row, 'offset')
-            axes.plot(x, y, label='raw'+str(row))
+            axes.plot(x, y, label='raw '+str(row))
             axes.plot(x, z, label='zero'+str(row))
         axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
         axes.grid(True)
@@ -723,38 +726,19 @@ class DesignerMainWindow(QMainWindow):
         if self.data is None :
             return
         self.execInitScript()
-        axes = self.mplWidget.canvas.ax
         # clear the Axes
         self.clearPicture()
+        x,xTitle = self.getX()
         # draw chart
-        #table = self.tableWidget
-        #indexes = table.selectedIndexes()
         indexes = self.listWidget.selectedIndexes()
-        y = self.data[0, :]
-        ix = self.spinBox_2.value()
-        if ix >= 0:
-            x = self.data[ix, :].copy()
-            ns = 1
-            try:
-                ns = self.readParameter(ix, "smooth", 1, int)
-            except:
-                pass
-            try:
-                ns = int(self.spinBox.value())
-            except:
-                pass
-            smooth(x, ns)
-            xTitle = 'Scan Voltage, V'
-        else:
-            x = np.arange(len(y))
-            xTitle = 'Point index'
+        axes = self.mplWidget.canvas.ax
         for i in indexes :
             row = i.row()
             u,y,index = self.readSignal(row)
             # convert to volts
             y = y * self.readParameter(0, "R", 2.0e5, float) / 1.0e6
             # plot processed signal
-            self.plot(x, y, label='p'+str(row))
+            self.plot(x, y, label='proc '+str(row))
             # highlight signal region
             self.plot(x[index], y[index], label='range'+str(row))
             print('Signal %d'%row)
@@ -864,7 +848,6 @@ class DesignerMainWindow(QMainWindow):
         
         self.execInitScript()
         # calculate common values
-        # x0
         x0 = np.zeros(nx-1)                         # [mm] X0 coordinates of scans
         ndh = np.zeros(nx-1)                        # [mm] displacement of analyzer slit (number n) from axis
         x0c = np.zeros(nx-1)                        # [mm] X0 coordinates of scans
@@ -908,10 +891,9 @@ class DesignerMainWindow(QMainWindow):
                 if xu[0] < xu[-1]:
                     k = -1.0
                 # simps() returns NaN if x values of 2 points coincide
-                #profileint[i-1] = k * scipy.integrate.simps(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                profileint[i-1] = k * scipy.integrate.simps(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
                 # integrate by rectangles method
-                profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
-                #print(profileint[i-1])
+                #profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
             except:
                 self.printExceptionInfo()
         # sort in x0 increasing order
