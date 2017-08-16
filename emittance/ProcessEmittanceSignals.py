@@ -53,8 +53,8 @@ class DesignerMainWindow(QMainWindow):
         uic.loadUi('Emittance.ui', self)
         #self.setupUi(self)
         # connect the signals with the slots
-        #self.pushButton.clicked.connect(self.plotRaw)
-        #self.pushButton_3.clicked.connect(self.plotProcessed)
+        #self.pushButton.clicked.connect(self.plotRawSignals)
+        #self.pushButton_3.clicked.connect(self.plotProcessedSignals)
         self.actionOpen.triggered.connect(self.selectFolder)
         self.pushButton_2.clicked.connect(self.selectFolder)
         self.actionQuit.triggered.connect(qApp.quit)
@@ -696,7 +696,7 @@ class DesignerMainWindow(QMainWindow):
             xTitle = 'Point index'
         return (x,xTitle)
 
-    def plotRaw(self):
+    def plotRawSignals(self):
         self.execInitScript()
         self.clearPicture()
         if self.data is None :
@@ -721,7 +721,7 @@ class DesignerMainWindow(QMainWindow):
         axes.legend(loc='best') 
         self.mplWidget.canvas.draw()
 
-    def plotProcessed(self):
+    def plotProcessedSignals(self):
         """Plots processed signals"""
         if self.data is None :
             return
@@ -800,10 +800,10 @@ class DesignerMainWindow(QMainWindow):
             return
         
         if int(self.comboBox.currentIndex()) == 16:
-            self.plotRaw()
+            self.plotRawSignals()
             return
         if int(self.comboBox.currentIndex()) == 17:
-            self.plotProcessed()
+            self.plotProcessedSignals()
             return
         if int(self.comboBox.currentIndex()) == 18:
             self.plotElementaryJet()
@@ -885,6 +885,7 @@ class DesignerMainWindow(QMainWindow):
                 xx = x[index]
                 # select unique x values for spline interpolation
                 xu, h = np.unique(xx, return_index=True)
+                #print(i,h)
                 yu = yy[h]
                 profilemax[i-1] = -1.0 * np.min(yu)      # [mkA]
                 k = 1.0
@@ -892,16 +893,21 @@ class DesignerMainWindow(QMainWindow):
                     k = -1.0
                 # simps() returns NaN if x values of 2 points coincide
                 profileint[i-1] = k * scipy.integrate.simps(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                print(i,profileint[i-1])
                 # integrate by rectangles method
-                #profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                print(i,profileint[i-1])
             except:
                 self.printExceptionInfo()
         # sort in x0 increasing order
         ix0 = np.argsort(x0)
         #print(ix0)
         x0s = x0[ix0]
+        print(x0s)
         profileint = profileint[ix0]
+        print(profileint)
         profilemax = profilemax[ix0]
+        print(profilemax)
         # remove average x
         #xavg = simps(x0s * profilemax, x0s) / simps(profilemax, x0s)
         xavg = simps(x0s * profileint, x0s) / simps(profileint, x0s)
@@ -1328,9 +1334,8 @@ class DesignerMainWindow(QMainWindow):
             print('Init script %s error.'%fullName)
 
     def printExceptionInfo(self):
-            #(type, value, traceback) = sys.exc_info()
-            (type, value) = sys.exc_info()[:2]
-            print('Exception %s %s'%(str(type), str(value)))
+        (tp, value) = sys.exc_info()[:2]
+        print('Exception %s %s'%(str(tp), str(value)))
 
 if __name__ == '__main__':
     # create the GUI application
