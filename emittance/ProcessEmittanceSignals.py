@@ -636,11 +636,6 @@ class DesignerMainWindow(QMainWindow):
         # smooth
         ns = self.readParameter(0, "smooth", 100, int)
         smooth(u, 2*ns)
-        # parameters
-        # scanner base
-        l2 = self.readParameter(0, "l2", 200.0, float)
-        # load resistor
-        R = self.readParameter(0, "R", 2.0e5, float)
         # signal
         y = self.data[row, :].copy()
         # smooth
@@ -654,6 +649,8 @@ class DesignerMainWindow(QMainWindow):
         smooth(z, 2*ns)
         # subtract offset and zero
         y = y - z - of
+        # load resistor
+        R = self.readParameter(0, "R", 2.0e5, float)
         # convert signal to microAmperes
         y = y/R*1.0e6
         # signal region
@@ -664,6 +661,8 @@ class DesignerMainWindow(QMainWindow):
         s = self.readParameter(row, "scale", 1.0, float)
         # ndh
         ndh = self.readParameter(row, "ndh", 0.0, float)
+        # scanner base
+        l2 = self.readParameter(0, "l2", 200.0, float)
         # x' in milliRadians
         xsub = (ndh - s*u) / l2 * 1000.0
         return (xsub, y, index)
@@ -748,28 +747,23 @@ class DesignerMainWindow(QMainWindow):
         for i in indexes :
             row = i.row()
             u,y,index = self.readSignal(row)
-            # convert to volts
+            # convert back from microAmpers to volts
             y = y * self.readParameter(0, "R", 2.0e5, float) / 1.0e6
             # plot processed signal
             self.plot(x, y, label='proc '+str(row))
             # highlight signal region
             self.plot(x[index], y[index], label='range'+str(row))
             print('Signal %d'%row)
+            # print parameters
             self.readParameter(row, "smooth", 1, int, True)
             self.readParameter(row, "offset", 0.0, float, True)
             self.readParameter(row, "scale", 0.0, float, True)
-            #self.readParameter(row, "zero", (), None, True)
-            r = self.readParameter(row, "range", (0,-1), None, True)
             self.readParameter(row, "x0", 0.0, float, True)
             self.readParameter(row, "ndh", 0.0, float, True)
-            mi = self.readParameter(row, "minindex", 0, int, True)
-            mv = self.readParameter(row, "minvoltage", 0.0, float, True)
             # range vertical lines
+            r = self.readParameter(row, "range", (0,-1), None, True)
             self.voplot(x[r[0]])
             self.voplot(x[r[1]-1])
-            # minimum cross
-            #self.zoplot(y[mi])
-            #self.voplot(x[mi])
         # plot zero line
         self.zoplot()
         axes.set_title('Processed Signals')
@@ -796,8 +790,7 @@ class DesignerMainWindow(QMainWindow):
             yy = -1.0*y[index]
             axes.plot(xx, yy, label='jet '+str(row))
             #axes.plot(xx, gaussfit(xx, yy), '--', label='gauss '+str(row))
-            pass
-        # plot zero line
+        # plot axis y=0
         axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
         # decorate the plot
         axes.grid(True)
@@ -935,7 +928,6 @@ class DesignerMainWindow(QMainWindow):
             axes.grid(True)
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
-            #return
 
     def calculateEmittance(self):
         def plot(*args, **kwargs):
@@ -1078,7 +1070,7 @@ class DesignerMainWindow(QMainWindow):
         
         # calculate emittance contour plot
         # number of points for emittance matrix
-        N = 300
+        N = 200
         # calculate nx-1 x N arrays
         # X0 [mm]
         X0 = np.zeros((N,nx-1), dtype=np.float64)
@@ -1102,10 +1094,10 @@ class DesignerMainWindow(QMainWindow):
             xsmin = min([xsmin, x[index].min()])
             xsmax = max([xsmax, x[index].max()])
         # X0' range array
-        xs = np.linspace(xsmin, xsmax, N)
+        ys = np.linspace(xsmin, xsmax, N)
         # fill data arrays
         for i in range(nx-1) :
-            Y0[:,i] = xs
+            Y0[:,i] = ys
             x = v[i][0]
             y = v[i][1]
             index = np.unique(x, return_index=True)[1]
@@ -1131,6 +1123,8 @@ class DesignerMainWindow(QMainWindow):
             axes.set_title('Interpolated N x (nx-1) and sorted X0 data')
             self.mplWidget.canvas.draw()
             return
+
+        
         # reduce regular divergence
         for i in range(nx-1) :
             x = v[i][0]
@@ -1168,14 +1162,18 @@ class DesignerMainWindow(QMainWindow):
                 h = self.readParameter(k-1, "ndh", 0.0, float)
                 print('i=%d Xmax=%fmm r=%s'%(m, (h - s*v) / l2 * 1000.0, str(r)))
             return
+
+        
         # calculate NxN array
         X2 = np.zeros((N, N), dtype=np.float64)
         Y2 = np.zeros((N, N), dtype=np.float64)
         Z2 = np.zeros((N, N), dtype=np.float64)
+        xs = np.linspace(x0.min(), x0.max(), N)
+        # X and Y
         for i in range(N) :
             X2[i,: ] = np.linspace(x0.min(), x0.max(), N)
-        for i in range(N) :
-            Y2[:,i] = xs
+            Y2[:,i] = ys
+        # Z
         for i in range(N) :
             #Z2[i,:] = np.interp(X2[i,:], X0[i,:], Z0[i,:])
             x = X1[i,:]
@@ -1186,7 +1184,7 @@ class DesignerMainWindow(QMainWindow):
             Z2[i,:] = f(X2[i,:])
         # remove negative currents
         Z2[Z2 < 0.0] = 0.0
-        Z2t = np.sum(Z2) * (Y2[1,0]-Y2[0,0])/d2*l2/1000.0 * (X2[0,1]-X2[0,0])*d1/a1 / 1000.0
+        Z2t = np.sum(Z2) * (Y2[1,0]-Y2[0,0])/d2*l2/1000.0 * (X2[0,1]-X2[0,0])*d1/a1/1000.0
         print('Total Z2 (cross-section current) = %f mA'%Z2t)
         # debug plot 14
         if int(self.comboBox.currentIndex()) == 14:
