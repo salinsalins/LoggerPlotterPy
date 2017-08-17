@@ -1171,10 +1171,19 @@ class DesignerMainWindow(QMainWindow):
         xs = np.linspace(x0.min(), x0.max(), N)
         # X and Y
         for i in range(N) :
-            X2[i,: ] = np.linspace(x0.min(), x0.max(), N)
+            X2[i,:] = xs
             Y2[:,i] = ys
         # Z
-        for i in range(N) :
+        #for i in range(N-1) :
+        for i in range(N-1) :
+            nx1 = i * (nx-2)/(N-1)
+            nx2 = nx1 + 1
+            x1 = X0[0,nx1]
+            x2 = X0[0,nx2]
+            ny1 = np.argmax(Z0[:,nx1])
+            ny2 = np.argmax(Z0[:,nx2])
+            y1 = Y0[ny1,0]
+            y2 = Y0[ny2,0]
             #Z2[i,:] = np.interp(X2[i,:], X0[i,:], Z0[i,:])
             x = X1[i,:]
             y = Z1[i,:]
