@@ -12,6 +12,14 @@ import os.path
 import shelve
 import sys
 
+#from my_isfread import my_isfread as isfread
+from findRegions import findRegions as findRegions
+from findRegions import restoreFromRegions as restoreFromRegions
+from smooth import smooth
+from printl import printl 
+from readTekFiles import readTekFiles
+#from gaussfit import gaussfit 
+
 try:
     from PyQt4.QtGui import QMainWindow
     from PyQt4.QtGui import QApplication
@@ -28,18 +36,12 @@ except:
     from PyQt5 import uic
 
 import numpy as np
-from findRegions import *
-from my_isfread import my_isfread as isfread
-from smooth import smooth
-from readTekFiles import readTekFiles
-import scipy.integrate
-from scipy.integrate import simps
+#import scipy.integrate
+from scipy.integrate import trapz
 from scipy.interpolate import interp1d
-from printl import printl 
-from gaussfit import gaussfit 
 
 _progName = 'Emittance'
-_progVersion = '_4_0'
+_progVersion = '_4_1'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -398,6 +400,7 @@ class DesignerMainWindow(QMainWindow):
         for i in range(1, nx) :
             #print('Channel %d'%i)
             y0 = data[i,:].copy()[xi]
+            smooth(y0, params[i]['smooth'])
             z = zero[i].copy()[xi] + params[i]['offset']
             smooth(z, params[i]['smooth']*2)
             y = y0 - z
@@ -602,11 +605,22 @@ class DesignerMainWindow(QMainWindow):
             zr = self.paramsManual[row]['zero']
             for zi in zr:
                 try:
-                    z0 = self.data[zi[0], :].copy()
-                    ns0 = self.readParameter(zi[0], "smooth", 1, int)
-                    of0 = self.readParameter(zi[0], "offset", 0.0, float)
-                    smooth(z0, 2*ns0)
-                    z[zi[1]:zi[2]] = z0[zi[1]:zi[2]] + of0
+                    if zi[0] == -1 :
+                        # linear interpolation
+                        z0 = self.data[row, :].copy()
+                        ns = self.readParameter(row, "smooth", self.spinBox.value(), int)
+                        smooth(z0, ns)
+                        of = self.readParameter(row, "offset", 0.0, float)
+                        z0 = z0 - of # minus is correct !!!
+                        y1 = z0[zi[1]]
+                        y2 = z0[zi[2]]
+                        z[zi[1]:zi[2]+1] = np.interp(np.arange(zi[1],zi[2]+1), [zi[1],zi[2]], [y1,y2])
+                    if zi[0] > 0 :
+                        z0 = self.data[zi[0], :].copy()
+                        ns = self.readParameter(zi[0], "smooth", 1, int)
+                        of = self.readParameter(zi[0], "offset", 0.0, float)
+                        smooth(z0, 2*ns)
+                        z[zi[1]:zi[2]] = z0[zi[1]:zi[2]] + of
                 except:
                     pass
         except:
@@ -621,8 +635,7 @@ class DesignerMainWindow(QMainWindow):
         u = self.data[0, :].copy()
         # smooth
         ns = self.readParameter(0, "smooth", 100, int)
-        smooth(u, ns)
-        smooth(u, ns)
+        smooth(u, 2*ns)
         # parameters
         # scanner base
         l2 = self.readParameter(0, "l2", 200.0, float)
@@ -715,7 +728,7 @@ class DesignerMainWindow(QMainWindow):
             axes.plot(x, z, label='zero'+str(row))
         axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
         axes.grid(True)
-        axes.set_title('Signals from Tektronix oscilloscope')
+        axes.set_title('Signals with zero line')
         axes.set_xlabel(xTitle)
         axes.set_ylabel('Signal Voltage, V')
         axes.legend(loc='best') 
@@ -745,16 +758,18 @@ class DesignerMainWindow(QMainWindow):
             self.readParameter(row, "smooth", 1, int, True)
             self.readParameter(row, "offset", 0.0, float, True)
             self.readParameter(row, "scale", 0.0, float, True)
-            self.readParameter(row, "zero", (), None, True)
+            #self.readParameter(row, "zero", (), None, True)
             r = self.readParameter(row, "range", (0,-1), None, True)
             self.readParameter(row, "x0", 0.0, float, True)
             self.readParameter(row, "ndh", 0.0, float, True)
             mi = self.readParameter(row, "minindex", 0, int, True)
             mv = self.readParameter(row, "minvoltage", 0.0, float, True)
-            self.zoplot(y[mi])
-            self.voplot(x[mi])
+            # range vertical lines
             self.voplot(x[r[0]])
             self.voplot(x[r[1]-1])
+            # minimum cross
+            #self.zoplot(y[mi])
+            #self.voplot(x[mi])
         # plot zero line
         self.zoplot()
         axes.set_title('Processed Signals')
@@ -810,6 +825,118 @@ class DesignerMainWindow(QMainWindow):
             return
         self.calculateEmittance()
     
+    def calculateProfiles(self):
+        nx = len(self.fileNames) 
+        if nx <= 0 :
+            return
+        
+        self.execInitScript()
+        
+        # calculate common values
+        x0 = np.zeros(nx-1)                         # [mm] X0 coordinates of scans
+        flag = self.readParameter(0, 'autox0', False)
+        printl('', stamp=False)
+        printl('Emittance calculation using parameters:')
+        printl('Use calculated X0 = %s'%str(flag))
+        for i in range(1, nx) :
+            if flag:
+                x0[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
+            else:
+                x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
+        # parameters
+        # R
+        R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load resistior
+        # l1
+        l1 = self.readParameter(0, 'l1', 213.0, float)  # [mm] distance from source to analyzer aperture
+        # l2
+        l2 = self.readParameter(0, 'l2', 200.0, float)  # [mm] analyzer base
+        # d1 and hole area
+        d1 = self.readParameter(0, 'd1', 0.4, float)    # [mm] analyzer hole diameter
+        a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
+        # d2
+        d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
+        printl('R=%fOhm l1=%fmm l2=%fmm d1=%fmm d2=%fmm'%(R,l1,l2,d1,d2))
+        # calculate maximum and integral profiles
+        profilemax = np.zeros(nx-1)
+        profileint = np.zeros(nx-1)
+        for i in range(1, nx) :
+            try:
+                x,y,index = self.readSignal(i)           # x - [milliRadians] y - [mkA]
+                yy = y[index]
+                xx = x[index]
+                # select unique x values for spline interpolation
+                xu, h = np.unique(xx, return_index=True)
+                #print(i,h)
+                yu = yy[h]
+                profilemax[i-1] = -1.0 * np.min(yu)      # [mkA]
+                k = 1.0
+                if xu[0] < xu[-1]:
+                    k = -1.0
+                profileint[i-1] = k * trapz(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                print(i,profileint[i-1])
+                # integrate by rectangles method
+                profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                print(i,profileint[i-1])
+            except:
+                self.printExceptionInfo()
+        # sort in x0 increasing order
+        ix0 = np.argsort(x0)
+        #print(ix0)
+        x0s = x0[ix0]
+        print(x0s)
+        profileint = profileint[ix0]
+        print(profileint)
+        profilemax = profilemax[ix0]
+        print(profilemax)
+        # remove average x
+        xavg = trapz(x0s * profileint, x0s) / trapz(profileint, x0s)
+        print('Average X0 %f mm'%xavg)
+        x0s = x0s - xavg
+        # cross-section current
+        Ics = trapz(profileint, x0s)*d1/a1/1000.0
+        printl('Cross-section current %f mA'%Ics)
+        # calculate total current
+        index = np.where(x0s >= 0.0)[0]
+        Ir = trapz(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
+        print('Total current right %f mA'%Ir)
+        index = np.where(x0s <= 0.0)[0]
+        Il = -1.0*trapz(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
+        print('Total current left %f mA'%Il)
+        I = (Il + Ir)/2.0
+        printl('Total current %f mA'%I)
+        # save profile data
+        folder = self.folderName
+        fn = os.path.join(str(folder), 'InegralProfile.txt')
+        np.savetxt(fn, np.array([x0,profileint]).T, delimiter='; ' )
+        fn = os.path.join(str(folder), 'MaximumProfile.txt')
+        np.savetxt(fn, np.array([x0,profilemax]).T, delimiter='; ' )
+        # plot profiles
+        axes = self.mplWidget.canvas.ax
+        # plot integral profile
+        if int(self.comboBox.currentIndex()) == 0:
+            self.clearPicture()
+            axes.set_title('Integral profile')
+            axes.set_xlabel('X0, mm')
+            axes.set_ylabel('Beamlet current, mkA')
+            axes.plot(x0s, profileint, 'd-', label='Integral Profile')
+            #axes.plot(x0s, gaussfit(x0s,profileint,x0s), '--', label='Gaussian fit')
+            axes.grid(True)
+            axes.legend(loc='best') 
+            self.mplWidget.canvas.draw()
+            #return
+        # plot maximal profile
+        if int(self.comboBox.currentIndex()) == 1:
+            self.clearPicture()
+            axes.set_title('Maximum profile')
+            axes.set_xlabel('X0, mm')
+            axes.set_ylabel('Maximal current, mkA')
+            axes.plot(x0s, profilemax, 'o-', label='Maximum Profile')
+            #axes.plot(x0s, gaussfit(x0s,profilemax,x0s), '--', label='Gaussian fit')
+            axes.grid(True)
+            axes.legend(loc='best') 
+            self.mplWidget.canvas.draw()
+            #return
+
     def calculateEmittance(self):
         def plot(*args, **kwargs):
             axes = self.mplWidget.canvas.ax
@@ -883,45 +1010,36 @@ class DesignerMainWindow(QMainWindow):
                 x,y,index = self.readSignal(i)           # x - [milliRadians] y - [mkA]
                 yy = y[index]
                 xx = x[index]
-                # select unique x values for spline interpolation
-                xu, h = np.unique(xx, return_index=True)
-                #print(i,h)
-                yu = yy[h]
-                profilemax[i-1] = -1.0 * np.min(yu)      # [mkA]
+                profilemax[i-1] = -1.0 * np.min(yy)      # [mkA]
                 k = 1.0
-                if xu[0] < xu[-1]:
+                if xx[0] < xx[-1]:
                     k = -1.0
-                # simps() returns NaN if x values of 2 points coincide
-                profileint[i-1] = k * scipy.integrate.simps(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
-                print(i,profileint[i-1])
+                # integrate by trapezoids method
+                profileint[i-1] = k * trapz(yy, xx) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                #print(i,profileint[i-1])
                 # integrate by rectangles method
-                profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
-                print(i,profileint[i-1])
+                #profileint[i-1] = k * np.sum(yy[:-1]*np.diff(xx)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                #print(i,profileint[i-1])
             except:
                 self.printExceptionInfo()
-        # sort in x0 increasing order
+        # sort x0 in increasing order
         ix0 = np.argsort(x0)
-        #print(ix0)
         x0s = x0[ix0]
-        print(x0s)
         profileint = profileint[ix0]
-        print(profileint)
         profilemax = profilemax[ix0]
-        print(profilemax)
         # remove average x
-        #xavg = simps(x0s * profilemax, x0s) / simps(profilemax, x0s)
-        xavg = simps(x0s * profileint, x0s) / simps(profileint, x0s)
+        xavg = trapz(x0s * profileint, x0s) / trapz(profileint, x0s)
         print('Average X0 %f mm'%xavg)
         x0s = x0s - xavg
         # cross-section current
-        Ics = simps(profileint, x0s)*d1/a1/1000.0
+        Ics = trapz(profileint, x0s)*d1/a1/1000.0
         printl('Cross-section current %f mA'%Ics)
         # calculate total current
         index = np.where(x0s >= 0.0)[0]
-        Ir = simps(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
+        Ir = trapz(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
         print('Total current right %f mA'%Ir)
         index = np.where(x0s <= 0.0)[0]
-        Il = -1.0*simps(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
+        Il = -1.0*trapz(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
         print('Total current left %f mA'%Il)
         I = (Il + Ir)/2.0
         printl('Total current %f mA'%I)
@@ -944,7 +1062,7 @@ class DesignerMainWindow(QMainWindow):
             axes.grid(True)
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
-            #return
+            return
         # plot maximal profile
         if int(self.comboBox.currentIndex()) == 1:
             self.clearPicture()
@@ -956,7 +1074,8 @@ class DesignerMainWindow(QMainWindow):
             axes.grid(True)
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
-            #return
+            return
+        
         # calculate emittance contour plot
         # number of points for emittance matrix
         N = 300
@@ -991,7 +1110,7 @@ class DesignerMainWindow(QMainWindow):
             y = v[i][1]
             index = np.unique(x, return_index=True)[1]
             #Z0[:,i] = np.interp(Y0[:,i], v[i][0], v[i][1])
-            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
+            f = interp1d(x[index], y[index], kind='linear', bounds_error=False, fill_value=0.0)
             #f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0.0)
             Z0[:,i] = f(Y0[:,i])
         # sort data according rising x0
@@ -1017,7 +1136,7 @@ class DesignerMainWindow(QMainWindow):
             x = v[i][0]
             y = v[i][1]
             index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
+            f = interp1d(x[index], y[index], kind='linear', bounds_error=False, fill_value=0.0)
             # using calculated X0
             Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + x0c[i]/l1*1000.0)
             #Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + X0[:,ix0[i]]/l1*1000.0)
