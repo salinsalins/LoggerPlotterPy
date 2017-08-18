@@ -36,8 +36,10 @@ except:
     from PyQt5 import uic
 
 import numpy as np
+#import scipy.integrate
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
+from scipy.ndimage.filters import gaussian_filter
 
 _progName = 'Emittance'
 _progVersion = '_4_1'
@@ -64,13 +66,13 @@ class DesignerMainWindow(QMainWindow):
         self.pushButton_6.clicked.connect(self.pushPlotButton)
         self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-        #self.pushButton_8.clicked.connect(self.flipStopFlag)
         # variables definition
-        self.stopFlag = False
         self.data = None
+        self.scanVoltage = None
         self.paramsAuto = None
         self.fleNames = []
         self.folderName = ''
+        # welcome message
         printl(_progName + _progVersion + ' started')
         # restore global settings from default location
         self.restoreSettings()
@@ -138,9 +140,6 @@ class DesignerMainWindow(QMainWindow):
         self.mplWidget.canvas.ax.clear()
         self.mplWidget.canvas.draw()
 
-    def flipStopFlag(self):
-        self.stopFlag = not self.stopFlag
-        
     def removeInersections(self, y1, y2, index):
         # calculate relative first derivatives
         d1 = np.diff(y1)
@@ -849,8 +848,8 @@ class DesignerMainWindow(QMainWindow):
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
         printl('R=%fOhm l1=%fmm l2=%fmm d1=%fmm d2=%fmm'%(R,l1,l2,d1,d2))
         # calculate maximum and integral profiles
-        profilemax = np.zeros(nx-1)
-        profileint = np.zeros(nx-1)
+        self.profilemax = np.zeros(nx-1)
+        self.profileint = np.zeros(nx-1)
         for i in range(1, nx) :
             try:
                 x,y,index = self.readSignal(i)           # x - [milliRadians] y - [mkA]
@@ -860,48 +859,47 @@ class DesignerMainWindow(QMainWindow):
                 xu, h = np.unique(xx, return_index=True)
                 #print(i,h)
                 yu = yy[h]
-                profilemax[i-1] = -1.0 * np.min(yu)      # [mkA]
+                self.profilemax[i-1] = -1.0 * np.min(yu)      # [mkA]
                 k = 1.0
                 if xu[0] < xu[-1]:
                     k = -1.0
-                profileint[i-1] = k * trapz(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
-                print(i,profileint[i-1])
+                self.profileint[i-1] = k * trapz(yu, xu) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                print(i, self.profileint[i-1])
                 # integrate by rectangles method
-                profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
-                print(i,profileint[i-1])
+                self.profileint[i-1] = k * np.sum(yu[:-1]*np.diff(xu)) * l2 / d2 /1000.0  # [mkA] 1000.0 from milliradians
+                print(i, self.profileint[i-1])
             except:
                 self.printExceptionInfo()
         # sort in x0 increasing order
         ix0 = np.argsort(x0)
-        #print(ix0)
         x0s = x0[ix0]
-        print(x0s)
-        profileint = profileint[ix0]
-        print(profileint)
-        profilemax = profilemax[ix0]
-        print(profilemax)
+        #print(x0s)
+        self.profileint = self.profileint[ix0]
+        #print(self.profileint)
+        self.profilemax = self.profilemax[ix0]
+        #print(self.profilemax)
         # remove average x
-        xavg = trapz(x0s * profileint, x0s) / trapz(profileint, x0s)
+        xavg = trapz(x0s * self.profileint, x0s) / trapz(self.profileint, x0s)
         print('Average X0 %f mm'%xavg)
         x0s = x0s - xavg
         # cross-section current
-        Ics = trapz(profileint, x0s)*d1/a1/1000.0
+        Ics = trapz(self.profileint, x0s)*d1/a1/1000.0
         printl('Cross-section current %f mA'%Ics)
         # calculate total current
         index = np.where(x0s >= 0.0)[0]
-        Ir = trapz(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
+        Ir = trapz(x0s[index]*self.profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
         print('Total current right %f mA'%Ir)
         index = np.where(x0s <= 0.0)[0]
-        Il = -1.0*trapz(x0s[index]*profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
+        Il = -1.0*trapz(x0s[index]*self.profileint[index], x0s[index])*2.0*np.pi/a1/1000.0
         print('Total current left %f mA'%Il)
         I = (Il + Ir)/2.0
         printl('Total current %f mA'%I)
         # save profile data
         folder = self.folderName
         fn = os.path.join(str(folder), 'InegralProfile.txt')
-        np.savetxt(fn, np.array([x0,profileint]).T, delimiter='; ' )
+        np.savetxt(fn, np.array([x0,self.profileint]).T, delimiter='; ' )
         fn = os.path.join(str(folder), 'MaximumProfile.txt')
-        np.savetxt(fn, np.array([x0,profilemax]).T, delimiter='; ' )
+        np.savetxt(fn, np.array([x0,self.profilemax]).T, delimiter='; ' )
         # plot profiles
         axes = self.mplWidget.canvas.ax
         # plot integral profile
@@ -910,7 +908,7 @@ class DesignerMainWindow(QMainWindow):
             axes.set_title('Integral profile')
             axes.set_xlabel('X0, mm')
             axes.set_ylabel('Beamlet current, mkA')
-            axes.plot(x0s, profileint, 'd-', label='Integral Profile')
+            axes.plot(x0s, self.profileint, 'd-', label='Integral Profile')
             #axes.plot(x0s, gaussfit(x0s,profileint,x0s), '--', label='Gaussian fit')
             axes.grid(True)
             axes.legend(loc='best') 
@@ -922,42 +920,19 @@ class DesignerMainWindow(QMainWindow):
             axes.set_title('Maximum profile')
             axes.set_xlabel('X0, mm')
             axes.set_ylabel('Maximal current, mkA')
-            axes.plot(x0s, profilemax, 'o-', label='Maximum Profile')
+            axes.plot(x0s, self.profilemax, 'o-', label='Maximum Profile')
             #axes.plot(x0s, gaussfit(x0s,profilemax,x0s), '--', label='Gaussian fit')
             axes.grid(True)
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
 
     def calculateEmittance(self):
-        def plot(*args, **kwargs):
-            axes = self.mplWidget.canvas.ax
-            axes.plot(*args, **kwargs)
-            #zoplot()
-            #xlim = axes.get_xlim()
-            #axes.plot(xlim, [0.0,0.0], color='k')
-            #axes.set_xlim(xlim)
-            axes.grid(True)
-            axes.legend(loc='best') 
-            self.mplWidget.canvas.draw()
+        plot = self.plot
+        draw = self.draw
+        zoplot = self.zoplot
+        voplot = self.voplot
+        cls = self.cls
 
-        def draw():
-            self.mplWidget.canvas.draw()
-
-        def zoplot(v=0.0, color='k'):
-            axes = self.mplWidget.canvas.ax
-            xlim = axes.get_xlim()
-            axes.plot(xlim, [v, v], color=color)
-            axes.set_xlim(xlim)
-
-        def voplot(v=0.0, color='k'):
-            axes = self.mplWidget.canvas.ax
-            ylim = axes.get_ylim()
-            axes.plot([v, v], ylim, color=color)
-            axes.set_ylim(ylim)
-
-        def cls():
-            self.clearPicture()
-            
         if self.data is None :
             return
         nx = len(self.fileNames) 
@@ -965,6 +940,7 @@ class DesignerMainWindow(QMainWindow):
             return
         
         self.execInitScript()
+
         # calculate common values
         x0 = np.zeros(nx-1)                         # [mm] X0 coordinates of scans
         ndh = np.zeros(nx-1)                        # [mm] displacement of analyzer slit (number n) from axis
@@ -994,13 +970,16 @@ class DesignerMainWindow(QMainWindow):
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
         printl('R=%fOhm l1=%fmm l2=%fmm d1=%fmm d2=%fmm'%(R,l1,l2,d1,d2))
         # calculate maximum and integral profiles
+        #self.calculateProfiles()
+
+        
         profilemax = np.zeros(nx-1)
         profileint = np.zeros(nx-1)
         for i in range(1, nx) :
             try:
-                x,y,index = self.readSignal(i)           # x - [milliRadians] y - [mkA]
-                yy = y[index]
-                xx = x[index]
+                y,z,index = self.readSignal(i)           # y - [milliRadians] z - [mkA]
+                yy = z[index]
+                xx = y[index]
                 profilemax[i-1] = -1.0 * np.min(yy)      # [mkA]
                 k = 1.0
                 if xx[0] < xx[-1]:
@@ -1018,7 +997,7 @@ class DesignerMainWindow(QMainWindow):
         x0s = x0[ix0]
         profileint = profileint[ix0]
         profilemax = profilemax[ix0]
-        # remove average x
+        # remove average y
         xavg = trapz(x0s * profileint, x0s) / trapz(profileint, x0s)
         print('Average X0 %f mm'%xavg)
         x0s = x0s - xavg
@@ -1070,39 +1049,39 @@ class DesignerMainWindow(QMainWindow):
         # calculate emittance contour plot
         # number of points for emittance matrix
         N = 200
-        # calculate nx-1 x N arrays
+        # calculate  N y nx-1 inital arrays
         # X0 [mm]
         X0 = np.zeros((N,nx-1), dtype=np.float64)
         # X0' [milliRadians]
         Y0 = np.zeros((N,nx-1), dtype=np.float64)
         # current density [?]
         Z0 = np.zeros((N,nx-1), dtype=np.float64)
-        # selected subarrays of data points
+        # selected sub arrays of data points
         v = []
-        xsmin = 1e99
-        xsmax = -1e99
+        ymin = 1e99
+        ymax = -1e99
         for i in range(1, nx) :
             if flag:
                 X0[:,i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto') - xavg
             else:
                 X0[:,i-1] = self.readParameter(i, 'x0', 0.0, float) - xavg
-            x,y,index = self.readSignal(i)           # x in [milliRadians]; y < 0.0 in [mkA]
+            y,z,index = self.readSignal(i)           # y in [milliRadians]; z < 0.0 in [mkA]
             # center the plot over X0
-            x = x - xavg/l1 * 1000.0
-            v.append((x[index], -y[index]))
-            xsmin = min([xsmin, x[index].min()])
-            xsmax = max([xsmax, x[index].max()])
+            y = y - xavg/l1 * 1000.0
+            v.append((y[index], -z[index]))
+            ymin = min([ymin, y[index].min()])
+            ymax = max([ymax, y[index].max()])
         # X0' range array
-        ys = np.linspace(xsmin, xsmax, N)
+        ys = np.linspace(ymin, ymax, N)
         # fill data arrays
         for i in range(nx-1) :
             Y0[:,i] = ys
-            x = v[i][0]
-            y = v[i][1]
-            index = np.unique(x, return_index=True)[1]
+            y = v[i][0]
+            z = v[i][1]
+            index = np.unique(y, return_index=True)[1]
             #Z0[:,i] = np.interp(Y0[:,i], v[i][0], v[i][1])
-            f = interp1d(x[index], y[index], kind='linear', bounds_error=False, fill_value=0.0)
-            #f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0.0)
+            f = interp1d(y[index], z[index], kind='linear', bounds_error=False, fill_value=0.0)
+            #f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
             Z0[:,i] = f(Y0[:,i])
         # sort data according rising x0
         X1 = X0.copy()
@@ -1119,17 +1098,17 @@ class DesignerMainWindow(QMainWindow):
             self.clearPicture()
             axes.contour(X1, Y1, Z1)
             axes.grid(True)
-            axes.set_title('Interpolated N x (nx-1) and sorted X0 data')
+            axes.set_title('Interpolated N y (nx-1) and sorted X0 data')
             self.mplWidget.canvas.draw()
             return
 
         
         # reduce regular divergence
         for i in range(nx-1) :
-            x = v[i][0]
-            y = v[i][1]
-            index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], y[index], kind='linear', bounds_error=False, fill_value=0.0)
+            y = v[i][0]
+            z = v[i][1]
+            index = np.unique(y, return_index=True)[1]
+            f = interp1d(y[index], z[index], kind='linear', bounds_error=False, fill_value=0.0)
             # using calculated X0
             Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + x0c[i]/l1*1000.0)
             #Z1[:,ix0[i]] = f(Y0[:,ix0[i]] + X0[:,ix0[i]]/l1*1000.0)
@@ -1140,7 +1119,7 @@ class DesignerMainWindow(QMainWindow):
             self.clearPicture()
             axes.contour(X1, Y1, Z1)
             axes.grid(True)
-            axes.set_title('Regular divergence reduced N x (nx-1)')
+            axes.set_title('Regular divergence reduced N y (nx-1)')
             self.mplWidget.canvas.draw()
             return
         # debug plot 13
@@ -1161,8 +1140,6 @@ class DesignerMainWindow(QMainWindow):
                 h = self.readParameter(k-1, "ndh", 0.0, float)
                 print('i=%d Xmax=%fmm r=%s'%(m, (h - s*v) / l2 * 1000.0, str(r)))
             return
-
-        
         # calculate NxN array
         X2 = np.zeros((N, N), dtype=np.float64)
         Y2 = np.zeros((N, N), dtype=np.float64)
@@ -1172,22 +1149,52 @@ class DesignerMainWindow(QMainWindow):
         for i in range(N) :
             X2[i,:] = xs
             Y2[:,i] = ys
-        # Z
-        #for i in range(N-1) :
-        for i in range(N-1) :
-            nx1 = i * (nx-2)/(N-1)
+        
+        # Z2 new interpolation
+        for i in range(N-2) :
+            fnx1 = float(i) * float(nx-2) / float(N-1)
+            nx1 = int(fnx1)
+            dnx = fnx1 - float(nx1)
+            if dnx > 1.0 : print (i,dnx)
             nx2 = nx1 + 1
-            x1 = X0[0,nx1]
-            x2 = X0[0,nx2]
-            ny1 = np.argmax(Z0[:,nx1])
-            ny2 = np.argmax(Z0[:,nx2])
-            y1 = Y0[ny1,0]
-            y2 = Y0[ny2,0]
+            #x1 = X0[0,nx1]
+            #x2 = X0[0,nx2]
+            ny1 = np.argmax(Z1[:,nx1])
+            ny2 = np.argmax(Z1[:,nx2])
+            #1 = Y1[0,ny1]
+            #y2 = Y1[0,ny2]
+            dny = ny2 - ny1
+            dn = int(dnx * dny)
+            for i1 in range(N-1) :
+                try:
+                    z1 = Z1[i1-dn,nx1]
+                    z2 = Z1[i1-dn+dny,nx2]
+                    Z2[i1,i] = z1 + (z2-z1)*dnx
+                except :
+                    Z2[i1,i] = 0.0
+        # copy last column
+        Z2[:,-1] = Z1[:,-1]
+        # remove negative currents
+        Z2[Z2 < 0.0] = 0.0
+        ZZ2 = gaussian_filter(Z2, 1.0)
+        Z2t = np.sum(Z2) * (Y2[1,0]-Y2[0,0])/d2*l2/1000.0 * (X2[0,1]-X2[0,0])*d1/a1/1000.0
+        print('Total Z2 (cross-section current) nr = %f mA'%Z2t)
+        if int(self.comboBox.currentIndex()) == 14:
+            self.clearPicture()
+            axes.contour(X2, Y2, ZZ2)
+            axes.grid(True)
+            axes.set_title('N y N new resumple')
+            self.mplWidget.canvas.draw()
+            #return
+
+
+        for i in range(N-1) :
             #Z2[i,:] = np.interp(X2[i,:], X0[i,:], Z0[i,:])
-            x = X1[i,:]
-            y = Z1[i,:]
-            index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], y[index], kind='linear', bounds_error=False, fill_value=0.0)
+            y = X1[i,:]
+            z = Z1[i,:]
+            index = np.unique(y, return_index=True)[1]
+            f = interp1d(y[index], z[index], kind='linear', bounds_error=False, fill_value=0.0)
+            #f = interp1d(X1[i,:], Z1[i,:], kind='linear', bounds_error=False, fill_value=0.0)
             Z2[i,:] = f(X2[i,:])
         # remove negative currents
         Z2[Z2 < 0.0] = 0.0
@@ -1198,7 +1205,7 @@ class DesignerMainWindow(QMainWindow):
             self.clearPicture()
             axes.contour(X2, Y2, Z2)
             axes.grid(True)
-            axes.set_title('N x N no divergence')
+            axes.set_title('N y N no divergence')
             self.mplWidget.canvas.draw()
             #return
         X3 = X2
@@ -1206,10 +1213,10 @@ class DesignerMainWindow(QMainWindow):
         Z3 = np.zeros((N, N), dtype=np.float64)
         # return regular divergence back
         for i in range(N) :
-            x = Y2[:,i]
-            y = Z2[:,i]
-            index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], y[index], kind='linear', bounds_error=False, fill_value=0.0)
+            y = Y2[:,i]
+            z = Z2[:,i]
+            index = np.unique(y, return_index=True)[1]
+            f = interp1d(y[index], z[index], kind='linear', bounds_error=False, fill_value=0.0)
             Z3[:,i] = f(Y3[:,i] - X3[:,i]/l1*1000.0)
         Z3[Z3 < 0.0] = 0.0
         # integrate emittance from cross-section to circular beam
@@ -1222,11 +1229,11 @@ class DesignerMainWindow(QMainWindow):
         s = np.zeros((1, N), dtype=np.float64)
         for i in range(N) :
             s *= 0.0
-            x = np.abs(X[0,i] - Xavg)
+            y = np.abs(X[0,i] - Xavg)
             for j in range(N):
                 ksi = np.abs(X[0,j] - Xavg)
-                if ksi > x:
-                    s += Z2[:,j]*ksi/np.sqrt(ksi*ksi - x*x)
+                if ksi > y:
+                    s += Z2[:,j]*ksi/np.sqrt(ksi*ksi - y*y)
             Z[:,i] = s
         # convert Z to milliAmperes/cell
         Z *= (Y[1,0]-Y[0,0])/d2*l2/1000.0 * (X[0,1]-X[0,0])**2/a1 / 1000.0
@@ -1234,10 +1241,10 @@ class DesignerMainWindow(QMainWindow):
         # return regular divergence back
         for i in range(N) :
             #Z[:,i] = np.interp(Y[:,i] - X[:,i]/l1*1000.0, Y[:,i], Z[:,i])
-            x = Y[:,i]
-            y = Z[:,i]
-            index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
+            y = Y[:,i]
+            z = Z[:,i]
+            index = np.unique(y, return_index=True)[1]
+            f = interp1d(y[index], z[index], kind='cubic', bounds_error=False, fill_value=0.0)
             #f = interp1d(Y[:,i], Z[:,i], kind='linear', bounds_error=False, fill_value=0.0)
             Z[:,i] = f(Y[:,i] - X[:,i]/l1*1000.0)
         # remove negative currents
@@ -1334,7 +1341,7 @@ class DesignerMainWindow(QMainWindow):
             axes.contour(X, Y, Z, linewidths=1.0)
             axes.grid(True)
             axes.set_title('Emittance contour plot')
-            #axes.set_ylim([xsmin,xsmax])
+            #axes.set_ylim([ymin,ymax])
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
             axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
@@ -1352,7 +1359,7 @@ class DesignerMainWindow(QMainWindow):
             axes.contourf(X, Y, Z)
             axes.grid(True)
             axes.set_title('Emittance color plot')
-            #axes.set_ylim([xsmin,xsmax])
+            #axes.set_ylim([ymin,ymax])
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
             axes.annotate('Total current %4.1f mA'%I + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
@@ -1366,7 +1373,7 @@ class DesignerMainWindow(QMainWindow):
             CS = axes.contour(X, Y, Z, linewidths=1.0, levels=levels[::-1])
             axes.grid(True)
             axes.set_title('Emittance contours for levels')
-            #axes.set_ylim([xsmin,xsmax])
+            #axes.set_ylim([ymin,ymax])
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
             labels = ['%2d %% of current'%(fr*100) for fr in np.sort(fractions)[::-1]]
