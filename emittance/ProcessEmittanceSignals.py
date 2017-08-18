@@ -36,7 +36,6 @@ except:
     from PyQt5 import uic
 
 import numpy as np
-#import scipy.integrate
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
@@ -1188,8 +1187,7 @@ class DesignerMainWindow(QMainWindow):
             x = X1[i,:]
             y = Z1[i,:]
             index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
-            #f = interp1d(X1[i,:], Z1[i,:], kind='linear', bounds_error=False, fill_value=0.0)
+            f = interp1d(x[index], y[index], kind='linear', bounds_error=False, fill_value=0.0)
             Z2[i,:] = f(X2[i,:])
         # remove negative currents
         Z2[Z2 < 0.0] = 0.0
@@ -1211,7 +1209,7 @@ class DesignerMainWindow(QMainWindow):
             x = Y2[:,i]
             y = Z2[:,i]
             index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], y[index], kind='cubic', bounds_error=False, fill_value=0.0)
+            f = interp1d(x[index], y[index], kind='linear', bounds_error=False, fill_value=0.0)
             Z3[:,i] = f(Y3[:,i] - X3[:,i]/l1*1000.0)
         Z3[Z3 < 0.0] = 0.0
         # integrate emittance from cross-section to circular beam
