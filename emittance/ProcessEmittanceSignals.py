@@ -145,7 +145,7 @@ class DesignerMainWindow(QMainWindow):
         return regout
 
     def parseFolder(self, folder, mask='*.isf'):
-        printl('%s%s parsing folder %s'%(_progName, _progVersion, folder))
+        printl('%s%s switch to folder %s'%(_progName, _progVersion, folder))
         # read data
         self.data, self.fileNames = readTekFiles(folder, mask)
         # number of files
@@ -153,8 +153,8 @@ class DesignerMainWindow(QMainWindow):
         if nx <= 0 :
             return
         # switch to local log file
-        printl('%s%s parsing folder %s'%(_progName, _progVersion, folder), 
-               fileName = os.path.join(str(folder), _logFile))
+        printl('', stamp=False, fileName = os.path.join(str(folder), _logFile))
+        printl('%s%s parsing local folder %s'%(_progName, _progVersion, folder)) 
         # fill list with file names
         self.listWidget.clear()
         # make file names list
@@ -828,9 +828,9 @@ class DesignerMainWindow(QMainWindow):
         # calculate common values
         x0 = np.zeros(nx-1)                         # [mm] X0 coordinates of scans
         flag = self.readParameter(0, 'autox0', False)
-        printl('', stamp=False)
-        printl('Emittance calculation using parameters:')
-        printl('Use calculated X0 = %s'%str(flag))
+        #printl('', stamp=False)
+        #printl('Emittance calculation using parameters:')
+        #printl('Use calculated X0 = %s'%str(flag))
         for i in range(1, nx) :
             if flag:
                 x0[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
@@ -848,7 +848,7 @@ class DesignerMainWindow(QMainWindow):
         a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
         # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
-        printl('R=%fOhm l1=%fmm l2=%fmm d1=%fmm d2=%fmm'%(R,l1,l2,d1,d2))
+        #printl('R=%fOhm l1=%fmm l2=%fmm d1=%fmm d2=%fmm'%(R,l1,l2,d1,d2))
         # calculate maximum and integral profiles
         self.profilemax = np.zeros(nx-1)
         self.profileint = np.zeros(nx-1)
@@ -965,6 +965,7 @@ class DesignerMainWindow(QMainWindow):
 
         printl('', stamp=False)
         printl('Emittance calculation using parameters:')
+        printl('R=%fOhm; l1=%fmm; l2=%fmm; d1=%fmm; d2=%fmm'%(R,l1,l2,d1,d2))
         for i in range(nx) :
             try:
                 s = 'Chan.%3d '%i
@@ -976,7 +977,6 @@ class DesignerMainWindow(QMainWindow):
             except:
                 pass
             printl(s)
-        printl('R=%fOhm; l1=%fmm; l2=%fmm; d1=%fmm; d2=%fmm'%(R,l1,l2,d1,d2))
 
         # calculate maximum and integral profiles
         self.calculateProfiles()
@@ -1399,7 +1399,7 @@ class DesignerMainWindow(QMainWindow):
         # save paramsAuto
         dbase['paramsAuto'] = self.paramsAuto
         dbase.close()
-        printl('Configuration saved to %s'%fullName)
+        print('Configuration saved to %s'%fullName)
         return True
    
     def restoreSettings(self, folder='', fileName=_settingsFile, local=False) :
@@ -1435,12 +1435,12 @@ class DesignerMainWindow(QMainWindow):
                     self.comboBox_2.setCurrentIndex(0)
                 self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
             # print OK message and exit    
-            printl('Configuration restored from %s.'%fullName)
+            print('Configuration restored from %s.'%fullName)
             return True
         except :
             # print error info    
             self.printExceptionInfo()
-            printl('Configuration file %s restore error.'%fullName)
+            print('Configuration file %s restore error.'%fullName)
         finally:
             if hasattr(printl, "dbase"):
                 dbase.close()
@@ -1452,10 +1452,10 @@ class DesignerMainWindow(QMainWindow):
         try:
             fullName = os.path.join(str(folder), fileName)
             exec(open(fullName).read(), globals(), locals())
-            printl('Init script %s executed'%fullName)
+            print('Init script %s executed'%fullName)
         except:
             self.printExceptionInfo()
-            printl('Init script %s error.'%fullName)
+            print('Init script %s error.'%fullName)
 
     def printExceptionInfo(self):
         (tp, value) = sys.exc_info()[:2]
