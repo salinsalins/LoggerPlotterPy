@@ -10,11 +10,12 @@ def printl(*args, **kwargs):
     # static variables
     if not hasattr(printl, "start"):
         printl.start = True  # it doesn't exist yet, so initialize it
-    if not hasattr(printl, "folderName"):
-        printl.folderName = 'logfile.log'
+    if not hasattr(printl, "fileName"):
+        printl.fileName = 'logfile.log'
     
-    if "folderName" in kwargs:
-        printl.folderName = kwargs["folderName"]
+    if "fileName" in kwargs:
+        printl.fileName = kwargs["fileName"]
+        #print('printl - selected log file %s'%printl.fileName)
 
     if "stamp" in kwargs:
         stamp = kwargs["stamp"]
@@ -24,7 +25,7 @@ def printl(*args, **kwargs):
     now = datetime.now()    
     strnow = datetime.strftime(now, "%Y.%m.%d %H:%M:%S")
     
-    f = open(printl.folderName, 'a')
+    f = open(printl.fileName, 'a')
 
     if printl.start:
         f.write('\nLog started at %s\n'%strnow)
