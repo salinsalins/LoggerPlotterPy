@@ -1,13 +1,9 @@
 /Emittance_init.dat
-/findRegions.pyc
-/gaussfit.pyc
-/logfile.log
-/mplwidget.pyc
-/my_isfread.pyc
-/printl.pyc
-/readTekFiles.pyc
-/smooth.pyc
 /ProcessEmittanceSignals.spec
 /__init__.py
 /Emittance_init.dat.dat
 /Emittance_init.dat.dir
+/dist/*
+/build/*
+/*.pyc
+/*.log

@@ -1038,7 +1038,7 @@ class DesignerMainWindow(QMainWindow):
         X1 = X0.copy()
         Y1 = Y0.copy()
         Z1 = Z0.copy()
-        F1 = F0.copy()
+        F1 = list(F0)
         for i in range(nx-1) :
             X1[:,index[i]] = X0[:,i]
             Y1[:,index[i]] = Y0[:,i]
