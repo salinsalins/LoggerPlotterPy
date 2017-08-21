@@ -8,3 +8,6 @@
 /readTekFiles.pyc
 /smooth.pyc
 /ProcessEmittanceSignals.spec
+/__init__.py
+/Emittance_init.dat.dat
+/Emittance_init.dat.dir

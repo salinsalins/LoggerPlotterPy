@@ -1,5 +1,6 @@
-'folder', (0, 45)
+'folder', (0, 32)
 'smooth', (512, 5)
 'scan', (1024, 8)
 'result', (1536, 5)
-'paramsAuto', (2048, 2166333)
+'history', (2048, 127)
+'paramsAuto', (2560, 1445712)
