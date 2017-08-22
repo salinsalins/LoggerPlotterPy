@@ -12,13 +12,11 @@ import os.path
 import shelve
 import sys
 
-#from my_isfread import my_isfread as isfread
 from findRegions import findRegions as findRegions
 from findRegions import restoreFromRegions as restoreFromRegions
 from smooth import smooth
 from printl import printl 
 from readTekFiles import readTekFiles
-#from gaussfit import gaussfit 
 
 try:
     from PyQt4.QtGui import QMainWindow
@@ -36,13 +34,12 @@ except:
     from PyQt5 import uic
 
 import numpy as np
-#import scipy.integrate
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 from scipy.ndimage.filters import gaussian_filter
 
 _progName = 'Emittance'
-_progVersion = '_5_0'
+_progVersion = '_5_1'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -79,7 +76,7 @@ class DesignerMainWindow(QMainWindow):
             self.processFolder()
     
     def selectFolder(self):
-        """Opens a dataFolder select dialog"""
+        """Opens a dataFile select dialog"""
         # open the dialog and get the selected dataFolder
         folder = self.folderName
         fileOpenDialog = QFileDialog(caption='Select directory with data files', directory=folder)
@@ -94,12 +91,11 @@ class DesignerMainWindow(QMainWindow):
                 self.comboBox_2.setCurrentIndex(i)
             else:
                 # add item to history  
-                #self.comboBox_2.setCurrentIndex(-1)
                 self.comboBox_2.insertItem(-1, dataFolder)
                 self.comboBox_2.setCurrentIndex(0)
     
     def selectionChanged(self, i):
-        print('Selection changed %s'%str(i))
+        #print('Selection changed %s'%str(i))
         if i < 0:
             return
         dataFolder = str(self.comboBox_2.currentText())
@@ -118,31 +114,11 @@ class DesignerMainWindow(QMainWindow):
     def clearPicture(self, force=False):
         if force or self.checkBox.isChecked():
             # clear the axes
-            self.mplWidget.canvas.ax.clear()
+            self.erasePicture()
         
     def erasePicture(self):
         self.mplWidget.canvas.ax.clear()
         self.mplWidget.canvas.draw()
-
-    def removeInersections(self, y1, y2, index):
-        # calculate relative first derivatives
-        d1 = np.diff(y1)
-        d1 = np.append(d1, d1[-1])
-        d2 = np.diff(y2)
-        d2 = np.append(d2, d2[-1])
-        regout = []
-        reg = findRegions(index)
-        #print('Initial regions  %s'%str(reg))
-        for r in reg:
-            if y1[r[0]] > y2[r[0]] and y1[r[1]-1] < y2[r[1]-1]:
-                if np.all(d1[r[0]:r[1]]*d2[r[0]:r[1]] < 0.0):
-                    continue
-            if y1[r[0]] < y2[r[0]] and y1[r[1]-1] > y2[r[1]-1]:
-                if np.all(d1[r[0]:r[1]]*d2[r[0]:r[1]] < 0.0):
-                    continue
-            regout.append(r)
-        #print('Filtered regions %s'%str(regout))
-        return regout
 
     def parseFolder(self, folder, mask='*.isf'):
         printl('%s%s switch to folder %s'%(_progName, _progVersion, folder))
@@ -155,7 +131,7 @@ class DesignerMainWindow(QMainWindow):
         # switch to local log file
         printl('', stamp=False, fileName = os.path.join(str(folder), _logFile))
         printl('%s%s parsing local folder %s'%(_progName, _progVersion, folder)) 
-        # fill list with file names
+        # fill listWidget with file names
         self.listWidget.clear()
         # make file names list
         names = [name.replace(folder, '')[1:] for name in self.fileNames]
@@ -190,9 +166,9 @@ class DesignerMainWindow(QMainWindow):
             ns = int(self.spinBox.value())
         except:
             pass
+
         # default parameters array
         params = [{'smooth':ns, 'offset':0.0, 'zero':np.zeros(ny), 'scale': 1.95} for i in range(nx)]
-        
         # smooth data array
         print('Smoothing data ...')
         for i in range(nx) :
@@ -261,7 +237,6 @@ class DesignerMainWindow(QMainWindow):
             # zero line = where 2 signals are almost equal
             mask = np.abs(y1 - y2) < 0.05*dy1
             index = np.where(mask)[0]
-            #print(findRegionsText(index))
             # filter signal intersection regions
             index = restoreFromRegions(findRegions(index, 50, 300, 100, 100, length=ny))
             if len(index) <= 0:
@@ -652,6 +627,23 @@ class DesignerMainWindow(QMainWindow):
         l2 = self.readParameter(0, "l2", 195.0, float)
         # x' in Radians
         xsub = (ndh - s*u) / l2
+        return (xsub, y, index)
+        # filter x to be unique and smooth
+        x = xsub[index]
+        yy = y[index]
+        xmax = x.max()
+        xmin = x.min()
+        x1 = np.linspace(xmin,xmax,len(x))
+        for i in index[:-2]:
+            j = i-r[0]
+            mask = np.logical_and(x >= x1[j], x < x1[j+1])
+            n = np.sum(mask)
+            if n > 0.0:
+                y[i] = np.sum(yy[mask])/float(n)
+            else:
+                y[i] = y[i-1]
+        index = index[:-2]
+        xsub[index] = x[index-r[0]]
         return (xsub, y, index)
 
     def readX0(self):
