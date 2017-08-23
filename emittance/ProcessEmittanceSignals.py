@@ -961,11 +961,11 @@ class DesignerMainWindow(QMainWindow):
         for i in range(nx) :
             try:
                 s = 'Chan.%3d '%i
-                #s = s + 'range=%s; '%str(params[i]['range'])
-                #s = s + 'offset=%f V; '%params[i]['offset']
-                #s = s + 'scale=%6.2f mm/V; '%params[i]['scale']
-                #s = s + 'MinI=%4d; Umin=%6.2f V; '%(params[i]['minindex'], params[i]['minvoltage'])
-                s = s + 'x0=%5.1f mm; ndh=%5.1f mm'%(x0[i-1],ndh[i-1])
+                s = s + 'x0=%5.1f mm; ndh=%5.1f mm; '%(x0[i-1],ndh[i-1])
+                s = s + 'range=%s; '%str(self.readParameter(i, 'range'))
+                s = s + 'offset=%f V; '%self.params[i]['offset']
+                s = s + 'scale=%6.2f mm/V; '%self.params[i]['scale']
+                s = s + 'MinI=%4d; Umin=%6.2f V; '%(self.params[i]['minindex'], self.params[i]['minvoltage'])
             except:
                 pass
             printl(s)
@@ -1053,7 +1053,6 @@ class DesignerMainWindow(QMainWindow):
         Z2 = Z1
         X2 = X1.copy() - X1avg
         Y2 = Y1
-        #print(Xavg,Yavg,np.sum(X5*Z4)/np.sum(Z4),np.sum(Y5*Z4)/np.sum(Z4))
         #Z2t = np.sum(Z2) * (Y2[1,0]-Y2[0,0])*l2/d2/1000.0 * (X2[0,1]-X2[0,0])*d1/a1/1000.0
         Z2t = integrate2d(X2,Y2,Z2) * l2/d2 * d1/a1
         print('Total Z2 (cross-section current) = %f mA'%(Z2t*1000.0)) # from Amperes to mA
@@ -1109,19 +1108,22 @@ class DesignerMainWindow(QMainWindow):
         s = np.zeros((N,1), dtype=np.float64)
         r = np.abs(X3[0,:])
         for i in range(nx-1) :
-            s *= 0.0
+            s[:] = 0.0
             x = np.abs(X3[0,i])
+            xx = x*x
+            dd1 = r < x
+            dd2 = r > x
+            ra = r[dd2]
+            m = ra/np.sqrt(ra*ra - xx)
             for j in range(N) :
                 f = Z3[j,:].copy()
-                f[r<x] = 0.0
-                ra = r[r>x]
-                f[r>x] = Z3[j,r>x]*ra/np.sqrt(ra*ra - x*x)
+                f[dd1] = 0.0
+                f[dd2] = Z3[j,dd2]*m
                 Z4[j,i] = trapz(f,X3[0,:])
         # convert Z to milliAmperes/cell
-        Z4t = integrate2d(X4,Y4,Z4) * (l2/d2) * 1.0/a1
-        print('Total Z4 (beam current) = %f mA'%(Z4t*1e3))
         #Z4t = np.sum(Z4)*(Y4[1,0]-Y4[0,0])*l2/d2 * (X4[0,1]-X4[0,0])/a1
-        #print('Total Z4 (beam current) = %f mA'%(Z4t*1e3))
+        Z4t = integrate2d(X4,Y4,Z4) * (l2/d2) / a1
+        print('Total Z4 (beam current) = %f mA'%(Z4t*1e3))
         if int(self.comboBox.currentIndex()) == 8:
             self.clearPicture()
             axes.contour(X4, Y4, Z4)
