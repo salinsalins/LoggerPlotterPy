@@ -39,7 +39,7 @@ from scipy.interpolate import interp1d
 from scipy.ndimage.filters import gaussian_filter
 
 _progName = 'Emittance'
-_progVersion = '_5_1'
+_progVersion = '_5_2'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -628,23 +628,25 @@ class DesignerMainWindow(QMainWindow):
         # x' in Radians
         xsub = (ndh - s*u) / l2
         return (xsub, y, index)
+        
+    def smoothX(self,x,y):
         # filter x to be unique and smooth
-        x = xsub[index]
-        yy = y[index]
+        n = len(x)
         xmax = x.max()
         xmin = x.min()
-        x1 = np.linspace(xmin,xmax,len(x))
-        for i in index[:-2]:
-            j = i-r[0]
-            mask = np.logical_and(x >= x1[j], x < x1[j+1])
-            n = np.sum(mask)
-            if n > 0.0:
-                y[i] = np.sum(yy[mask])/float(n)
-            else:
-                y[i] = y[i-1]
-        index = index[:-2]
-        xsub[index] = x[index-r[0]]
-        return (xsub, y, index)
+        dx = (xmax-xmin)/(n-1)
+        ys = np.zeros(n)
+        yn = np.zeros(n)
+        m = np.floor((x-xmin)/dx)
+        for i in range(n):
+            ys[m[i]] += y[i]
+            yn[m[i]] += 1.0
+        mask = yn > 0.0 
+        ay = np.zeros(n)
+        ay[mask] = ys[mask]/yn[mask]
+        #maskn = np.logical_not(mask)
+        ax = np.linspace(xmin,xmax,n)
+        return (ax[mask].copy(), ay[mask].copy())
 
     def readX0(self):
         nx = len(self.fileNames) 
@@ -995,8 +997,10 @@ class DesignerMainWindow(QMainWindow):
             zz = z[index]
             ymin = min([ymin, yy.min()])
             ymax = max([ymax, yy.max()])
-            index = np.unique(yy, return_index=True)[1]
-            F0[i] = interp1d(yy[index], -zz[index], kind='linear', bounds_error=False, fill_value=0.0)
+            (yyy,zzz) = self.smoothX(yy,zz)
+            #index = np.unique(yy, return_index=True)[1]
+            #F0[i] = interp1d(yy[index], -zz[index], kind='linear', bounds_error=False, fill_value=0.0)
+            F0[i] = interp1d(yyy, -zzz, kind='linear', bounds_error=False, fill_value=0.0)
         # symmetry for Y range
         if abs(ymin) > abs(ymax) :
             ymax = abs(ymin)
