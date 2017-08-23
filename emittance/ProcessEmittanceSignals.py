@@ -998,8 +998,6 @@ class DesignerMainWindow(QMainWindow):
             ymin = min([ymin, yy.min()])
             ymax = max([ymax, yy.max()])
             (yyy,zzz) = self.smoothX(yy,zz)
-            #index = np.unique(yy, return_index=True)[1]
-            #F0[i] = interp1d(yy[index], -zz[index], kind='linear', bounds_error=False, fill_value=0.0)
             F0[i] = interp1d(yyy, -zzz, kind='linear', bounds_error=False, fill_value=0.0)
         # symmetry for Y range
         if abs(ymin) > abs(ymax) :
@@ -1136,22 +1134,7 @@ class DesignerMainWindow(QMainWindow):
             self.mplWidget.canvas.draw()
             return
 
-        # X4,Y4,Z4 -> X5,Y5,Z5 resample to NxN array
-        X5 = np.zeros((N, N), dtype=np.float64)
-        Y5 = np.zeros((N, N), dtype=np.float64)
-        Z5 = np.zeros((N, N), dtype=np.float64)
-        xmin = x0.min()
-        xmax = x0.max()
-        if abs(xmin) > abs(xmax) :
-            ymax = abs(xmin)
-        else:
-            xmax = abs(xmax)
-        xmin = -xmax
-        xs = np.linspace(xmin, xmax, N)
-        # X and Y
-        for i in range(N) :
-            X5[i,:] = xs
-            Y5[:,i] = ys
+        # Z3 new interpolation
         if False:
             # Z3 new interpolation
             for i in range(N-2) :
@@ -1189,11 +1172,28 @@ class DesignerMainWindow(QMainWindow):
                 axes.set_title('[N,N] new resample')
                 self.mplWidget.canvas.draw()
                 return
+
+        # X4,Y4,Z4 -> X5,Y5,Z5 resample to NxN array
+        X5 = np.zeros((N, N), dtype=np.float64)
+        Y5 = np.zeros((N, N), dtype=np.float64)
+        Z5 = np.zeros((N, N), dtype=np.float64)
+        xmin = x0.min()
+        xmax = x0.max()
+        if abs(xmin) > abs(xmax) :
+            ymax = abs(xmin)
+        else:
+            xmax = abs(xmax)
+        xmin = -xmax
+        xs = np.linspace(xmin, xmax, N)
+        # X and Y
+        for i in range(N) :
+            X5[i,:] = xs
+            Y5[:,i] = ys
         for i in range(N-1) :
             x = X4[i,:]
             z = Z4[i,:]
             index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], z[index], kind='linear', bounds_error=False, fill_value=0.0)
+            f = interp1d(x[index], z[index], kind='cubic', bounds_error=False, fill_value=0.0)
             Z5[i,:] = f(X5[i,:])
         # remove negative currents
         Z5[Z5 < 0.0] = 0.0
@@ -1213,11 +1213,12 @@ class DesignerMainWindow(QMainWindow):
         X6 = X5
         Y6 = Y5
         Z6 = np.zeros((N, N), dtype=np.float64)
+        g = interp1d(X3[0,:], Shift, kind='cubic', bounds_error=False, fill_value=0.0)
         for i in range(N) :
             y = Y5[:,i]
             z = Z5[:,i]
-            index = np.unique(y, return_index=True)[1]
-            f = interp1d(y[index], z[index], kind='linear', bounds_error=False, fill_value=0.0)
+            #index = np.unique(y, return_index=True)[1]
+            f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
             fnx1 = float(i) * float(nx-2) / float(N-1)
             nx1 = int(fnx1 + 1.0e-7)
             dnx = fnx1 - float(nx1)
@@ -1226,7 +1227,8 @@ class DesignerMainWindow(QMainWindow):
                 nx2 = nx1
             s1 = Shift[nx1]
             s2 = Shift[nx2]
-            s = s1 + (s2-s1)*dnx
+            #s = s1 + (s2-s1)*dnx
+            s = g(X5[0,i])
             #print(nx1,nx2,s1,s2,s,dnx)
             Z6[:,i] = f(Y5[:,i] - s)
         Z6[Z6 < 0.0] = 0.0
