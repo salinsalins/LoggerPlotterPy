@@ -39,7 +39,7 @@ from scipy.interpolate import interp1d
 from scipy.ndimage.filters import gaussian_filter
 
 _progName = 'Emittance'
-_progVersion = '_5_2'
+_progVersion = '_6_0'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -427,7 +427,7 @@ class DesignerMainWindow(QMainWindow):
             axes = self.mplWidget.canvas.ax
             # debug draw 8 Scan voltage region
             #self.debugDraw([ix,x,ix[xi],x[xi]])
-            if int(self.comboBox.currentIndex()) == 8:
+            if int(self.comboBox.currentIndex()) == 12:
                 self.clearPicture()
                 axes.set_title('Scan voltage region')
                 axes.set_xlabel('Point index')
@@ -440,7 +440,7 @@ class DesignerMainWindow(QMainWindow):
                 self.mplWidget.canvas.draw()
             # debug draw 9 Offset calculation
             #self.debugDraw([i,ix,y1,o1,y2,o2,i1,i2])
-            if int(self.comboBox.currentIndex()) == 9 :
+            if int(self.comboBox.currentIndex()) == 13 :
                 indexes = self.listWidget.selectedIndexes()
                 i = data[0]
                 ix = data[1]
@@ -466,7 +466,7 @@ class DesignerMainWindow(QMainWindow):
                     self.mplWidget.canvas.draw()
             # debug draw 10 zero line intermediate results
             #self.debugDraw([ix, data, zero, params])
-            if int(self.comboBox.currentIndex()) == 10 :
+            if int(self.comboBox.currentIndex()) == 14 :
                 ix = data[0]
                 d = data[1]
                 zero = data[2]
@@ -487,7 +487,7 @@ class DesignerMainWindow(QMainWindow):
                     self.mplWidget.canvas.draw()
             # debug draw 11 Range and scale calculation
             #self.debugDraw([i,xi,y,ix[ir1:ir2],y[ir1 - xi[0]:ir2 - xi[0]],is1,is2])
-            if int(self.comboBox.currentIndex()) == 11:
+            if int(self.comboBox.currentIndex()) == 15:
                 indexes = self.listWidget.selectedIndexes()
                 i = data[0]
                 if (len(indexes) > 0) and (i == indexes[0].row()):
@@ -504,23 +504,22 @@ class DesignerMainWindow(QMainWindow):
                     self.mplWidget.canvas.draw()
             # debug draw 12 X0 calculation
             #self.debugDraw([x01,nx,k])
-            if int(self.comboBox.currentIndex()) == 12:
+            if int(self.comboBox.currentIndex()) == 16:
                 x01 = data[0]
                 nx = data[1]
                 k = data[2]
                 x0 = x01.copy()
                 for i in range(1, nx) :
                     x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
-                if int(self.comboBox.currentIndex()) == 12:
-                    self.clearPicture()
-                    axes.set_title('X0 calculation')
-                    axes.set_xlabel('Index')
-                    axes.set_ylabel('X0, mm')
-                    axes.plot(x01-x01[k], 'o-', label='X0 calculated')
-                    axes.plot(x0-x0[k], 'd-', label='X0 from parameters')
-                    axes.grid(True)
-                    axes.legend(loc='best') 
-                    self.mplWidget.canvas.draw()
+                self.clearPicture()
+                axes.set_title('X0 calculation')
+                axes.set_xlabel('Index')
+                axes.set_ylabel('X0, mm')
+                axes.plot(x01-x01[k], 'o-', label='X0 calculated')
+                axes.plot(x0-x0[k], 'd-', label='X0 from parameters')
+                axes.grid(True)
+                axes.legend(loc='best') 
+                self.mplWidget.canvas.draw()
         except:
             self.printExceptionInfo()
 
@@ -801,13 +800,13 @@ class DesignerMainWindow(QMainWindow):
         if nx <= 0 :
             return
         
-        if int(self.comboBox.currentIndex()) == 16:
+        if int(self.comboBox.currentIndex()) == 0:
             self.plotRawSignals()
             return
-        if int(self.comboBox.currentIndex()) == 17:
+        if int(self.comboBox.currentIndex()) == 1:
             self.plotProcessedSignals()
             return
-        if int(self.comboBox.currentIndex()) == 18:
+        if int(self.comboBox.currentIndex()) == 2:
             self.plotElementaryJet()
             return
         self.calculateEmittance()
@@ -876,8 +875,8 @@ class DesignerMainWindow(QMainWindow):
         x0s = x0s - xavg
         self.profileint = self.profileint / a1 # convert to local current density [A/mm^2]
         # cross-section current
-        Ics = trapz(self.profileint, x0s)*d1 # [A] -  integrate over x and multiply to y width
-        printl('Cross-section current %f mA'%(Ics*1000.0)) # from Amperes to mA
+        self.Ics = trapz(self.profileint, x0s)*d1 # [A] -  integrate over x and multiply to y width
+        printl('Cross-section current %f mA'%(self.Ics*1000.0)) # from Amperes to mA
         # calculate total current
         index = np.where(x0s >= 0.0)[0]
         Ir = trapz(x0s[index]*self.profileint[index], x0s[index])*2.0*np.pi
@@ -896,7 +895,7 @@ class DesignerMainWindow(QMainWindow):
         # plot profiles
         axes = self.mplWidget.canvas.ax
         # plot integral profile
-        if int(self.comboBox.currentIndex()) == 0:
+        if int(self.comboBox.currentIndex()) == 3:
             self.clearPicture()
             axes.set_title('Integral profile')
             axes.set_xlabel('X0, mm')
@@ -908,7 +907,7 @@ class DesignerMainWindow(QMainWindow):
             self.mplWidget.canvas.draw()
             #return
         # plot maximal profile
-        if int(self.comboBox.currentIndex()) == 1:
+        if int(self.comboBox.currentIndex()) == 4:
             self.clearPicture()
             axes.set_title('Maximum profile')
             axes.set_xlabel('X0, mm')
@@ -1019,7 +1018,7 @@ class DesignerMainWindow(QMainWindow):
         #print('Total Z0i (cross-section current) = %f mA'%Z0t)
         #Z0t = np.sum(Z0) * (Y0[1,0]-Y0[0,0])/d2*l2/1000.0 * (X0[0,1]-X0[0,0])*d1/a1/1000.0
         #print('Total Z0 (cross-section current) = %f mA'%Z0t)
-        #if int(self.comboBox.currentIndex()) == 6:
+        #if int(self.comboBox.currentIndex()) == 10:
         #    self.clearPicture()
         #    axes.contour(X0, Y0, Z0)
         #    axes.grid(True)
@@ -1041,7 +1040,7 @@ class DesignerMainWindow(QMainWindow):
         #Z1t = np.sum(Z1) * (Y1[1,0]-Y1[0,0])/d2*l2/1000.0 * (X1[0,1]-X1[0,0])*d1/a1/1000.0
         #print('Total Z1 (cross-section current) = %f mA'%Z1t)
         # debug draw 6
-        #if int(self.comboBox.currentIndex()) == 6:
+        #if int(self.comboBox.currentIndex()) == 10:
         #    self.clearPicture()
         #    axes.contour(X1, Y1, Z1)
         #    axes.grid(True)
@@ -1058,14 +1057,6 @@ class DesignerMainWindow(QMainWindow):
         #Z2t = np.sum(Z2) * (Y2[1,0]-Y2[0,0])*l2/d2/1000.0 * (X2[0,1]-X2[0,0])*d1/a1/1000.0
         Z2t = integrate2d(X2,Y2,Z2) * l2/d2 * d1/a1
         print('Total Z2 (cross-section current) = %f mA'%(Z2t*1000.0)) # from Amperes to mA
-        # debug plot 6
-        if int(self.comboBox.currentIndex()) == 6:
-            self.clearPicture()
-            axes.contour(X2, Y2, Z2)
-            axes.grid(True)
-            axes.set_title('Z2 [N,nx-1]')
-            self.mplWidget.canvas.draw()
-            return
         
         # X2,Y2,Z2 -> X3,Y3,Z3 shift jets maximum to X'=0 (remove equivalent regular divergence)
         X3 = X2
@@ -1082,7 +1073,7 @@ class DesignerMainWindow(QMainWindow):
         Z3t = integrate2d(X3,Y3,Z3) * l2/d2 * d1/a1
         print('Total Z3 (cross-section current) = %f mA'%(Z3t*1000.0))
         # debug draw 7
-        if int(self.comboBox.currentIndex()) == 7:
+        if int(self.comboBox.currentIndex()) == 11:
             self.clearPicture()
             axes.contour(X3, Y3, Z3)
             axes.grid(True)
@@ -1090,7 +1081,7 @@ class DesignerMainWindow(QMainWindow):
             self.mplWidget.canvas.draw()
             return
         # debug draw 13
-        if int(self.comboBox.currentIndex()) == 13:
+        if int(self.comboBox.currentIndex()) == 17:
             self.clearPicture()
             indexes = self.listWidget.selectedIndexes()
             for j in indexes:
@@ -1126,7 +1117,7 @@ class DesignerMainWindow(QMainWindow):
         #Z4t = np.sum(Z4)*(Y4[1,0]-Y4[0,0])*l2/d2 * (X4[0,1]-X4[0,0])/a1
         Z4t = integrate2d(X4,Y4,Z4) * (l2/d2) / a1
         print('Total Z4 (beam current) = %f mA'%(Z4t*1e3))
-        if int(self.comboBox.currentIndex()) == 8:
+        if int(self.comboBox.currentIndex()) == 13:
             self.clearPicture()
             axes.contour(X4, Y4, Z4)
             axes.grid(True)
@@ -1201,7 +1192,7 @@ class DesignerMainWindow(QMainWindow):
         #Z5t = np.sum(Z3) * (Y3[1,0]-Y3[0,0])/d2*l2/1000.0 * (X3[0,1]-X3[0,0])*d1/a1/1000.0
         print('Total Z5 (beam current) = %f mA'%(Z5t*1e3))
         # debug plot 14
-        if int(self.comboBox.currentIndex()) == 14:
+        if int(self.comboBox.currentIndex()) == 18:
             self.clearPicture()
             axes.contour(X5, Y5, Z5)
             axes.grid(True)
@@ -1252,10 +1243,11 @@ class DesignerMainWindow(QMainWindow):
         # calculate average X and X'
         X = X6
         Y = Y6
-        Z = Z6 * (l2/d2) * 1.0/a1 # [A/mm/Radian]
+        Z = Z6 * (l2/d2) * 1.0/a1 # [A/mm^2/Radian]
         Zt = integrate2d(X,Y,Z)
         Xavg = integrate2d(X,Y,X*Z)/Zt
         Yavg = integrate2d(X,Y,Y*Z)/Zt
+        #print('Xavg=%f mm   X\'avg=%f mRad'%(Xavg, Yavg))
         # subtract average values 
         X = X - Xavg
         Y = Y - Yavg
@@ -1263,9 +1255,23 @@ class DesignerMainWindow(QMainWindow):
         XYavg = integrate2d(X,Y,X*Y*Z)/Zt
         XXavg = integrate2d(X,Y,X*X*Z)/Zt
         YYavg = integrate2d(X,Y,Y*Y*Z)/Zt
-        RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg)*1000.0 # from Radians to milliRadians
-        #print('Xavg=%f mm   X\'avg=%f mRad'%(Xavg, Yavg))
-        printl('Normalized RMS Emittance %f Pi*mm*mrad'%(RMS*beta))
+        self.RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg)*1000.0 # from Radians to milliRadians
+        printl('Normalized RMS Emittance %f Pi*mm*mrad'%(self.RMS*beta))
+        # cross section RMS emittance
+        Z2 = Z2 * (l2/d2) * d1/a1 # [A/mm/Radian]
+        Z2t = integrate2d(X2,Y2,Z2)
+        X2avg = integrate2d(X2,Y2,X2*Z2)/Z2t
+        Y2avg = integrate2d(X2,Y2,Y2*Z2)/Z2t
+        #print('X2avg=%f mm   X2\'avg=%f mRad'%(X2avg, Y2avg))
+        # subtract average values 
+        X2 = X2 - X2avg
+        Y2 = Y2 - Y2avg
+        # calculate moments 
+        XY2avg = integrate2d(X2,Y2,X2*Y2*Z2)/Z2t
+        XX2avg = integrate2d(X2,Y2,X2*X2*Z2)/Z2t
+        YY2avg = integrate2d(X2,Y2,Y2*Y2*Z2)/Z2t
+        self.RMScs = np.sqrt(XX2avg*YY2avg-XY2avg*XY2avg)*1000.0 # from Radians to milliRadians
+        printl('Normalized RMS Emittance of cross-section %f Pi*mm*mrad'%(self.RMScs*beta))
 
         # save data to text file
         folder = self.folderName
@@ -1280,7 +1286,7 @@ class DesignerMainWindow(QMainWindow):
         fn = os.path.join(str(folder), _progName + '_Y_cs.gz')
         np.savetxt(fn, Y2, delimiter='; ' )
         fn = os.path.join(str(folder), _progName + '_Z_cs.gz')
-        np.savetxt(fn, Z2 * l2/d2 * d1/a1, delimiter='; ' )
+        np.savetxt(fn, Z2, delimiter='; ' )
 
         nz = 100
         zl = np.linspace(0.0, Z.max(), nz)
@@ -1320,9 +1326,9 @@ class DesignerMainWindow(QMainWindow):
         printl('% Current  Normalized emittance      Normalized RMS emittance')
         for i in range(len(levels)):
             printl('%2.0f %%       %5.3f Pi*mm*milliRadians  %5.3f Pi*mm*milliRadians'%(fractions[i]*100.0, emit[i], rms[i]))
-        printl('%2.0f %%                                %5.3f Pi*mm*milliRadians'%(100.0, RMS*beta))
+        printl('%2.0f %%                                %5.3f Pi*mm*milliRadians'%(100.0, self.RMS*beta))
         # plot contours
-        if int(self.comboBox.currentIndex()) == 2:
+        if int(self.comboBox.currentIndex()) == 5:
             self.clearPicture()
             axes.contour(X, Y, Z, linewidths=1.0)
             axes.grid(True)
@@ -1330,13 +1336,13 @@ class DesignerMainWindow(QMainWindow):
             #axes.set_ylim([ymin,ymax])
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
-            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11)
             self.mplWidget.canvas.draw()
         # plot filled contours
-        if int(self.comboBox.currentIndex()) == 3:
+        if int(self.comboBox.currentIndex()) == 6:
             self.clearPicture()
             axes.contourf(X, Y, Z)
             axes.grid(True)
@@ -1344,14 +1350,14 @@ class DesignerMainWindow(QMainWindow):
             #axes.set_ylim([ymin,ymax])
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
-            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11, color='white')
             self.mplWidget.canvas.draw()
             return
         # plot levels
-        if int(self.comboBox.currentIndex()) == 4:
+        if int(self.comboBox.currentIndex()) == 7:
             self.clearPicture()
             CS = axes.contour(X, Y, Z, linewidths=1.0, levels=levels[::-1])
             axes.grid(True)
@@ -1362,20 +1368,21 @@ class DesignerMainWindow(QMainWindow):
             for i in range(len(labels)):
                 CS.collections[i].set_label(labels[i])
             axes.legend(loc='upper left')
-            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11)
             self.mplWidget.canvas.draw()
             return
-        if int(self.comboBox.currentIndex()) == 15:
+        # Emittance contour plot of beam cross-section
+        if int(self.comboBox.currentIndex()) == 8:
             self.clearPicture()
             axes.contour(X2, Y2, Z2, linewidths=1.0)
             axes.grid(True)
-            axes.set_title('Emittance of cross-section contour plot')
+            axes.set_title('Emittance contour plot of beam cross-section')
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
-            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(RMS*beta),
+            axes.annotate('Cross-section current %5.1f mkA'%(self.Ics*1e6) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(self.RMScs*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11)
