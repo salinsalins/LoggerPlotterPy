@@ -36,7 +36,6 @@ except:
 import numpy as np
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
-from scipy.ndimage.filters import gaussian_filter
 
 _progName = 'Emittance'
 _progVersion = '_6_0'
@@ -918,6 +917,29 @@ class DesignerMainWindow(QMainWindow):
             axes.legend(loc='best') 
             self.mplWidget.canvas.draw()
 
+    def interpolatePlot(self, X, Y, Z, F=None):
+        from scipy.interpolate import interp2d
+        x = X[0,:]
+        nx = len(x)
+        y = Y[:,0]
+        if F is None:
+            F = interp2d(X, Y, Z, kind='linear', bounds_error=False, fill_value=0.0)
+        # calculate shift[x]
+        shift = np.zeros(nx)
+        for i in range(nx) :
+            col = F(x[i],y)
+            imax = np.argmax(col)
+            shift[i] = y[imax]
+        # shift function
+        Fshift = interp1d(shift, x, kind='linear', bounds_error=False, fill_value=0.0)
+        def answer(ax,ay):
+            z1 = np.zeros(len(x))
+            for i in range(len(x)):
+                z1[i] = F(x[i], ay-Fshift(x[i]))
+            Fz = interp1d(z1, x, kind='linear', bounds_error=False, fill_value=0.0)
+            return Fz(ax)
+        return answer
+    
     def calculateEmittance(self):
         def integrate2d(x,y,z):
             sh = np.shape(z)
@@ -974,7 +996,6 @@ class DesignerMainWindow(QMainWindow):
         # calculate maximum and integral profiles
         self.calculateProfiles()
 
-        # calculate emittance plot arrays
         # number of points for emittance matrix
         N = self.readParameter(0, 'N', 200, int)
         # calculate (N x nx-1) initial arrays
@@ -1014,17 +1035,6 @@ class DesignerMainWindow(QMainWindow):
             Z0[:,i] = F0[i](Y0[:,i])
         # remove negative data
         Z0[Z0 < 0.0] = 0.0
-        #Z0t = integrate2d(X0,Y0,Z0) * l2/d2/1000.0 * d1/a1/1000.0
-        #print('Total Z0i (cross-section current) = %f mA'%Z0t)
-        #Z0t = np.sum(Z0) * (Y0[1,0]-Y0[0,0])/d2*l2/1000.0 * (X0[0,1]-X0[0,0])*d1/a1/1000.0
-        #print('Total Z0 (cross-section current) = %f mA'%Z0t)
-        #if int(self.comboBox.currentIndex()) == 10:
-        #    self.clearPicture()
-        #    axes.contour(X0, Y0, Z0)
-        #    axes.grid(True)
-        #    axes.set_title('Z0 [N,nx-1]')
-        #    self.mplWidget.canvas.draw()
-        #    #return
         
         # X0,Y0,Z0,F0 -> X1,Y1,Z1,F1 sort data according rising x0
         index = np.argsort(X0[0,:])
@@ -1037,16 +1047,6 @@ class DesignerMainWindow(QMainWindow):
             Y1[:,index[i]] = Y0[:,i]
             Z1[:,index[i]] = Z0[:,i]
             F1[index[i]] = F0[i]
-        #Z1t = np.sum(Z1) * (Y1[1,0]-Y1[0,0])/d2*l2/1000.0 * (X1[0,1]-X1[0,0])*d1/a1/1000.0
-        #print('Total Z1 (cross-section current) = %f mA'%Z1t)
-        # debug draw 6
-        #if int(self.comboBox.currentIndex()) == 10:
-        #    self.clearPicture()
-        #    axes.contour(X1, Y1, Z1)
-        #    axes.grid(True)
-        #    axes.set_title('Z1 [N,nx-1]')
-        #    self.mplWidget.canvas.draw()
-        #    #return
         
         # X1,Y1,Z1 -> X2,Y2,Z2 remove average X
         Z1t = integrate2d(X1,Y1,Z1)
@@ -1055,8 +1055,8 @@ class DesignerMainWindow(QMainWindow):
         X2 = X1.copy() - X1avg
         Y2 = Y1
         #Z2t = np.sum(Z2) * (Y2[1,0]-Y2[0,0])*l2/d2/1000.0 * (X2[0,1]-X2[0,0])*d1/a1/1000.0
-        Z2t = integrate2d(X2,Y2,Z2) * l2/d2 * d1/a1
-        print('Total Z2 (cross-section current) = %f mA'%(Z2t*1000.0)) # from Amperes to mA
+        #Z2t = integrate2d(X2,Y2,Z2) * l2/d2 * d1/a1
+        #print('Total Z2 (cross-section current) = %f mA'%(Z2t*1000.0)) # from Amperes to mA
         
         # X2,Y2,Z2 -> X3,Y3,Z3 shift jets maximum to X'=0 (remove equivalent regular divergence)
         X3 = X2
@@ -1072,7 +1072,7 @@ class DesignerMainWindow(QMainWindow):
         Z3[Z3 < 0.0] = 0.0
         Z3t = integrate2d(X3,Y3,Z3) * l2/d2 * d1/a1
         print('Total Z3 (cross-section current) = %f mA'%(Z3t*1000.0))
-        # debug draw 7
+        # debug draw 11
         if int(self.comboBox.currentIndex()) == 11:
             self.clearPicture()
             axes.contour(X3, Y3, Z3)
@@ -1125,45 +1125,6 @@ class DesignerMainWindow(QMainWindow):
             self.mplWidget.canvas.draw()
             return
 
-        # Z3 new interpolation
-        if False:
-            # Z3 new interpolation
-            for i in range(N-2) :
-                fnx1 = float(i) * float(nx-2) / float(N-1)
-                nx1 = int(fnx1)
-                dnx = fnx1 - float(nx1)
-                if dnx > 1.0 : print (i,dnx)
-                nx2 = nx1 + 1
-                #x1 = X0[0,nx1]
-                #x2 = X0[0,nx2]
-                ny1 = np.argmax(Z1[:,nx1])
-                ny2 = np.argmax(Z1[:,nx2])
-                #1 = Y1[0,ny1]
-                #y2 = Y1[0,ny2]
-                dny = ny2 - ny1
-                dn = int(dnx * dny)
-                for i1 in range(N-1) :
-                    try:
-                        z1 = Z1[i1-dn,nx1]
-                        z2 = Z1[i1-dn+dny,nx2]
-                        Z3[i1,i] = z1 + (z2-z1)*dnx
-                    except :
-                        Z3[i1,i] = 0.0
-            # copy last column
-            Z3[:,-1] = Z1[:,-1]
-            # remove negative currents
-            Z3[Z3 < 0.0] = 0.0
-            ZZ3 = gaussian_filter(Z3, 1.0)
-            Z3t = np.sum(Z3) * (Y3[1,0]-Y3[0,0])/d2*l2/1000.0 * (X3[0,1]-X3[0,0])*d1/a1/1000.0
-            print('Total Z3 (cross-section current) nr = %f mA'%Z3t)
-            if int(self.comboBox.currentIndex()) == 114:
-                self.clearPicture()
-                axes.contour(X3, Y3, ZZ3)
-                axes.grid(True)
-                axes.set_title('[N,N] new resample')
-                self.mplWidget.canvas.draw()
-                return
-
         # X4,Y4,Z4 -> X5,Y5,Z5 resample to NxN array
         X5 = np.zeros((N, N), dtype=np.float64)
         Y5 = np.zeros((N, N), dtype=np.float64)
@@ -1191,7 +1152,10 @@ class DesignerMainWindow(QMainWindow):
         Z5t = integrate2d(X5,Y5,Z5) * (l2/d2) * 1.0/a1
         #Z5t = np.sum(Z3) * (Y3[1,0]-Y3[0,0])/d2*l2/1000.0 * (X3[0,1]-X3[0,0])*d1/a1/1000.0
         print('Total Z5 (beam current) = %f mA'%(Z5t*1e3))
-        # debug plot 14
+        #g = self.interpolatePlot(X2, Y2, Z2)
+        #for i in range(N):
+        #    Z5[i,:] = g(X5[0,:],Y5[i,0])
+        # debug plot 18
         if int(self.comboBox.currentIndex()) == 18:
             self.clearPicture()
             axes.contour(X5, Y5, Z5)

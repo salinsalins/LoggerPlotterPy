@@ -271,27 +271,47 @@
         </property>
         <item>
          <property name="text">
-          <string> 0 Integral profile</string>
+          <string> 0 Raw signals</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string> 1 Maximum profile</string>
+          <string> 1 Processed signals</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string> 2 Contour plot</string>
+          <string> 2 Elementary jet</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string> 3 Color contour plot</string>
+          <string> 3 Integral profile</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string> 4 Contour levels</string>
+          <string> 4 Maximum profile</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string> 5 Contour plot</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string> 6 Color contour plot</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string> 7 Contour levels</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string> 8 Cross section contours</string>
          </property>
         </item>
         <item>
@@ -301,67 +321,47 @@
         </item>
         <item>
          <property name="text">
-          <string> 6 Calculated data contours</string>
+          <string>10 Calculated data contours</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string> 7 Regular divergence reduced</string>
+          <string>11 Regular divergence reduced</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string> 8 Scan voltage range</string>
+          <string>12 Scan voltage range</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string> 9 Regions and offsets</string>
+          <string>13 Regions and offsets</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>10 Zero line debug</string>
+          <string>14 Zero line debug</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>11 Scale and range</string>
+          <string>15 Scale and range</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>12 Calculated X0</string>
+          <string>16 Calculated X0</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>13 Shifted jets</string>
+          <string>17 Shifted jets</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>14 N x N no divergence</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>15 Cross section contours</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>16 Raw signals</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>17 Processed signals</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>18 Elementary jet</string>
+          <string>18 N x N no divergence</string>
          </property>
         </item>
        </widget>
