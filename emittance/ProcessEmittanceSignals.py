@@ -1046,7 +1046,6 @@ class DesignerMainWindow(QMainWindow):
         # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
 
-        #printl('', stamp=False)
         printl('Emittance calculation using parameters:')
         printl('R=%fOhm; l1=%fmm; l2=%fmm; d1=%fmm; d2=%fmm'%(R,l1,l2,d1,d2))
         for i in range(nx) :
@@ -1312,21 +1311,6 @@ class DesignerMainWindow(QMainWindow):
         self.RMScs = np.sqrt(XX2avg*YY2avg-XY2avg*XY2avg) * 1000.0  # [Pi*mm*mrad]
         printl('Normalized RMS Emittance of cross-section %f Pi*mm*mrad'%(self.RMScs*beta))
 
-        # save data to text file
-        folder = self.folderName
-        fn = os.path.join(str(folder), _progName + '_X.gz')
-        np.savetxt(fn, X, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_Y.gz')
-        np.savetxt(fn, Y, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_Z.gz')
-        np.savetxt(fn, Z, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_X_cs.gz')
-        np.savetxt(fn, X2, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_Y_cs.gz')
-        np.savetxt(fn, Y2, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_Z_cs.gz')
-        np.savetxt(fn, Z2, delimiter='; ' )
-
         nz = 100
         zl = np.linspace(0.0, Z.max(), nz)
         zi = np.zeros(nz)
@@ -1344,7 +1328,6 @@ class DesignerMainWindow(QMainWindow):
             xys = np.sum(xa*ya*za)/zt
             xxs = np.sum(xa*xa*za)/zt
             yys = np.sum(ya*ya*za)/zt
-            #print(xxs*yys-xys*xys)
             zr[i] = np.sqrt(max([xxs*yys-xys*xys, 0.0]))*1000.0
 
         # levels to draw
@@ -1366,6 +1349,42 @@ class DesignerMainWindow(QMainWindow):
         for i in range(len(levels)):
             printl('%2.0f %%       %5.3f Pi*mm*milliRadians  %5.3f Pi*mm*milliRadians'%(fractions[i]*100.0, emit[i], rms[i]))
         printl('%2.0f %%                                %5.3f Pi*mm*milliRadians'%(100.0, self.RMS*beta))
+        # return X and Y to symmetrical range
+        X = X + Xavg
+        Y = Y + Yavg
+        # subtract average values 
+        if self.readParameter(0, 'center', 'avg') == 'max':
+            n = np.argmax(Z)
+            Xavg = X.flat[n]
+            Yavg = Y.flat[n]
+        if self.readParameter(0, 'center', 'avg') == 'avg':
+            Zt = self.integrate2d(X,Y,Z) # [A]
+            Xavg = self.integrate2d(X,Y,X*Z)/Zt
+            Yavg = self.integrate2d(X,Y,Y*Z)/Zt
+        # recalculate Z
+        for i in range(N) :
+            y = Y[:,i]
+            z = Z[:,i]
+            f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
+            Z[:,i] = f(Y[:,i] + Yavg)
+        for i in range(N) :
+            x = X[i,:]
+            z = Z[i,:]
+            f = interp1d(x, z, kind='linear', bounds_error=False, fill_value=0.0)
+            Z[i,:] = f(X[i,:] + Xavg)
+        Z[Z < 0.0] = 0.0
+        #print(Yavg,Xavg)
+        #print(Y.max(),Y.min(),X.max(),X.min())
+
+        # save data to text file
+        folder = self.folderName
+        fn = os.path.join(str(folder), _progName + '_X.gz')
+        np.savetxt(fn, X, delimiter='; ' )
+        fn = os.path.join(str(folder), _progName + '_Y.gz')
+        np.savetxt(fn, Y, delimiter='; ' )
+        fn = os.path.join(str(folder), _progName + '_Z.gz')
+        np.savetxt(fn, Z, delimiter='; ' )
+            
         # plot contours
         if int(self.comboBox.currentIndex()) == 5:
             self.clearPicture()
@@ -1375,7 +1394,7 @@ class DesignerMainWindow(QMainWindow):
             #axes.set_ylim([ymin,ymax])
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
-            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
+            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Norm. RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11)
@@ -1389,7 +1408,7 @@ class DesignerMainWindow(QMainWindow):
             #axes.set_ylim([ymin,ymax])
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
-            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
+            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Norm. RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11, color='white')
@@ -1407,7 +1426,7 @@ class DesignerMainWindow(QMainWindow):
             for i in range(len(labels)):
                 CS.collections[i].set_label(labels[i])
             axes.legend(loc='upper left')
-            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
+            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + '; Norm. RMS Emittance %5.3f Pi*mm*mrad'%(self.RMS*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11)
@@ -1477,8 +1496,17 @@ class DesignerMainWindow(QMainWindow):
                 f = interp1d(x, z, kind='linear', bounds_error=False, fill_value=0.0)
                 Z[i,:] = f(X[i,:] + Xavg)
             Z[Z < 0.0] = 0.0
-            print(Yavg,Xavg)
-            print(Y.max(),Y.min(),X.max(),X.min())
+            #print(Yavg,Xavg)
+            #print(Y.max(),Y.min(),X.max(),X.min())
+
+            # save data to text file
+            folder = self.folderName
+            fn = os.path.join(str(folder), _progName + '_X_cs.gz')
+            np.savetxt(fn, X, delimiter='; ' )
+            fn = os.path.join(str(folder), _progName + '_Y_cs.gz')
+            np.savetxt(fn, Y, delimiter='; ' )
+            fn = os.path.join(str(folder), _progName + '_Z_cs.gz')
+            np.savetxt(fn, Z, delimiter='; ' )
             
             self.clearPicture()
             axes.contour(X, Y, Z, linewidths=1.0)
@@ -1486,7 +1514,7 @@ class DesignerMainWindow(QMainWindow):
             axes.set_title('Emittance contour plot of beam cross-section')
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
-            axes.annotate('Cross-section current %5.1f mkA'%(self.Ics*1e6) + '; Normalized RMS Emittance %5.3f Pi*mm*mrad'%(self.RMScs*beta),
+            axes.annotate('I Cross-section %5.1f mkA'%(self.Ics*1e6) + '; Norm. RMS Emittance %5.3f Pi*mm*mrad'%(self.RMScs*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11)
