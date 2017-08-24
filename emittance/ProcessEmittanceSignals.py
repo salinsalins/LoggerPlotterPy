@@ -1007,14 +1007,15 @@ class DesignerMainWindow(QMainWindow):
             return Fz(ax)
         return answer
 
+    def integrate2d(self,x,y,z):
+        sh = np.shape(z)
+        n = sh[1]
+        v = np.zeros(n, dtype=np.float64)
+        for i in range(n):
+            v[i] = trapz(z[:,i],y[:,i])
+        return trapz(v,x[0,:])
+
     def calculateEmittance(self):
-        def integrate2d(x,y,z):
-            sh = np.shape(z)
-            n = sh[1]
-            v = np.zeros(n, dtype=np.float64)
-            for i in range(n):
-                v[i] = trapz(z[:,i],y[:,i])
-            return trapz(v,x[0,:])
 
         if self.data is None :
             return
@@ -1116,15 +1117,29 @@ class DesignerMainWindow(QMainWindow):
             Z1[:,index[i]] = Z0[:,i]
             F1[index[i]] = F0[i]
         
-        # X1,Y1,Z1 -> X2,Y2,Z2 remove average X
-        Z1t = integrate2d(X1,Y1,Z1)
-        X1avg = integrate2d(X1,Y1,X1*Z1)/Z1t
+        # X1,Y1,Z1 -> X2,Y2,Z2 remove average X and Y
+        if self.readParameter(0, 'center', 'avg') == 'max':
+            n = np.argmax(Z1)
+            X1avg = X1.flat[n]
+            Y1avg = Y1.flat[n]
+        if self.readParameter(0, 'center', 'avg') == 'avg':
+            Z1t = self.integrate2d(X1,Y1,Z1)
+            X1avg = self.integrate2d(X1,Y1,X1*Z1)/Z1t
+            Y1avg = self.integrate2d(X1,Y1,Y1*Z1)/Z1t
         Z2 = Z1
         X2 = X1.copy() - X1avg
-        Y2 = Y1
-        # cross-section current
-        #Z2t = integrate2d(X2,Y2,Z2) * d1 *1e6 # [mkA]
-        #print('Total Z2 (cross-section current) = %f mkA'%Z2t)
+        Y2 = Y1.copy() - Y1avg
+        # debug draw 10
+        if int(self.comboBox.currentIndex()) == 10:
+            # cross-section current
+            Z2t = self.integrate2d(X2,Y2,Z2) * d1 *1e6 # [mkA]
+            print('Total Z2 (cross-section current) = %f mkA'%Z2t)
+            self.clearPicture()
+            axes.contour(X2, Y2, Z2)
+            axes.grid(True)
+            axes.set_title('Z2 [N,nx-1] Initial data average shifted')
+            self.mplWidget.canvas.draw()
+            return
         
         # X2,Y2,Z2 -> X3,Y3,Z3 shift jets maximum to X'=0 (remove equivalent regular divergence)
         X3 = X2
@@ -1134,14 +1149,14 @@ class DesignerMainWindow(QMainWindow):
         for i in range(nx-1) :
             z = Z2[:,i]
             imax = np.argmax(z)
-            Shift[i] = Y2[imax,i]
+            Shift[i] = Y2[imax,i] + Y1avg
             Z3[:,i] = F1[i](Y2[:,i] + Shift[i])
         # remove negative data
         Z3[Z3 < 0.0] = 0.0
         # debug draw 11
         if int(self.comboBox.currentIndex()) == 11:
             # cross-section current
-            Z3t = integrate2d(X3,Y3,Z3) * d1 *1e6 # [mkA]
+            Z3t = self.integrate2d(X3,Y3,Z3) * d1 *1e6 # [mkA]
             print('Total Z3 (cross-section current) = %f mkA'%Z3t)
             self.clearPicture()
             axes.contour(X3, Y3, Z3)
@@ -1181,10 +1196,10 @@ class DesignerMainWindow(QMainWindow):
                 f = Z3[j,:].copy()
                 f[dd1] = 0.0
                 f[dd2] = Z3[j,dd2]*m
-                Z4[j,i] = trapz(f,X3[0,:])
+                Z4[j,i] = trapz(f, X3[0,:])
         if int(self.comboBox.currentIndex()) == 13:
             # total beam current
-            Z4t = integrate2d(X4,Y4,Z4) * 1000.0 # [mA]
+            Z4t = self.integrate2d(X4,Y4,Z4) * 1000.0 # [mA]
             print('Total Z4 (beam current) = %f mA'%Z4t)
             self.clearPicture()
             axes.contour(X4, Y4, Z4)
@@ -1200,7 +1215,7 @@ class DesignerMainWindow(QMainWindow):
         xmin = x0.min()
         xmax = x0.max()
         if abs(xmin) > abs(xmax) :
-            ymax = abs(xmin)
+            xmax = abs(xmin)
         else:
             xmax = abs(xmax)
         xmin = -xmax
@@ -1219,11 +1234,12 @@ class DesignerMainWindow(QMainWindow):
         Z5[Z5 < 0.0] = 0.0
         # debug plot 18
         if int(self.comboBox.currentIndex()) == 18:
-            Z5t = integrate2d(X5,Y5,Z5) * 1000.0 # [mA]
+            Z5t = self.integrate2d(X5,Y5,Z5) * 1000.0 # [mA]
             print('Total Z5 (beam current) = %f mA'%Z5t)
-            g = self.interpolatePlot(X2, Y2, Z2)
-            Z5[:] = g(X5[0,:],Y5[:,0])
-            Z5[Z5 < 0.0] = 0.0
+            print(Y5.max(),Y5.min(),X5.max(),X5.min())
+            #g = self.interpolatePlot(X2, Y2, Z2)
+            #Z5[:] = g(X5[0,:],Y5[:,0])
+            #Z5[Z5 < 0.0] = 0.0
             #for i in range(N):
             #    Z5[i,:] = g(X5[0,:],Y5[i,0])
             self.clearPicture()
@@ -1247,7 +1263,7 @@ class DesignerMainWindow(QMainWindow):
         Z6[Z6 < 0.0] = 0.0
         # debug plot 15
         if int(self.comboBox.currentIndex()) == 16:
-            Z6t = integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
+            Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
             print('Total Z6 (beam current) = %f mA'%Z6t)
             self.clearPicture()
             axes.contour(X6, Y6, Z6)
@@ -1268,31 +1284,31 @@ class DesignerMainWindow(QMainWindow):
         X = X6
         Y = Y6
         Z = Z6 # [A/mm/Radian]
-        Zt = integrate2d(X,Y,Z) # [A]
-        Xavg = integrate2d(X,Y,X*Z)/Zt
-        Yavg = integrate2d(X,Y,Y*Z)/Zt
+        Zt = self.integrate2d(X,Y,Z) # [A]
+        Xavg = self.integrate2d(X,Y,X*Z)/Zt
+        Yavg = self.integrate2d(X,Y,Y*Z)/Zt
         # subtract average values 
         X = X - Xavg
         Y = Y - Yavg
         # calculate moments 
-        XYavg = integrate2d(X,Y,X*Y*Z)/Zt
-        XXavg = integrate2d(X,Y,X*X*Z)/Zt
-        YYavg = integrate2d(X,Y,Y*Y*Z)/Zt
+        XYavg = self.integrate2d(X,Y,X*Y*Z)/Zt
+        XXavg = self.integrate2d(X,Y,X*X*Z)/Zt
+        YYavg = self.integrate2d(X,Y,Y*Y*Z)/Zt
         self.RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg) * 1000.0 # [Pi*mm*mrad]
         printl('Normalized RMS Emittance of total beam    %f Pi*mm*mrad'%(self.RMS*beta))
         # cross section RMS emittance
         Z2 = Z2 * d1 # [A/mm/Radian]
-        Z2t = integrate2d(X2,Y2,Z2) # [A]
-        X2avg = integrate2d(X2,Y2,X2*Z2)/Z2t
-        Y2avg = integrate2d(X2,Y2,Y2*Z2)/Z2t
+        Z2t = self.integrate2d(X2,Y2,Z2) # [A]
+        X2avg = self.integrate2d(X2,Y2,X2*Z2)/Z2t
+        Y2avg = self.integrate2d(X2,Y2,Y2*Z2)/Z2t
         #print('X2avg=%f mm   X2\'avg=%f mRad'%(X2avg, Y2avg))
         # subtract average values 
         X2 = X2 - X2avg
         Y2 = Y2 - Y2avg
         # calculate moments 
-        XY2avg = integrate2d(X2,Y2,X2*Y2*Z2)/Z2t
-        XX2avg = integrate2d(X2,Y2,X2*X2*Z2)/Z2t
-        YY2avg = integrate2d(X2,Y2,Y2*Y2*Z2)/Z2t
+        XY2avg = self.integrate2d(X2,Y2,X2*Y2*Z2)/Z2t
+        XX2avg = self.integrate2d(X2,Y2,X2*X2*Z2)/Z2t
+        YY2avg = self.integrate2d(X2,Y2,Y2*Y2*Z2)/Z2t
         self.RMScs = np.sqrt(XX2avg*YY2avg-XY2avg*XY2avg) * 1000.0  # [Pi*mm*mrad]
         printl('Normalized RMS Emittance of cross-section %f Pi*mm*mrad'%(self.RMScs*beta))
 
@@ -1400,11 +1416,29 @@ class DesignerMainWindow(QMainWindow):
         # Emittance contour plot of beam cross-section
         if int(self.comboBox.currentIndex()) == 8:
             # X3,Y3,Z3 -> X5,Y5,Z5 resample to NxN array
+            xmin = X3.min()
+            xmax = X3.max()
+            if abs(xmin) > abs(xmax) :
+                xmax = abs(xmin)
+            else:
+                xmax = abs(xmax)
+            xmin = -xmax
+            xs = np.linspace(xmin, xmax, N)
+            ymin = Y3.min()
+            ymax = Y3.max()
+            if abs(ymin) > abs(ymax) :
+                ymax = abs(ymin)
+            else:
+                ymax = abs(ymax)
+            ymin = -ymax
+            ys = np.linspace(ymin, ymax, N)
+            for i in range(N) :
+                X5[i,:] = xs
+                Y5[:,i] = ys
             for i in range(N-1) :
                 x = X3[i,:]
                 z = Z3[i,:]
-                index = np.unique(x, return_index=True)[1]
-                f = interp1d(x[index], z[index], kind='cubic', bounds_error=False, fill_value=0.0)
+                f = interp1d(x, z, kind='cubic', bounds_error=False, fill_value=0.0)
                 Z5[i,:] = f(X5[i,:])
             # remove negative currents
             Z5[Z5 < 0.0] = 0.0
@@ -1420,12 +1454,31 @@ class DesignerMainWindow(QMainWindow):
             X = X6
             Y = Y6
             Z = Z6 # [A/mm^2/Radian]
-            Zt = integrate2d(X,Y,Z) # [A]
-            Xavg = integrate2d(X,Y,X*Z)/Zt
-            Yavg = integrate2d(X,Y,Y*Z)/Zt
+            if self.readParameter(0, 'center', 'avg') == 'max':
+                n = np.argmax(Z)
+                Xavg = X.flat[n]
+                Yavg = Y.flat[n]
+            if self.readParameter(0, 'center', 'avg') == 'avg':
+                Zt = self.integrate2d(X,Y,Z) # [A]
+                Xavg = self.integrate2d(X,Y,X*Z)/Zt
+                Yavg = self.integrate2d(X,Y,Y*Z)/Zt
             # subtract average values 
-            X = X - Xavg
-            Y = Y - Yavg
+            #X = X - Xavg
+            #Y = Y - Yavg
+            # recalculate Z
+            for i in range(N) :
+                y = Y[:,i]
+                z = Z[:,i]
+                f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
+                Z[:,i] = f(Y[:,i] + Yavg)
+            for i in range(N) :
+                x = X[i,:]
+                z = Z[i,:]
+                f = interp1d(x, z, kind='linear', bounds_error=False, fill_value=0.0)
+                Z[i,:] = f(X[i,:] + Xavg)
+            Z[Z < 0.0] = 0.0
+            print(Yavg,Xavg)
+            print(Y.max(),Y.min(),X.max(),X.min())
             
             self.clearPicture()
             axes.contour(X, Y, Z, linewidths=1.0)
