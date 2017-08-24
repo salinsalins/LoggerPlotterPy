@@ -38,7 +38,7 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
-_progVersion = '_6_1'
+_progVersion = '_7_0'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -437,34 +437,65 @@ class DesignerMainWindow(QMainWindow):
         print('Auto parameters has been calculated')
         return True
                 
-    def debugDraw(self, data=[]):
+    def debugDraw(self, par=[]):
         try:
             axes = self.mplWidget.canvas.ax
-            # debug draw 8 Scan voltage region
+            # debug draw 17
+            #self.debugDraw([Y3, Z3, Y1, Z1])
+            if int(self.comboBox.currentIndex()) == 17:
+                Y3 = par[0]
+                Z3 = par[1]
+                Y1 = par[2]
+                Z1 = par[3]
+                self.clearPicture()
+                indexes = self.listWidget.selectedIndexes()
+                for j in indexes:
+                    k = j.row()             
+                    self.plot(Y3[:,k-1]*1e3, Z3[:,k-1]*1e6, '.-', label='sh'+str(k))
+                    self.plot(Y1[:,k-1]*1e3, Z1[:,k-1]*1e6, '.-', label='or'+str(k))
+                axes.set_title('Shifted elementary jets')
+                axes.set_xlabel('X\', milliRadians')
+                axes.set_ylabel('Current, mkA')
+                self.mplWidget.canvas.draw()
+                return
+            # debug draw 11
+            #self.debugDraw([X3, Y3, Z3])
+            if int(self.comboBox.currentIndex()) == 11:
+                X3 = par[0]
+                Y3 = par[1]
+                Z3 = par[2]
+                self.clearPicture()
+                axes.contour(X3, Y3, Z3)
+                axes.grid(True)
+                axes.set_title('Z3 [N,nx-1] Regular divergence reduced')
+                self.mplWidget.canvas.draw()
+                return
+            # debug draw 12 Scan voltage region
             #self.debugDraw([ix,x,ix[xi],x[xi]])
             if int(self.comboBox.currentIndex()) == 12:
                 self.clearPicture()
                 axes.set_title('Scan voltage region')
                 axes.set_xlabel('Point index')
                 axes.set_ylabel('Voltage, V')
-                axes.plot(data[0], data[1], label='Scan voltage')
-                axes.plot(data[2], data[3], '.', label='Region')
+                axes.plot(par[0], par[1], label='Scan voltage')
+                axes.plot(par[2], par[3], '.', label='Region')
                 self.zoplot()
                 axes.grid(True)
                 axes.legend(loc='best') 
                 self.mplWidget.canvas.draw()
-            # debug draw 9 Offset calculation
+                return
+            # debug draw 13 Offset calculation
             #self.debugDraw([i,ix,y1,o1,y2,o2,i1,i2])
             if int(self.comboBox.currentIndex()) == 13 :
                 indexes = self.listWidget.selectedIndexes()
-                i = data[0]
-                ix = data[1]
-                y1 = data[2]
-                o1 = data[3]
-                y2 = data[4]
-                o2 = data[5]
-                i1 = data[6]
-                i2 = data[7]
+                i = par[0]
+                ix = par[1]
+                y1 = par[2]
+                o1 = par[3]
+                y2 = par[4]
+                o2 = par[5]
+                i1 = par[6]
+                i2 = par[7]
                 if (len(indexes) > 0) and (i == indexes[0].row()):
                     self.clearPicture()
                     axes.set_title('Offset calculation')
@@ -479,13 +510,14 @@ class DesignerMainWindow(QMainWindow):
                     axes.grid(True)
                     axes.legend(loc='best') 
                     self.mplWidget.canvas.draw()
-            # debug draw 10 zero line intermediate results
-            #self.debugDraw([ix, data, zero, params])
+                return
+            # debug draw 14 zero line intermediate results
+            #self.debugDraw([ix, par, zero, params])
             if int(self.comboBox.currentIndex()) == 14 :
-                ix = data[0]
-                d = data[1]
-                zero = data[2]
-                params = data[3]
+                ix = par[0]
+                d = par[1]
+                zero = par[2]
+                params = par[3]
                 indexes = self.listWidget.selectedIndexes()
                 if len(indexes) > 0:
                     k = indexes[0].row()             
@@ -500,29 +532,30 @@ class DesignerMainWindow(QMainWindow):
                     axes.grid(True)
                     axes.legend(loc='best') 
                     self.mplWidget.canvas.draw()
-            # debug draw 11 Range and scale calculation
+                return
+            # debug draw 15 Range and scale calculation
             #self.debugDraw([i,xi,y,ix[ir1:ir2],y[ir1 - xi[0]:ir2 - xi[0]],is1,is2])
             if int(self.comboBox.currentIndex()) == 15:
                 indexes = self.listWidget.selectedIndexes()
-                i = data[0]
+                i = par[0]
                 if (len(indexes) > 0) and (i == indexes[0].row()):
                     self.clearPicture()
                     axes.set_title('Range and scale calculation')
                     axes.set_xlabel('Point index')
                     axes.set_ylabel('Signal, V')
-                    axes.plot(data[1], data[2], label='proc '+str(i))
-                    axes.plot(data[3], data[4], '.', label='range'+str(i))
-                    self.voplot(data[5], 'r')
-                    self.voplot(data[6], 'b')
+                    axes.plot(par[1], par[2], label='proc '+str(i))
+                    axes.plot(par[3], par[4], '.', label='range'+str(i))
+                    self.voplot(par[5], 'r')
+                    self.voplot(par[6], 'b')
                     axes.grid(True)
                     axes.legend(loc='best') 
                     self.mplWidget.canvas.draw()
-            # debug draw 12 X0 calculation
+            # debug draw 16 X0 calculation
             #self.debugDraw([x01,nx,k])
             if int(self.comboBox.currentIndex()) == 16:
-                x01 = data[0]
-                nx = data[1]
-                k = data[2]
+                x01 = par[0]
+                nx = par[1]
+                k = par[2]
                 x0 = x01.copy()
                 for i in range(1, nx) :
                     x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
@@ -535,6 +568,7 @@ class DesignerMainWindow(QMainWindow):
                 axes.grid(True)
                 axes.legend(loc='best') 
                 self.mplWidget.canvas.draw()
+                return
         except:
             self.printExceptionInfo()
 
@@ -893,7 +927,7 @@ class DesignerMainWindow(QMainWindow):
         #print(self.profilemax)
         # remove average x
         xavg = trapz(x0s * self.profileint, x0s) / trapz(self.profileint, x0s)
-        print('Average X %f mm'%xavg)
+        #print('Average X %f mm'%xavg)
         x0s = x0s - xavg
         self.profileint = self.profileint / a1 # convert to local current density [A/mm^2]
         # cross-section current
@@ -902,10 +936,10 @@ class DesignerMainWindow(QMainWindow):
         # calculate total current
         index = np.where(x0s >= 0.0)[0]
         Ir = trapz(x0s[index]*self.profileint[index], x0s[index])*2.0*np.pi
-        print('Total current right %f mA'%(Ir*1000.0)) # from Amperes to mA
+        #print('Total current right %f mA'%(Ir*1000.0)) # from Amperes to mA
         index = np.where(x0s <= 0.0)[0]
         Il = -1.0*trapz(x0s[index]*self.profileint[index], x0s[index])*2.0*np.pi
-        print('Total current left %f mA'%(Il*1000.0)) # from Amperes to mA
+        #print('Total current left %f mA'%(Il*1000.0)) # from Amperes to mA
         self.I = (Il + Ir)/2.0 #[A]
         printl('Total current %f mA'%(self.I*1000.0))  # from Amperes to mA
         # save profile data
@@ -948,6 +982,7 @@ class DesignerMainWindow(QMainWindow):
                           fontsize=11)
             self.mplWidget.canvas.draw()
 
+    # experimental interpolation function
     def interpolatePlot(self, X, Y, Z, F=None):
         from scipy.interpolate import interp2d
         x = X[0,:]
@@ -971,7 +1006,7 @@ class DesignerMainWindow(QMainWindow):
             Fz = interp1d(z1, x, kind='linear', bounds_error=False, fill_value=0.0)
             return Fz(ax)
         return answer
-    
+
     def calculateEmittance(self):
         def integrate2d(x,y,z):
             sh = np.shape(z)
@@ -1046,7 +1081,8 @@ class DesignerMainWindow(QMainWindow):
         for i in range(nx-1) :
             y,z,index = self.readSignal(i+1)         # y in [Radians]; z < 0.0 in [A]
             yy = y[index]
-            zz = z[index]
+            # convert to [Ampere/Radian/mm^2]
+            zz = z[index] * l2/d2 / a1
             ymin = min([ymin, yy.min()])
             ymax = max([ymax, yy.max()])
             (yyy,zzz) = self.smoothX(yy,zz)
@@ -1086,9 +1122,9 @@ class DesignerMainWindow(QMainWindow):
         Z2 = Z1
         X2 = X1.copy() - X1avg
         Y2 = Y1
-        #Z2t = np.sum(Z2) * (Y2[1,0]-Y2[0,0])*l2/d2/1000.0 * (X2[0,1]-X2[0,0])*d1/a1/1000.0
-        #Z2t = integrate2d(X2,Y2,Z2) * l2/d2 * d1/a1
-        #print('Total Z2 (cross-section current) = %f mA'%(Z2t*1000.0)) # from Amperes to mA
+        # cross-section current
+        #Z2t = integrate2d(X2,Y2,Z2) * d1 *1e6 # [mkA]
+        #print('Total Z2 (cross-section current) = %f mkA'%Z2t)
         
         # X2,Y2,Z2 -> X3,Y3,Z3 shift jets maximum to X'=0 (remove equivalent regular divergence)
         X3 = X2
@@ -1102,17 +1138,18 @@ class DesignerMainWindow(QMainWindow):
             Z3[:,i] = F1[i](Y2[:,i] + Shift[i])
         # remove negative data
         Z3[Z3 < 0.0] = 0.0
-        Z3t = integrate2d(X3,Y3,Z3) * l2/d2 * d1/a1
-        print('Total Z3 (cross-section current) = %f mA'%(Z3t*1000.0))
         # debug draw 11
         if int(self.comboBox.currentIndex()) == 11:
+            # cross-section current
+            Z3t = integrate2d(X3,Y3,Z3) * d1 *1e6 # [mkA]
+            print('Total Z3 (cross-section current) = %f mkA'%Z3t)
             self.clearPicture()
             axes.contour(X3, Y3, Z3)
             axes.grid(True)
             axes.set_title('Z3 [N,nx-1] Regular divergence reduced')
             self.mplWidget.canvas.draw()
             return
-        # debug draw 13
+        # debug draw 17
         if int(self.comboBox.currentIndex()) == 17:
             self.clearPicture()
             indexes = self.listWidget.selectedIndexes()
@@ -1145,11 +1182,10 @@ class DesignerMainWindow(QMainWindow):
                 f[dd1] = 0.0
                 f[dd2] = Z3[j,dd2]*m
                 Z4[j,i] = trapz(f,X3[0,:])
-        # convert Z to milliAmperes/cell
-        #Z4t = np.sum(Z4)*(Y4[1,0]-Y4[0,0])*l2/d2 * (X4[0,1]-X4[0,0])/a1
-        Z4t = integrate2d(X4,Y4,Z4) * (l2/d2) / a1
-        print('Total Z4 (beam current) = %f mA'%(Z4t*1e3))
         if int(self.comboBox.currentIndex()) == 13:
+            # total beam current
+            Z4t = integrate2d(X4,Y4,Z4) * 1000.0 # [mA]
+            print('Total Z4 (beam current) = %f mA'%Z4t)
             self.clearPicture()
             axes.contour(X4, Y4, Z4)
             axes.grid(True)
@@ -1181,11 +1217,10 @@ class DesignerMainWindow(QMainWindow):
             Z5[i,:] = f(X5[i,:])
         # remove negative currents
         Z5[Z5 < 0.0] = 0.0
-        Z5t = integrate2d(X5,Y5,Z5) * (l2/d2) * 1.0/a1
-        #Z5t = np.sum(Z3) * (Y3[1,0]-Y3[0,0])/d2*l2/1000.0 * (X3[0,1]-X3[0,0])*d1/a1/1000.0
-        print('Total Z5 (beam current) = %f mA'%(Z5t*1e3))
         # debug plot 18
         if int(self.comboBox.currentIndex()) == 18:
+            Z5t = integrate2d(X5,Y5,Z5) * 1000.0 # [mA]
+            print('Total Z5 (beam current) = %f mA'%Z5t)
             g = self.interpolatePlot(X2, Y2, Z2)
             Z5[:] = g(X5[0,:],Y5[:,0])
             Z5[Z5 < 0.0] = 0.0
@@ -1206,23 +1241,14 @@ class DesignerMainWindow(QMainWindow):
         for i in range(N) :
             y = Y5[:,i]
             z = Z5[:,i]
-            #index = np.unique(y, return_index=True)[1]
             f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
-            fnx1 = float(i) * float(nx-2) / float(N-1)
-            nx1 = int(fnx1 + 1.0e-7)
-            dnx = fnx1 - float(nx1)
-            nx2 = nx1 + 1
-            if nx2 > nx-2:
-                nx2 = nx1
-            s1 = Shift[nx1]
-            s2 = Shift[nx2]
-            #s = s1 + (s2-s1)*dnx
             s = g(X5[0,i])
-            #print(nx1,nx2,s1,s2,s,dnx)
             Z6[:,i] = f(Y5[:,i] - s)
         Z6[Z6 < 0.0] = 0.0
         # debug plot 15
         if int(self.comboBox.currentIndex()) == 16:
+            Z6t = integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
+            print('Total Z6 (beam current) = %f mA'%Z6t)
             self.clearPicture()
             axes.contour(X6, Y6, Z6)
             axes.grid(True)
@@ -1241,11 +1267,10 @@ class DesignerMainWindow(QMainWindow):
         # calculate average X and X'
         X = X6
         Y = Y6
-        Z = Z6 * (l2/d2) * 1.0/a1 # [A/mm^2/Radian]
-        Zt = integrate2d(X,Y,Z)
+        Z = Z6 # [A/mm/Radian]
+        Zt = integrate2d(X,Y,Z) # [A]
         Xavg = integrate2d(X,Y,X*Z)/Zt
         Yavg = integrate2d(X,Y,Y*Z)/Zt
-        #print('Xavg=%f mm   X\'avg=%f mRad'%(Xavg, Yavg))
         # subtract average values 
         X = X - Xavg
         Y = Y - Yavg
@@ -1253,11 +1278,11 @@ class DesignerMainWindow(QMainWindow):
         XYavg = integrate2d(X,Y,X*Y*Z)/Zt
         XXavg = integrate2d(X,Y,X*X*Z)/Zt
         YYavg = integrate2d(X,Y,Y*Y*Z)/Zt
-        self.RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg)*1000.0 # from Radians to milliRadians
-        printl('Normalized RMS Emittance %f Pi*mm*mrad'%(self.RMS*beta))
+        self.RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg) * 1000.0 # [Pi*mm*mrad]
+        printl('Normalized RMS Emittance of total beam    %f Pi*mm*mrad'%(self.RMS*beta))
         # cross section RMS emittance
-        Z2 = Z2 * (l2/d2) * d1/a1 # [A/mm/Radian]
-        Z2t = integrate2d(X2,Y2,Z2)
+        Z2 = Z2 * d1 # [A/mm/Radian]
+        Z2t = integrate2d(X2,Y2,Z2) # [A]
         X2avg = integrate2d(X2,Y2,X2*Z2)/Z2t
         Y2avg = integrate2d(X2,Y2,Y2*Z2)/Z2t
         #print('X2avg=%f mm   X2\'avg=%f mRad'%(X2avg, Y2avg))
@@ -1268,7 +1293,7 @@ class DesignerMainWindow(QMainWindow):
         XY2avg = integrate2d(X2,Y2,X2*Y2*Z2)/Z2t
         XX2avg = integrate2d(X2,Y2,X2*X2*Z2)/Z2t
         YY2avg = integrate2d(X2,Y2,Y2*Y2*Z2)/Z2t
-        self.RMScs = np.sqrt(XX2avg*YY2avg-XY2avg*XY2avg)*1000.0 # from Radians to milliRadians
+        self.RMScs = np.sqrt(XX2avg*YY2avg-XY2avg*XY2avg) * 1000.0  # [Pi*mm*mrad]
         printl('Normalized RMS Emittance of cross-section %f Pi*mm*mrad'%(self.RMScs*beta))
 
         # save data to text file
@@ -1374,8 +1399,36 @@ class DesignerMainWindow(QMainWindow):
             return
         # Emittance contour plot of beam cross-section
         if int(self.comboBox.currentIndex()) == 8:
+            # X3,Y3,Z3 -> X5,Y5,Z5 resample to NxN array
+            for i in range(N-1) :
+                x = X3[i,:]
+                z = Z3[i,:]
+                index = np.unique(x, return_index=True)[1]
+                f = interp1d(x[index], z[index], kind='cubic', bounds_error=False, fill_value=0.0)
+                Z5[i,:] = f(X5[i,:])
+            # remove negative currents
+            Z5[Z5 < 0.0] = 0.0
+            # X5,Y5,Z5 -> X6,Y6,Z6 return shift of jets back
+            g = interp1d(X3[0,:], Shift, kind='cubic', bounds_error=False, fill_value=0.0)
+            for i in range(N) :
+                y = Y5[:,i]
+                z = Z5[:,i]
+                f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
+                s = g(X5[0,i])
+                Z6[:,i] = f(Y5[:,i] - s)
+            Z6[Z6 < 0.0] = 0.0
+            X = X6
+            Y = Y6
+            Z = Z6 # [A/mm^2/Radian]
+            Zt = integrate2d(X,Y,Z) # [A]
+            Xavg = integrate2d(X,Y,X*Z)/Zt
+            Yavg = integrate2d(X,Y,Y*Z)/Zt
+            # subtract average values 
+            X = X - Xavg
+            Y = Y - Yavg
+            
             self.clearPicture()
-            axes.contour(X2, Y2, Z2, linewidths=1.0)
+            axes.contour(X, Y, Z, linewidths=1.0)
             axes.grid(True)
             axes.set_title('Emittance contour plot of beam cross-section')
             axes.set_xlabel('X, mm')
