@@ -637,8 +637,9 @@ class DesignerMainWindow(QMainWindow):
         yn = np.zeros(n)
         m = np.floor((x-xmin)/dx)
         for i in range(n):
-            ys[m[i]] += y[i]
-            yn[m[i]] += 1.0
+            k = int(m[i])
+            ys[k] += y[i]
+            yn[k] += 1.0
         mask = yn > 0.0 
         ay = np.zeros(n)
         ay[mask] = ys[mask]/yn[mask]
@@ -924,6 +925,7 @@ class DesignerMainWindow(QMainWindow):
         y = Y[:,0]
         if F is None:
             F = interp2d(X, Y, Z, kind='linear', bounds_error=False, fill_value=0.0)
+        return F
         # calculate shift[x]
         shift = np.zeros(nx)
         for i in range(nx) :
@@ -934,7 +936,7 @@ class DesignerMainWindow(QMainWindow):
         Fshift = interp1d(shift, x, kind='linear', bounds_error=False, fill_value=0.0)
         def answer(ax,ay):
             z1 = np.zeros(len(x))
-            for i in range(len(x)):
+            for i in range(len(z1)):
                 z1[i] = F(x[i], ay-Fshift(x[i]))
             Fz = interp1d(z1, x, kind='linear', bounds_error=False, fill_value=0.0)
             return Fz(ax)
@@ -1152,7 +1154,9 @@ class DesignerMainWindow(QMainWindow):
         Z5t = integrate2d(X5,Y5,Z5) * (l2/d2) * 1.0/a1
         #Z5t = np.sum(Z3) * (Y3[1,0]-Y3[0,0])/d2*l2/1000.0 * (X3[0,1]-X3[0,0])*d1/a1/1000.0
         print('Total Z5 (beam current) = %f mA'%(Z5t*1e3))
-        #g = self.interpolatePlot(X2, Y2, Z2)
+        g = self.interpolatePlot(X2, Y2, Z2)
+        Z5[:] = g(X5[0,:],Y5[:,0])
+        Z5[Z5 < 0.0] = 0.0
         #for i in range(N):
         #    Z5[i,:] = g(X5[0,:],Y5[i,0])
         # debug plot 18
