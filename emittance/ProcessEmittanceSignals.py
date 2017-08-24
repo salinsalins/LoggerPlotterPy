@@ -38,7 +38,7 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
-_progVersion = '_6_0'
+_progVersion = '_6_1'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -59,23 +59,24 @@ class DesignerMainWindow(QMainWindow):
         self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         # variables definition
+        self.folderName = ''
+        self.fleNames = []
+        self.nx = 0
         self.data = None
         self.scanVoltage = None
         self.paramsAuto = None
-        self.fleNames = []
-        self.folderName = ''
         # welcome message
         printl(_progName + _progVersion + ' started')
         # restore global settings from default location
         self.restoreSettings()
         # read data files
-        self.parseFolder(folder = self.folderName)
+        self.parseFolder(self.folderName)
         # restore local settings
         if not self.restoreSettings(folder = self.folderName, local=True):
             self.processFolder()
     
     def selectFolder(self):
-        """Opens a dataFile select dialog"""
+        """Opens a file select dialog"""
         # open the dialog and get the selected dataFolder
         folder = self.folderName
         fileOpenDialog = QFileDialog(caption='Select directory with data files', directory=folder)
@@ -99,10 +100,12 @@ class DesignerMainWindow(QMainWindow):
             return
         dataFolder = str(self.comboBox_2.currentText())
         if self.folderName != dataFolder:
-            self.parseFolder(dataFolder)
+            self.clearPicture()
             # restore local settings
             if not self.restoreSettings(folder=dataFolder, local=True):
                 self.processFolder()
+            else:
+                self.parseFolder(dataFolder)
  
     def onQuit(self) :
         # save settings to folder
@@ -120,16 +123,19 @@ class DesignerMainWindow(QMainWindow):
         self.mplWidget.canvas.draw()
 
     def parseFolder(self, folder, mask='*.isf'):
-        printl('%s%s switch to folder %s'%(_progName, _progVersion, folder))
+        printl('%s%s switching to folder %s'%(_progName, _progVersion, folder))
         # read data
         self.data, self.fileNames = readTekFiles(folder, mask)
         # number of files
         nx = len(self.fileNames)
         if nx <= 0 :
+            printl('Nothing to process in %s'%folder)
+            printl('Remains in %s'%self.folderName)
             return
+        self.folderName = folder
         # switch to local log file
         printl('', stamp=False, fileName = os.path.join(str(folder), _logFile))
-        printl('%s%s parsing local folder %s'%(_progName, _progVersion, folder)) 
+        printl('%s%s parsing folder %s'%(_progName, _progVersion, folder))
         # fill listWidget with file names
         self.listWidget.clear()
         # make file names list
@@ -138,20 +144,24 @@ class DesignerMainWindow(QMainWindow):
             names[i] = '%3d - %s'%(i,names[i])
         # fill listWidget
         self.listWidget.addItems(names)
-        self.folderName = folder
     
     def processFolder(self):
         folder = self.folderName
-        printl('Processing folder %s'%folder)
+        # execute init script
+        self.execInitScript()
         print('Reading data ...')
+        # parse folder
+        self.parseFolder(folder)
         # read data array
-        data,files  = readTekFiles(folder)
+        data = self.data
+        files = self.fileNames
+        #data,files  = readTekFiles(folder)
         # number of files
         nx = len(files)
         if nx <= 0 :
-            print('Nothing to process')
             return False
-        print('%d files fond'%nx)
+        printl('%s%s processing folder %s'%(_progName, _progVersion, folder))
+        printl('%d files fond'%nx)
         # size of Y data
         ny = len(data[0])
         # define arrays
@@ -279,7 +289,7 @@ class DesignerMainWindow(QMainWindow):
         # save processed zero line
         for i in range(nx) :
             params[i]['zero'] = zero[i]
-        
+
         # determine signal area
         print('Processing signals ...')
         for i in range(1, nx) :
@@ -316,7 +326,6 @@ class DesignerMainWindow(QMainWindow):
             params[i]['range'] = [ir1, ir2]
             # debug draw 11 Range and scale calculation
             self.debugDraw([i,xi,y,ix[ir1:ir2],y[ir1 - xi[0]:ir2 - xi[0]],is1,is2])
-        
         # filter scales
         sc0 = np.array([params[i]['scale'] for i in range(1,nx)])
         sc = sc0.copy()
@@ -330,24 +339,18 @@ class DesignerMainWindow(QMainWindow):
             ssc = np.std(sc)
         for i in range(1,nx) :
             params[i]['scale'] = sc[i-1] 
+        # save processed to member variable
+        self.paramsAuto = params
 
         # common parameters
         print('Set common parameters ...')
         # Default parameters of measurements
-        params[0]['R'] = 2.0e5  # Ohm   Resistor for beamlet scanner FC
-        params[0]['d1'] = 0.5   # mm    Analyzer hole diameter
-        params[0]['d2'] = 0.5   # mm    Collector Slit Width
-        l1 = 213.0
-        params[0]['l1'] = l1    # mm    Distance From emission hole to analyzer hole
-        l2 = 195.0
-        params[0]['l2'] = l2    # mm    Scanner base
+        params[0]['R'] = 2.0e5  # Ohm   Resistor for scanner FC
+        params[0]['d1'] = 0.5   # mm    Scanner analyzer hole diameter
+        params[0]['d2'] = 0.5   # mm    Scanner FC slit width
+        params[0]['l1'] = 213.0 # mm    Distance from emission hole to scanner analyzer hole
+        params[0]['l2'] = 195.0 # mm    Scanner base
         
-        # save to member variable
-        self.paramsAuto = params
-
-        # execute init script
-        self.execInitScript()
-
         # X0 and ndh calculation
         l1 = self.readParameter(0, "l1", 213.0, float)
         l2 = self.readParameter(0, "l2", 195.0, float)
@@ -401,6 +404,7 @@ class DesignerMainWindow(QMainWindow):
             #print('X0=%f mm ndh=%4.1f mm'%(params[i]['x0'],params[i]['ndh']), end='  ')
             #print('X00=%f mm DX=%f mm'%(x00[i-1], dx[i-1]))
         # print calculated parameters
+        printl('Calculated parameters:')
         for i in range(nx) :
             try:
                 s = 'Chan.%3d '%i
@@ -412,13 +416,25 @@ class DesignerMainWindow(QMainWindow):
             except:
                 pass
             printl(s)
-        # debug draw 12 X0 calculation
+        printl('Actual parameters:')
+        for i in range(nx) :
+            try:
+                s = 'Chan.%3d '%i
+                s = s + 'range=%s; '%str(self.readParameter(i, "range"))
+                s = s + 'offset=%f V; '%self.readParameter(i, "offset")
+                s = s + 'scale=%6.2f mm/V; '%self.readParameter(i, "scale")
+                s = s + 'MinI=%4d; '%(self.readParameter(i, "minindex"))
+                s = s + 'Umin=%6.2f V; '%(self.readParameter(i, "minvoltage"))
+                s = s + 'x0=%5.1f mm; '%(self.readParameter(i, "x0"))
+                s = s + 'ndh=%5.1f mm'%(self.readParameter(i, "ndh"))
+            except:
+                pass
+            printl(s)
+        # debug draw X0 calculation
         self.debugDraw([x01,nx,k])
-        
         # save processed to member variable
         self.paramsAuto = params
         print('Auto parameters has been calculated')
-        
         return True
                 
     def debugDraw(self, data=[]):
@@ -767,7 +783,7 @@ class DesignerMainWindow(QMainWindow):
         # force an image redraw
         self.draw()
  
-    def plotElementaryJet(self):
+    def plotElementaryJets(self):
         """Plot elementary jet profile"""
         if self.data is None :
             return
@@ -807,7 +823,13 @@ class DesignerMainWindow(QMainWindow):
             self.plotProcessedSignals()
             return
         if int(self.comboBox.currentIndex()) == 2:
-            self.plotElementaryJet()
+            self.plotElementaryJets()
+            return
+        if int(self.comboBox.currentIndex()) == 3:
+            self.calculateProfiles()
+            return
+        if int(self.comboBox.currentIndex()) == 4:
+            self.calculateProfiles()
             return
         self.calculateEmittance()
     
@@ -876,7 +898,7 @@ class DesignerMainWindow(QMainWindow):
         self.profileint = self.profileint / a1 # convert to local current density [A/mm^2]
         # cross-section current
         self.Ics = trapz(self.profileint, x0s)*d1 # [A] -  integrate over x and multiply to y width
-        printl('Cross-section current %f mA'%(self.Ics*1000.0)) # from Amperes to mA
+        printl('Cross-section current %f mkA'%(self.Ics*1e6)) # from Amperes to mA
         # calculate total current
         index = np.where(x0s >= 0.0)[0]
         Ir = trapz(x0s[index]*self.profileint[index], x0s[index])*2.0*np.pi
@@ -904,8 +926,12 @@ class DesignerMainWindow(QMainWindow):
             #axes.plot(x0s, gaussfit(x0s,profileint,x0s), '--', label='Gaussian fit')
             axes.grid(True)
             axes.legend(loc='best') 
+            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + ' Cross-section current %4.1f mkA'%(self.Ics*1e6),
+                          xy=(.5, .2), xycoords='figure fraction',
+                          horizontalalignment='center', verticalalignment='top',
+                          fontsize=11)
             self.mplWidget.canvas.draw()
-            #return
+            return
         # plot maximal profile
         if int(self.comboBox.currentIndex()) == 4:
             self.clearPicture()
@@ -916,6 +942,10 @@ class DesignerMainWindow(QMainWindow):
             #axes.plot(x0s, gaussfit(x0s,profilemax,x0s), '--', label='Gaussian fit')
             axes.grid(True)
             axes.legend(loc='best') 
+            axes.annotate('Total current %4.1f mA'%(self.I*1000.0) + ' Cross-section current %4.1f mkA'%(self.Ics*1e6),
+                          xy=(.5, .2), xycoords='figure fraction',
+                          horizontalalignment='center', verticalalignment='top',
+                          fontsize=11)
             self.mplWidget.canvas.draw()
 
     def interpolatePlot(self, X, Y, Z, F=None):
@@ -980,7 +1010,7 @@ class DesignerMainWindow(QMainWindow):
         # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
 
-        printl('', stamp=False)
+        #printl('', stamp=False)
         printl('Emittance calculation using parameters:')
         printl('R=%fOhm; l1=%fmm; l2=%fmm; d1=%fmm; d2=%fmm'%(R,l1,l2,d1,d2))
         for i in range(nx) :
@@ -1154,13 +1184,13 @@ class DesignerMainWindow(QMainWindow):
         Z5t = integrate2d(X5,Y5,Z5) * (l2/d2) * 1.0/a1
         #Z5t = np.sum(Z3) * (Y3[1,0]-Y3[0,0])/d2*l2/1000.0 * (X3[0,1]-X3[0,0])*d1/a1/1000.0
         print('Total Z5 (beam current) = %f mA'%(Z5t*1e3))
-        g = self.interpolatePlot(X2, Y2, Z2)
-        Z5[:] = g(X5[0,:],Y5[:,0])
-        Z5[Z5 < 0.0] = 0.0
-        #for i in range(N):
-        #    Z5[i,:] = g(X5[0,:],Y5[i,0])
         # debug plot 18
         if int(self.comboBox.currentIndex()) == 18:
+            g = self.interpolatePlot(X2, Y2, Z2)
+            Z5[:] = g(X5[0,:],Y5[:,0])
+            Z5[Z5 < 0.0] = 0.0
+            #for i in range(N):
+            #    Z5[i,:] = g(X5[0,:],Y5[i,0])
             self.clearPicture()
             axes.contour(X5, Y5, Z5)
             axes.grid(True)
@@ -1378,37 +1408,45 @@ class DesignerMainWindow(QMainWindow):
         return True
    
     def restoreSettings(self, folder='', fileName=_settingsFile, local=False) :
-        # execute init script
+        '''
+            Restore program settings from fileName in folder.
+            If local=True only local settings actual for current folder are restored,
+                global settings such as current folder and history are not restored.
+        '''
+        # execute initial script
         self.execInitScript(folder)
-        # read saved settings
         try :
+            # read saved settings
             fullName = os.path.join(str(folder), fileName)
             dbase = shelve.open(fullName)
-            # smooth
-            self.spinBox.setValue(dbase['smooth'])
-            # result comboBox
-            self.comboBox.setCurrentIndex(dbase['result'])
-            # scan voltage channel number
-            self.spinBox_2.setValue(dbase['scan'])
-            # restore paramsAuto
-            self.paramsAuto = dbase['paramsAuto']
             # global settings
             if not local :
-                # data folder
+                # data folder name
                 self.folderName = dbase['folder']
-                # history
+                # restore history and set history current index
                 self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
                 self.comboBox_2.clear()
+                # add items to history  
                 self.comboBox_2.addItems(dbase['history'])
-                # add dataFolder to history
+                # set history current index
                 i = self.comboBox_2.findText(self.folderName)
                 if i >= 0:
                     self.comboBox_2.setCurrentIndex(i)
                 else:
-                    # add item to history  
                     self.comboBox_2.insertItem(-1, self.folderName)
                     self.comboBox_2.setCurrentIndex(0)
                 self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+            # smooth number
+            self.spinBox.setValue(dbase['smooth'])
+            # index for results comboBox
+            self.comboBox.setCurrentIndex(dbase['result'])
+            # scan voltage channel number
+            self.spinBox_2.setValue(dbase['scan'])
+            if local:
+                # restore automatically processed parameters
+                self.paramsAuto = dbase['paramsAuto']
+            if hasattr(printl, "dbase"):
+                dbase.close()
             # print OK message and exit    
             print('Configuration restored from %s.'%fullName)
             return True
@@ -1416,10 +1454,9 @@ class DesignerMainWindow(QMainWindow):
             # print error info    
             self.printExceptionInfo()
             print('Configuration file %s restore error.'%fullName)
-        finally:
             if hasattr(printl, "dbase"):
                 dbase.close()
-        return False
+            return False
 
     def execInitScript(self, folder=None, fileName=_initScript):
         if folder is None :
