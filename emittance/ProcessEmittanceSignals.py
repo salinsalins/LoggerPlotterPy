@@ -983,149 +983,34 @@ class DesignerMainWindow(QMainWindow):
             self.mplWidget.canvas.draw()
 
     # experimental interpolation function
-    def interpolatePlot(self, x, F):
+    def interpolatePlot(self, x, y, F):
         # x,F -> x1,F1 sort data according rising x0
         nx = len(x)
         index = np.argsort(x)
-        x1 = x
+        x1 = x.copy()
         F1 = list(F)
-        for i in range(nx-1) :
-            x1[index[i]] = x[:,i]
+        for i in range(nx) :
+            x1[index[i]] = x[i]
             F1[index[i]] = F[i]
         
         # shift jets maximum to X'=0 (remove equivalent regular divergence)
-        x2 = x1
-        Shift = np.zeros(nx-1, dtype=np.float64)
-        for i in range(nx-1) :
-            z = Z2[:,i]
+        shift = np.zeros(nx, dtype=np.float64)
+        for i in range(nx) :
+            z = F1[i](y)
             imax = np.argmax(z)
-            Shift[i] = Y2[imax,i] + Y1avg
-            Z3[:,i] = F1[i](Y2[:,i] + Shift[i])
-        # remove negative data
-        Z3[Z3 < 0.0] = 0.0
-        # debug draw 11
-        if int(self.comboBox.currentIndex()) == 11:
-            # cross-section current
-            Z3t = self.integrate2d(X3,Y3,Z3) * d1 *1e6 # [mkA]
-            print('Total Z3 (cross-section current) = %f mkA'%Z3t)
-            self.clearPicture()
-            axes.contour(X3, Y3, Z3)
-            axes.grid(True)
-            axes.set_title('Z3 [N,nx-1] Regular divergence reduced')
-            self.mplWidget.canvas.draw()
-            return
-        # debug draw 17
-        if int(self.comboBox.currentIndex()) == 17:
-            self.clearPicture()
-            indexes = self.listWidget.selectedIndexes()
-            for j in indexes:
-                k = j.row()             
-                self.plot(Y3[:,k-1]*1e3, Z3[:,k-1]*1e6, '.-', label='sh'+str(k))
-                self.plot(Y1[:,k-1]*1e3, Z1[:,k-1]*1e6, '.-', label='or'+str(k))
-            axes.set_title('Shifted elementary jets')
-            axes.set_xlabel('X\', milliRadians')
-            axes.set_ylabel('Current, mkA')
-            self.mplWidget.canvas.draw()
-            return
-
-        # X3,Y3,Z3 -> X4,Y4,Z4 integrate emittance from cross-section to circular beam
-        X4 = X3
-        Y4 = Y3
-        Z4 = Z3.copy()
-        s = np.zeros((N,1), dtype=np.float64)
-        r = np.abs(X3[0,:])
-        for i in range(nx-1) :
-            s[:] = 0.0
-            x = np.abs(X3[0,i])
-            xx = x*x
-            dd1 = r < x
-            dd2 = r > x
-            ra = r[dd2]
-            m = ra/np.sqrt(ra*ra - xx)
-            for j in range(N) :
-                f = Z3[j,:].copy()
-                f[dd1] = 0.0
-                f[dd2] = Z3[j,dd2]*m
-                Z4[j,i] = trapz(f, X3[0,:])
-        if int(self.comboBox.currentIndex()) == 13:
-            # total beam current
-            Z4t = self.integrate2d(X4,Y4,Z4) * 1000.0 # [mA]
-            print('Total Z4 (beam current) = %f mA'%Z4t)
-            self.clearPicture()
-            axes.contour(X4, Y4, Z4)
-            axes.grid(True)
-            axes.set_title('Z4 [N,nx] total beam')
-            self.mplWidget.canvas.draw()
-            return
-
-        # X4,Y4,Z4 -> X5,Y5,Z5 resample to NxN array
-        X5 = np.zeros((N, N), dtype=np.float64)
-        Y5 = np.zeros((N, N), dtype=np.float64)
-        Z5 = np.zeros((N, N), dtype=np.float64)
-        xmin = x0.min()
-        xmax = x0.max()
-        if abs(xmin) > abs(xmax) :
-            xmax = abs(xmin)
-        else:
-            xmax = abs(xmax)
-        xmin = -xmax
-        xs = np.linspace(xmin, xmax, N)
-        # X and Y
-        for i in range(N) :
-            X5[i,:] = xs
-            Y5[:,i] = ys
-        for i in range(N-1) :
-            x = X4[i,:]
-            z = Z4[i,:]
-            index = np.unique(x, return_index=True)[1]
-            f = interp1d(x[index], z[index], kind='cubic', bounds_error=False, fill_value=0.0)
-            Z5[i,:] = f(X5[i,:])
-        # remove negative currents
-        Z5[Z5 < 0.0] = 0.0
-        # debug plot 18
-        if int(self.comboBox.currentIndex()) == 18:
-            Z5t = self.integrate2d(X5,Y5,Z5) * 1000.0 # [mA]
-            print('Total Z5 (beam current) = %f mA'%Z5t)
-            print(Y5.max(),Y5.min(),X5.max(),X5.min())
-            #g = self.interpolatePlot(X2, Y2, Z2)
-            #Z5[:] = g(X5[0,:],Y5[:,0])
-            #Z5[Z5 < 0.0] = 0.0
-            #for i in range(N):
-            #    Z5[i,:] = g(X5[0,:],Y5[i,0])
-            self.clearPicture()
-            axes.contour(X5, Y5, Z5)
-            axes.grid(True)
-            axes.set_title('Z5 [N,N] no divergence')
-            self.mplWidget.canvas.draw()
-            return
-
-        # X5,Y5,Z5 -> X6,Y6,Z6 return shift of jets back
-        X6 = X5
-        Y6 = Y5
-        Z6 = np.zeros((N, N), dtype=np.float64)
-        g = interp1d(X3[0,:], Shift, kind='cubic', bounds_error=False, fill_value=0.0)
-        for i in range(N) :
-            y = Y5[:,i]
-            z = Z5[:,i]
-            f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
-            s = g(X5[0,i])
-            Z6[:,i] = f(Y5[:,i] - s)
-        Z6[Z6 < 0.0] = 0.0
-        # debug plot 15
-        if int(self.comboBox.currentIndex()) == 16:
-            Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
-            print('Total Z6 (beam current) = %f mA'%Z6t)
-            self.clearPicture()
-            axes.contour(X6, Y6, Z6)
-            axes.grid(True)
-            axes.set_title('Z6 [N,N] divergence back')
-            self.mplWidget.canvas.draw()
-            return
+            shift[i] = y[imax]
+        fs = interp1d(x1, shift, kind='cubic', bounds_error=False, fill_value=0.0)
+        #y1 = np.linspace(y.min()+shift.min(), y.max()+shift.max(), len(y))
         
-        def answer(ax,ay):
-            z1 = np.zeros(len(x))
-            Fz = interp1d(z1, x, kind='linear', bounds_error=False, fill_value=0.0)
-            return Fz(ax)
+        def answer(ax, ay) :
+            # calculate shifted function at x
+            z = np.zeros(nx, dtype=np.float64)
+            for i in range(nx) :
+                z[i] = F1[i](ay - fs(ax) + shift[i])
+            # interpolate over x1
+            fx = interp1d(x1, z, kind='cubic', bounds_error=False, fill_value=0.0)
+            # calculate result
+            return fx(ax)
         return answer
 
     def integrate2d(self,x,y,z):
@@ -1302,21 +1187,19 @@ class DesignerMainWindow(QMainWindow):
         X4 = X3
         Y4 = Y3
         Z4 = Z3.copy()
-        s = np.zeros((N,1), dtype=np.float64)
         r = np.abs(X3[0,:])
         for i in range(nx-1) :
-            s[:] = 0.0
             x = np.abs(X3[0,i])
             xx = x*x
-            dd1 = r < x
+            dd1 = r <= x
             dd2 = r > x
             ra = r[dd2]
             m = ra/np.sqrt(ra*ra - xx)
-            for j in range(N) :
-                f = Z3[j,:].copy()
-                f[dd1] = 0.0
-                f[dd2] = Z3[j,dd2]*m
-                Z4[j,i] = trapz(f, X3[0,:])
+            for k in range(N) :
+                z = Z3[k,:].copy()
+                z[dd1] = 0.0
+                z[dd2] = Z3[k,dd2]*m
+                Z4[k,i] = trapz(z, X3[0,:])
         if int(self.comboBox.currentIndex()) == 13:
             # total beam current
             Z4t = self.integrate2d(X4,Y4,Z4) * 1000.0 # [mA]
@@ -1381,10 +1264,20 @@ class DesignerMainWindow(QMainWindow):
             s = g(X5[0,i])
             Z6[:,i] = f(Y5[:,i] - s)
         Z6[Z6 < 0.0] = 0.0
-        # debug plot 15
+        # debug plot 16
         if int(self.comboBox.currentIndex()) == 16:
             Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
             print('Total Z6 (beam current) = %f mA'%Z6t)
+            ff = self.interpolatePlot(X1[0,:],Y1[:,0],F1)
+            
+            for i in range(N) :
+                print(i)
+                for k in range(N) :
+                    Z6[i,k] = ff(X6[i,k], Y6[i,k])
+            Z6[Z6 < 0.0] = 0.0
+            Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
+            print('Total Z6 (beam current) = %f mA'%Z6t)
+
             self.clearPicture()
             axes.contour(X6, Y6, Z6)
             axes.grid(True)
