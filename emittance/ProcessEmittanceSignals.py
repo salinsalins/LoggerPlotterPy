@@ -1200,6 +1200,7 @@ class DesignerMainWindow(QMainWindow):
                 z[dd1] = 0.0
                 z[dd2] = Z3[k,dd2]*m
                 Z4[k,i] = trapz(z, X3[0,:])
+        Z4[Z4 < 0.0] = 0.0
         if int(self.comboBox.currentIndex()) == 13:
             # total beam current
             Z4t = self.integrate2d(X4,Y4,Z4) * 1000.0 # [mA]
@@ -1239,12 +1240,6 @@ class DesignerMainWindow(QMainWindow):
         if int(self.comboBox.currentIndex()) == 18:
             Z5t = self.integrate2d(X5,Y5,Z5) * 1000.0 # [mA]
             print('Total Z5 (beam current) = %f mA'%Z5t)
-            print(Y5.max(),Y5.min(),X5.max(),X5.min())
-            #g = self.interpolatePlot(X2, Y2, Z2)
-            #Z5[:] = g(X5[0,:],Y5[:,0])
-            #Z5[Z5 < 0.0] = 0.0
-            #for i in range(N):
-            #    Z5[i,:] = g(X5[0,:],Y5[i,0])
             self.clearPicture()
             axes.contour(X5, Y5, Z5)
             axes.grid(True)
@@ -1268,12 +1263,13 @@ class DesignerMainWindow(QMainWindow):
         if int(self.comboBox.currentIndex()) == 16:
             Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
             print('Total Z6 (beam current) = %f mA'%Z6t)
+
             ff = self.interpolatePlot(X1[0,:],Y1[:,0],F1)
-            
             for i in range(N) :
                 print(i)
                 for k in range(N) :
-                    Z6[i,k] = ff(X6[i,k], Y6[i,k])
+                    pass
+                    #Z6[i,k] = ff(X6[i,k], Y6[i,k])
             Z6[Z6 < 0.0] = 0.0
             Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
             print('Total Z6 (beam current) = %f mA'%Z6t)

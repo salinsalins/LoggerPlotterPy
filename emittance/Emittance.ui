@@ -321,12 +321,12 @@
         </item>
         <item>
          <property name="text">
-          <string>10 Calculated data contours</string>
+          <string>10 Z2 [N,nx-1] Initial data average shifted</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>11 Regular divergence reduced</string>
+          <string>11 Z3 [N,nx-1]  Regular divergence reduced</string>
          </property>
         </item>
         <item>
@@ -336,7 +336,7 @@
         </item>
         <item>
          <property name="text">
-          <string>13 Regions and offsets</string>
+          <string>13 Z4 [N,nx] total beam</string>
          </property>
         </item>
         <item>
@@ -351,7 +351,7 @@
         </item>
         <item>
          <property name="text">
-          <string>16 Calculated X0</string>
+          <string>16 Z6 [N,N] divergence back</string>
          </property>
         </item>
         <item>
@@ -361,7 +361,7 @@
         </item>
         <item>
          <property name="text">
-          <string>18 N x N no divergence</string>
+          <string>18 Z5 [N,N] no divergence</string>
          </property>
         </item>
        </widget>
