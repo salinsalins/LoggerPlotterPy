@@ -1187,19 +1187,34 @@ class DesignerMainWindow(QMainWindow):
         X4 = X3
         Y4 = Y3
         Z4 = Z3.copy()
-        r = np.abs(X3[0,:])
+        x = X3[0,:]
+        r = np.abs(x)
         for i in range(nx-1) :
-            x = np.abs(X3[0,i])
-            xx = x*x
-            dd1 = r <= x
-            dd2 = r > x
+            xi = np.abs(x[i])
+            xx = xi*xi
+            dd1 = r <= xi
+            dd2 = np.logical_not(dd1)
+            im = np.nonzero(dd1)[0]
+            i1 = im[0]
+            i2 = im[-1]
+            if i1 > 0:
+                dd1[i1-1] = True
+                dd2[i1-1] = False
+            if i2 < (nx-2):
+                dd1[i2+1] = True
+                dd2[i2+1] = False
             ra = r[dd2]
             m = ra/np.sqrt(ra*ra - xx)
             for k in range(N) :
                 z = Z3[k,:].copy()
+                s = 0.0
+                if i1 > 0:
+                    s = s + z[i1]*np.sqrt(2.0*xi*(x[i1]-x[i1-1]))
+                if i2 < (nx-2):
+                    s = s + z[i2]*np.sqrt(2.0*xi*(x[i2+1]-x[i2]))
                 z[dd1] = 0.0
                 z[dd2] = Z3[k,dd2]*m
-                Z4[k,i] = trapz(z, X3[0,:])
+                Z4[k,i] = s + trapz(z, X3[0,:])
         Z4[Z4 < 0.0] = 0.0
         if int(self.comboBox.currentIndex()) == 13:
             # total beam current
