@@ -1001,12 +1001,13 @@ class DesignerMainWindow(QMainWindow):
             shift[i] = y[imax]
         fs = interp1d(x1, shift, kind='cubic', bounds_error=False, fill_value=0.0)
         #y1 = np.linspace(y.min()+shift.min(), y.max()+shift.max(), len(y))
+        z = np.zeros(nx, dtype=np.float64)
         
         def answer(ax, ay) :
             # calculate shifted function at x
-            z = np.zeros(nx, dtype=np.float64)
+            by = ay - fs(ax)
             for i in range(nx) :
-                z[i] = F1[i](ay - fs(ax) + shift[i])
+                z[i] = F1[i](by + shift[i])
             # interpolate over x1
             fx = interp1d(x1, z, kind='cubic', bounds_error=False, fill_value=0.0)
             # calculate result
@@ -1014,8 +1015,6 @@ class DesignerMainWindow(QMainWindow):
         return answer
 
     # integrate from radial to linear
-    def integradeRadial(self, x, y, F):
-        pass
 
     def integrate2d(self,x,y,z):
         sh = np.shape(z)
@@ -1102,6 +1101,7 @@ class DesignerMainWindow(QMainWindow):
             ymax = abs(ymin)
         else:
             ymax = abs(ymax)
+        ymax *= 1.05
         ymin = -ymax
         #print('Ymin=%f; Ymax=%f'%(ymin,ymax))
         # Y range array
@@ -1230,6 +1230,7 @@ class DesignerMainWindow(QMainWindow):
             xmax = abs(xmin)
         else:
             xmax = abs(xmax)
+        xmax *= 1.05
         xmin = -xmax
         xs = np.linspace(xmin, xmax, N)
         # X and Y
