@@ -38,7 +38,7 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
-_progVersion = '_7_2'
+_progVersion = '_8_0'
 _settingsFile = _progName + '_init.dat'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '_log.log'
@@ -1013,6 +1013,10 @@ class DesignerMainWindow(QMainWindow):
             return fx(ax)
         return answer
 
+    # integrate from radial to linear
+    def integradeRadial(self, x, y, F):
+        pass
+
     def integrate2d(self,x,y,z):
         sh = np.shape(z)
         n = sh[1]
@@ -1187,34 +1191,23 @@ class DesignerMainWindow(QMainWindow):
         X4 = X3
         Y4 = Y3
         Z4 = Z3.copy()
+        #Z3[int(N/2),:] = 1.0
         x = X3[0,:]
-        r = np.abs(x)
+        y = x.copy()
         for i in range(nx-1) :
-            xi = np.abs(x[i])
-            xx = xi*xi
-            dd1 = r <= xi
-            dd2 = np.logical_not(dd1)
-            im = np.nonzero(dd1)[0]
-            i1 = im[0]
-            i2 = im[-1]
-            if i1 > 0:
-                dd1[i1-1] = True
-                dd2[i1-1] = False
-            if i2 < (nx-2):
-                dd1[i2+1] = True
-                dd2[i2+1] = False
-            ra = r[dd2]
-            m = ra/np.sqrt(ra*ra - xx)
+            xi = x[i]
+            if xi >= 0.0:
+                mask = x >= xi
+                y[mask] = np.sqrt(x[mask]**2 - xi**2)
+            if xi < 0.0:
+                mask = x <= xi
+                y[mask] = -np.sqrt(x[mask]**2 - xi**2)
             for k in range(N) :
                 z = Z3[k,:].copy()
-                s = 0.0
-                if i1 > 0:
-                    s = s + z[i1]*np.sqrt(2.0*xi*(x[i1]-x[i1-1]))
-                if i2 < (nx-2):
-                    s = s + z[i2]*np.sqrt(2.0*xi*(x[i2+1]-x[i2]))
-                z[dd1] = 0.0
-                z[dd2] = Z3[k,dd2]*m
-                Z4[k,i] = s + trapz(z, X3[0,:])
+                Z4[k,i] = 2.0*trapz(z[mask], y[mask])
+
+            #print(i, xi, Z4[int(N/2),i], 2.0*np.sqrt(x[0]**2 - xi**2), 2.0*np.sqrt(x[-1]**2 - xi**2))
+        #print(Z4[int(N/2),:])
         Z4[Z4 < 0.0] = 0.0
         if int(self.comboBox.currentIndex()) == 13:
             # total beam current
@@ -1539,7 +1532,7 @@ class DesignerMainWindow(QMainWindow):
             axes.set_title('Emittance contour plot of beam cross-section')
             axes.set_xlabel('X, mm')
             axes.set_ylabel('X\', milliRadians')
-            axes.annotate('I Cross-section %5.1f mkA'%(self.Ics*1e6) + '; Norm. RMS Emittance %5.3f Pi*mm*mrad'%(self.RMScs*beta),
+            axes.annotate('Cross-section I=%5.1f mkA'%(self.Ics*1e6) + '; Norm. RMS Emittance %5.3f Pi*mm*mrad'%(self.RMScs*beta),
                           xy=(.5, .2), xycoords='figure fraction',
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11)
