@@ -1043,16 +1043,12 @@ class DesignerMainWindow(QMainWindow):
         for i in range(1, nx) :
             ndh[i-1] = self.readParameter(i, 'ndh', 0.0, float)
             x0auto[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
-        # R
+        # common parameters
         R = self.readParameter(0, 'R', 2.0e5, float)    # [Ohm] Faraday cup load resistior
-        # l1
         l1 = self.readParameter(0, 'l1', 213.0, float)  # [mm] distance from source to analyzer aperture
-        # l2
         l2 = self.readParameter(0, 'l2', 195.0, float)  # [mm] analyzer base
-        # d1 and hole area
         d1 = self.readParameter(0, 'd1', 0.5, float)    # [mm] analyzer hole diameter
         a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
-        # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
 
         printl('Emittance calculation using parameters:')
@@ -1103,7 +1099,6 @@ class DesignerMainWindow(QMainWindow):
             ymax = abs(ymax)
         ymax *= 1.05
         ymin = -ymax
-        #print('Ymin=%f; Ymax=%f'%(ymin,ymax))
         # Y range array
         ys = np.linspace(ymin, ymax, N)
         # fill data arrays
@@ -1191,7 +1186,6 @@ class DesignerMainWindow(QMainWindow):
         X4 = X3
         Y4 = Y3
         Z4 = Z3.copy()
-        #Z3[int(N/2),:] = 1.0
         x = X3[0,:]
         y = x.copy()
         for i in range(nx-1) :
@@ -1205,9 +1199,6 @@ class DesignerMainWindow(QMainWindow):
             for k in range(N) :
                 z = Z3[k,:].copy()
                 Z4[k,i] = 2.0*trapz(z[mask], y[mask])
-
-            #print(i, xi, Z4[int(N/2),i], 2.0*np.sqrt(x[0]**2 - xi**2), 2.0*np.sqrt(x[-1]**2 - xi**2))
-        #print(Z4[int(N/2),:])
         Z4[Z4 < 0.0] = 0.0
         if int(self.comboBox.currentIndex()) == 13:
             # total beam current
@@ -1273,15 +1264,16 @@ class DesignerMainWindow(QMainWindow):
             Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
             print('Total Z6 (beam current) = %f mA'%Z6t)
 
-            ff = self.interpolatePlot(X1[0,:],Y1[:,0],F1)
-            for i in range(N) :
-                print(i)
-                for k in range(N) :
-                    pass
-                    #Z6[i,k] = ff(X6[i,k], Y6[i,k])
-            Z6[Z6 < 0.0] = 0.0
-            Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
-            print('Total Z6 (beam current) = %f mA'%Z6t)
+            # experimental resample function
+            #ff = self.interpolatePlot(X1[0,:],Y1[:,0],F1)
+            #for i in range(N) :
+            #    print(i)
+            #    for k in range(N) :
+            #        pass
+            #        #Z6[i,k] = ff(X6[i,k], Y6[i,k])
+            #Z6[Z6 < 0.0] = 0.0
+            #Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
+            #print('Total Z6 (beam current) = %f mA'%Z6t)
 
             self.clearPicture()
             axes.contour(X6, Y6, Z6)
@@ -1297,12 +1289,12 @@ class DesignerMainWindow(QMainWindow):
         U = self.readParameter(0, 'energy', 32000.0, float)
         printl('Beam energy U= %f V'%U)
         beta = np.sqrt(2.0*q*U/m)/c
-        # RMS Emittance
-        # calculate average X and X'
+        # X6,Y6,Z6 -> X,Y,Z final array X and Y centered to plot and emittance calculation
         X = X6
         Y = Y6
         Z = Z6 # [A/mm/Radian]
         Zt = self.integrate2d(X,Y,Z) # [A]
+        # calculate average X and X'
         Xavg = self.integrate2d(X,Y,X*Z)/Zt
         Yavg = self.integrate2d(X,Y,Y*Z)/Zt
         # subtract average values 
@@ -1312,6 +1304,7 @@ class DesignerMainWindow(QMainWindow):
         XYavg = self.integrate2d(X,Y,X*Y*Z)/Zt
         XXavg = self.integrate2d(X,Y,X*X*Z)/Zt
         YYavg = self.integrate2d(X,Y,Y*Y*Z)/Zt
+        # RMS Emittance
         self.RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg) * 1000.0 # [Pi*mm*mrad]
         printl('Normalized RMS Emittance of total beam    %f Pi*mm*mrad'%(self.RMS*beta))
         # cross section RMS emittance
@@ -1319,7 +1312,6 @@ class DesignerMainWindow(QMainWindow):
         Z2t = self.integrate2d(X2,Y2,Z2) # [A]
         X2avg = self.integrate2d(X2,Y2,X2*Z2)/Z2t
         Y2avg = self.integrate2d(X2,Y2,Y2*Z2)/Z2t
-        #print('X2avg=%f mm   X2\'avg=%f mRad'%(X2avg, Y2avg))
         # subtract average values 
         X2 = X2 - X2avg
         Y2 = Y2 - Y2avg
@@ -1327,13 +1319,19 @@ class DesignerMainWindow(QMainWindow):
         XY2avg = self.integrate2d(X2,Y2,X2*Y2*Z2)/Z2t
         XX2avg = self.integrate2d(X2,Y2,X2*X2*Z2)/Z2t
         YY2avg = self.integrate2d(X2,Y2,Y2*Y2*Z2)/Z2t
+        # cross section RMS Emittance
         self.RMScs = np.sqrt(XX2avg*YY2avg-XY2avg*XY2avg) * 1000.0  # [Pi*mm*mrad]
         printl('Normalized RMS Emittance of cross-section %f Pi*mm*mrad'%(self.RMScs*beta))
-
-        nz = 100
+        # calculate emittance fraction for density levels 
+        # number of levels
+        nz = 100    
+        # level
         zl = np.linspace(0.0, Z.max(), nz)
+        # total beam for level zl[i]
         zi = np.zeros(nz)
+        # number of points inside level (~ total emittance)
         zn = np.zeros(nz)
+        # RMS emittance for level
         zr = np.zeros(nz)
 
         for i in range(nz):
@@ -1392,8 +1390,6 @@ class DesignerMainWindow(QMainWindow):
             f = interp1d(x, z, kind='linear', bounds_error=False, fill_value=0.0)
             Z[i,:] = f(X[i,:] + Xavg)
         Z[Z < 0.0] = 0.0
-        #print(Yavg,Xavg)
-        #print(Y.max(),Y.min(),X.max(),X.min())
 
         # save data to text file
         folder = self.folderName
@@ -1460,6 +1456,7 @@ class DesignerMainWindow(QMainWindow):
                 xmax = abs(xmin)
             else:
                 xmax = abs(xmax)
+            xmax *= 1.05
             xmin = -xmax
             xs = np.linspace(xmin, xmax, N)
             ymin = Y3.min()
@@ -1468,6 +1465,7 @@ class DesignerMainWindow(QMainWindow):
                 ymax = abs(ymin)
             else:
                 ymax = abs(ymax)
+            ymax *= 1.05
             ymin = -ymax
             ys = np.linspace(ymin, ymax, N)
             for i in range(N) :
@@ -1500,9 +1498,6 @@ class DesignerMainWindow(QMainWindow):
                 Zt = self.integrate2d(X,Y,Z) # [A]
                 Xavg = self.integrate2d(X,Y,X*Z)/Zt
                 Yavg = self.integrate2d(X,Y,Y*Z)/Zt
-            # subtract average values 
-            #X = X - Xavg
-            #Y = Y - Yavg
             # recalculate Z
             for i in range(N) :
                 y = Y[:,i]
@@ -1515,8 +1510,6 @@ class DesignerMainWindow(QMainWindow):
                 f = interp1d(x, z, kind='linear', bounds_error=False, fill_value=0.0)
                 Z[i,:] = f(X[i,:] + Xavg)
             Z[Z < 0.0] = 0.0
-            #print(Yavg,Xavg)
-            #print(Y.max(),Y.min(),X.max(),X.min())
 
             # save data to text file
             folder = self.folderName
