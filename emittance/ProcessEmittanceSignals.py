@@ -1531,7 +1531,75 @@ class DesignerMainWindow(QMainWindow):
                           horizontalalignment='center', verticalalignment='top',
                           fontsize=11)
             self.mplWidget.canvas.draw()
-        
+
+    def resampleAndCenter(x,y,z,N):
+            # x,y,z -> X5,Y5,Z5 resample to NxN array
+            xmin = x.min()
+            xmax = x.max()
+            if abs(xmin) > abs(xmax) :
+                xmax = abs(xmin)
+            else:
+                xmax = abs(xmax)
+            xmax *= 1.05
+            xmin = -xmax
+            xs = np.linspace(xmin, xmax, N)
+            ymin = y.min()
+            ymax = y.max()
+            if abs(ymin) > abs(ymax) :
+                ymax = abs(ymin)
+            else:
+                ymax = abs(ymax)
+            ymax *= 1.05
+            ymin = -ymax
+            ys = np.linspace(ymin, ymax, N)
+            X5 = np.zeros((N, N), dtype=np.float64)
+            Y5 = np.zeros((N, N), dtype=np.float64)
+            Z5 = np.zeros((N, N), dtype=np.float64)
+            for i in range(N) :
+                X5[i,:] = xs
+                Y5[:,i] = ys
+            for i in range(N-1) :
+                x = X3[i,:]
+                z = Z3[i,:]
+                f = interp1d(x, z, kind='cubic', bounds_error=False, fill_value=0.0)
+                Z5[i,:] = f(X5[i,:])
+            # remove negative currents
+            Z5[Z5 < 0.0] = 0.0
+            # X5,Y5,Z5 -> X6,Y6,Z6 return shift of jets back
+            g = interp1d(X3[0,:], Shift, kind='cubic', bounds_error=False, fill_value=0.0)
+            for i in range(N) :
+                y = Y5[:,i]
+                z = Z5[:,i]
+                f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
+                s = g(X5[0,i])
+                Z6[:,i] = f(Y5[:,i] - s)
+            Z6[Z6 < 0.0] = 0.0
+            X = X6
+            Y = Y6
+            Z = Z6 # [A/mm^2/Radian]
+            if self.readParameter(0, 'center', 'avg') == 'max':
+                n = np.argmax(Z)
+                Xavg = X.flat[n]
+                Yavg = Y.flat[n]
+            if self.readParameter(0, 'center', 'avg') == 'avg':
+                Zt = self.integrate2d(X,Y,Z) # [A]
+                Xavg = self.integrate2d(X,Y,X*Z)/Zt
+                Yavg = self.integrate2d(X,Y,Y*Z)/Zt
+            # recalculate Z
+            for i in range(N) :
+                y = Y[:,i]
+                z = Z[:,i]
+                f = interp1d(y, z, kind='linear', bounds_error=False, fill_value=0.0)
+                Z[:,i] = f(Y[:,i] + Yavg)
+            for i in range(N) :
+                x = X[i,:]
+                z = Z[i,:]
+                f = interp1d(x, z, kind='linear', bounds_error=False, fill_value=0.0)
+                Z[i,:] = f(X[i,:] + Xavg)
+            Z[Z < 0.0] = 0.0
+    return (X,Y,Z)
+
+                
     def saveSettings(self, folder='', fileName=_settingsFile, local=False) :
         fullName = os.path.join(str(folder), fileName)
         dbase = shelve.open(fullName, flag='n')
