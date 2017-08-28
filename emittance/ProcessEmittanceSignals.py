@@ -1532,6 +1532,7 @@ class DesignerMainWindow(QMainWindow):
                           fontsize=11)
             self.mplWidget.canvas.draw()
 
+    '''
     def resampleAndCenter(x,y,z,N):
             # x,y,z -> X5,Y5,Z5 resample to NxN array
             xmin = x.min()
@@ -1598,7 +1599,7 @@ class DesignerMainWindow(QMainWindow):
                 Z[i,:] = f(X[i,:] + Xavg)
             Z[Z < 0.0] = 0.0
     return (X,Y,Z)
-
+    '''
                 
     def saveSettings(self, folder='', fileName=_settingsFile, local=False) :
         fullName = os.path.join(str(folder), fileName)
