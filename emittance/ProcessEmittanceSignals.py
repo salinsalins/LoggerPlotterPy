@@ -1000,7 +1000,6 @@ class DesignerMainWindow(QMainWindow):
             imax = np.argmax(z)
             shift[i] = y[imax]
         fs = interp1d(x1, shift, kind='cubic', bounds_error=False, fill_value=0.0)
-        #y1 = np.linspace(y.min()+shift.min(), y.max()+shift.max(), len(y))
         z = np.zeros(nx, dtype=np.float64)
         
         def answer(ax, ay) :
@@ -1535,34 +1534,22 @@ class DesignerMainWindow(QMainWindow):
     '''
     def resampleAndCenter(x,y,z,N):
             # x,y,z -> X5,Y5,Z5 resample to NxN array
-            xmin = x.min()
-            xmax = x.max()
-            if abs(xmin) > abs(xmax) :
-                xmax = abs(xmin)
-            else:
-                xmax = abs(xmax)
-            xmax *= 1.05
+            xmax = max([abs(x.max()), abs(x.min())])*1.05
             xmin = -xmax
-            xs = np.linspace(xmin, xmax, N)
-            ymin = y.min()
-            ymax = y.max()
-            if abs(ymin) > abs(ymax) :
-                ymax = abs(ymin)
-            else:
-                ymax = abs(ymax)
-            ymax *= 1.05
+            xarr = np.linspace(-xmax, xmax, N)
+            ymax = max([abs(y.max()), abs(y.min())])*1.05
             ymin = -ymax
-            ys = np.linspace(ymin, ymax, N)
+            yarr = np.linspace(ymin, ymax, N)
             X5 = np.zeros((N, N), dtype=np.float64)
             Y5 = np.zeros((N, N), dtype=np.float64)
             Z5 = np.zeros((N, N), dtype=np.float64)
             for i in range(N) :
-                X5[i,:] = xs
-                Y5[:,i] = ys
+                X5[i,:] = xarr
+                Y5[:,i] = yarr
             for i in range(N-1) :
-                x = X3[i,:]
-                z = Z3[i,:]
-                f = interp1d(x, z, kind='cubic', bounds_error=False, fill_value=0.0)
+                xi = x[i,:]
+                zi = z[i,:]
+                f = interp1d(xi, zi, kind='cubic', bounds_error=False, fill_value=0.0)
                 Z5[i,:] = f(X5[i,:])
             # remove negative currents
             Z5[Z5 < 0.0] = 0.0
