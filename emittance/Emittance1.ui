@@ -82,7 +82,7 @@
             </size>
            </property>
            <property name="editable">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -255,7 +255,7 @@
              <enum>Qt::NoFocus</enum>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="stackedWidgetPage1">
              <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -276,8 +276,14 @@
             </widget>
             <widget class="QWidget" name="stackedWidgetPage2">
              <layout class="QVBoxLayout" name="verticalLayout_3">
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
               <item>
-               <widget class="QTextBrowser" name="textBrowser">
+               <widget class="QPlainTextEdit" name="plainTextEdit">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                   <horstretch>0</horstretch>
@@ -293,7 +299,7 @@
                 <property name="autoFillBackground">
                  <bool>false</bool>
                 </property>
-                <property name="acceptRichText">
+                <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
@@ -448,27 +454,47 @@
            </property>
            <item>
             <property name="text">
-             <string> 0 Integral profile</string>
+             <string> 0 Raw signals</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string> 1 Maximum profile</string>
+             <string> 1 Processed signals</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string> 2 Contour plot</string>
+             <string> 2 Elementary jet</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string> 3 Color contour plot</string>
+             <string> 3 Integral profile</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string> 4 Contour levels</string>
+             <string> 4 Maximum profile</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string> 5 Contour plot</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string> 6 Color contour plot</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string> 7 Contour levels</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string> 8 Cross section contours</string>
             </property>
            </item>
            <item>
@@ -478,67 +504,47 @@
            </item>
            <item>
             <property name="text">
-             <string> 6 Calculated data contours</string>
+             <string>10 Z2 [N,nx-1] Initial data average shifted</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string> 7 Regular divergence reduced</string>
+             <string>11 Z3 [N,nx-1]  Regular divergence reduced</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string> 8 Scan voltage range</string>
+             <string>12 Scan voltage range</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string> 9 Regions and offsets</string>
+             <string>13 Z4 [N,nx] total beam</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>10 Zero line debug</string>
+             <string>14 Zero line debug</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>11 Scale and range</string>
+             <string>15 Scale and range</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>12 Calculated X0</string>
+             <string>16 Z6 [N,N] divergence back</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>13 Shifted jets</string>
+             <string>17 Shifted jets</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>14 N x N no divergence</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>15 Cross section contours</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>16 Raw signals</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>17 Processed signals</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>18 Elementary jet</string>
+             <string>18 Z5 [N,N] no divergence</string>
             </property>
            </item>
           </widget>
@@ -701,8 +707,15 @@
     <addaction name="actionLog"/>
     <addaction name="actionParameters"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -725,6 +738,9 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Plot</string>
    </property>
@@ -743,6 +759,11 @@
    </property>
    <property name="text">
     <string>Parameters</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>

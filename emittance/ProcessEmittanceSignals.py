@@ -11,6 +11,11 @@ from __future__ import print_function
 import os.path
 import shelve
 import sys
+from configparser import ConfigParser
+#try:
+#    import configparser
+#except:
+#    import ConfigParser as configparser 
 
 from findRegions import findRegions as findRegions
 from findRegions import restoreFromRegions as restoreFromRegions
@@ -49,7 +54,7 @@ class DesignerMainWindow(QMainWindow):
         # initialization of the superclass
         super(DesignerMainWindow, self).__init__(parent)
         # load the GUI 
-        uic.loadUi('Emittance.ui', self)
+        uic.loadUi('Emittance1.ui', self)
         # connect the signals with the slots
         self.actionOpen.triggered.connect(self.selectFolder)
         self.pushButton_2.clicked.connect(self.selectFolder)
@@ -57,6 +62,11 @@ class DesignerMainWindow(QMainWindow):
         self.pushButton_4.clicked.connect(self.processFolder)
         self.pushButton_6.clicked.connect(self.pushPlotButton)
         self.pushButton_7.clicked.connect(self.erasePicture)
+        self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+        self.actionPlot.triggered.connect(self.showPlot)
+        self.actionLog.triggered.connect(self.showLog)
+        self.actionParameters.triggered.connect(self.showParameters)
+        #
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         # variables definition
         self.folderName = ''
@@ -66,7 +76,7 @@ class DesignerMainWindow(QMainWindow):
         self.scanVoltage = None
         self.paramsAuto = None
         # welcome message
-        printl(_progName + _progVersion + ' started')
+        printl(_progName + _progVersion + ' started', widget=self.plainTextEdit)
         # restore global settings from default location
         self.restoreSettings()
         # read data files
@@ -75,6 +85,24 @@ class DesignerMainWindow(QMainWindow):
         if not self.restoreSettings(folder = self.folderName, local=True):
             self.processFolder()
     
+    def showPlot(self):
+        self.stackedWidget.setCurrentIndex(0)
+        self.actionPlot.setChecked(True)
+        self.actionLog.setChecked(False)
+        self.actionParameters.setChecked(False)
+    
+    def showLog(self):
+        self.stackedWidget.setCurrentIndex(1)
+        self.actionPlot.setChecked(False)
+        self.actionLog.setChecked(True)
+        self.actionParameters.setChecked(False)
+
+    def showParameters(self):
+        self.stackedWidget.setCurrentIndex(2)
+        self.actionPlot.setChecked(False)
+        self.actionLog.setChecked(False)
+        self.actionParameters.setChecked(True)
+
     def selectFolder(self):
         """Opens a file select dialog"""
         # open the dialog and get the selected dataFolder
@@ -1590,6 +1618,19 @@ class DesignerMainWindow(QMainWindow):
                 
     def saveSettings(self, folder='', fileName=_settingsFile, local=False) :
         fullName = os.path.join(str(folder), fileName)
+        config = ConfigParser()
+        config['Common'] = {}
+        config['Common']['folder'] = self.folderName
+        config['Common']['smooth'] = str(int(self.spinBox.value()))
+        config['Common']['scan'] = str(int(self.spinBox_2.value()))
+        config['Common']['result'] = str(int(self.comboBox.currentIndex()))
+        #config['Common']['paramsAuto'] = str(self.paramsAuto)
+        config['history'] = {}
+        for count in range(min(self.comboBox_2.count(), 15)):
+            config['history']['item%i'%count] = str(self.comboBox_2.itemText(count))
+        with open('example.ini', 'w') as configfile:
+            config.write(configfile)
+        
         dbase = shelve.open(fullName, flag='n')
         # data folder
         dbase['folder'] = self.folderName
@@ -1651,6 +1692,20 @@ class DesignerMainWindow(QMainWindow):
                 dbase.close()
             # print OK message and exit    
             print('Configuration restored from %s.'%fullName)
+            config = ConfigParser()
+            config.read('example.ini')
+            #self.folderName = config['Common']['folder']
+            #self.spinBox.setValue(int(config['Common']['smooth']))
+            #self.spinBox_2.setValue(int(config['Common']['scan']))
+            #self.comboBox.setCurrentIndex(int(config['Common']['result']))
+            self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+            self.comboBox_2.clear()
+            # add items to history  
+            count = 0
+            for item in config['history']:
+                self.comboBox_2.addItem(item['item%i'%count])
+                count += 1
+            self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
             return True
         except :
             # print error info    

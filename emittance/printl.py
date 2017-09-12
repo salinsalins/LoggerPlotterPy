@@ -12,11 +12,15 @@ def printl(*args, **kwargs):
         printl.start = True  # it doesn't exist yet, so initialize it
     if not hasattr(printl, "fileName"):
         printl.fileName = 'logfile.log'
+    if not hasattr(printl, "widget"):
+        printl.widget = None
     
+    if "widget" in kwargs:
+        printl.widget = kwargs["widget"]
+
     if "fileName" in kwargs:
         printl.fileName = kwargs["fileName"]
-        #print('printl - selected log file %s'%printl.fileName)
-
+ 
     if "stamp" in kwargs:
         stamp = kwargs["stamp"]
     else:
@@ -44,3 +48,6 @@ def printl(*args, **kwargs):
 
     f.write(strout+'\n')
     f.close()
+
+    if printl.widget is not None:
+        printl.widget.appendPlainText(strout)
