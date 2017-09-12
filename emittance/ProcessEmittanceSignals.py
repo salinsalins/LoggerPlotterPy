@@ -44,9 +44,10 @@ from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
 _progVersion = '_8_0'
-_settingsFile = _progName + '_init.dat'
+_settingsFile = _progName + '.ini'
 _initScript =  _progName + '_init.py'
-_logFile =  _progName + '_log.log'
+_logFile =  _progName + '.log'
+_dataFile = _progName + '.dat'
 
 class DesignerMainWindow(QMainWindow):
     """Customization for Qt Designer created window"""
@@ -63,11 +64,10 @@ class DesignerMainWindow(QMainWindow):
         self.pushButton_6.clicked.connect(self.pushPlotButton)
         self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+        #
         self.actionPlot.triggered.connect(self.showPlot)
         self.actionLog.triggered.connect(self.showLog)
         self.actionParameters.triggered.connect(self.showParameters)
-        #
-        self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         # variables definition
         self.folderName = ''
         self.fleNames = []
@@ -82,7 +82,8 @@ class DesignerMainWindow(QMainWindow):
         # read data files
         self.parseFolder(self.folderName)
         # restore local settings
-        if not self.restoreSettings(folder = self.folderName, local=True):
+        #self.restoreSettings(folder = self.folderName)
+        if not self.restoreData(folder = self.folderName):
             self.processFolder()
     
     def showPlot(self):
@@ -126,18 +127,25 @@ class DesignerMainWindow(QMainWindow):
         #print('Selection changed %s'%str(i))
         if i < 0:
             return
-        dataFolder = str(self.comboBox_2.currentText())
-        if self.folderName != dataFolder:
+        newFolder = str(self.comboBox_2.currentText())
+        if not os.path.isdir(newFolder):
+            printl('Folder %s is not found'%newFolder)
+            self.comboBox_2.removeItem(i)
+            return
+        if self.folderName != newFolder:
             self.clearPicture()
             # restore local settings
-            if not self.restoreSettings(folder=dataFolder, local=True):
+            #self.restoreSettings(folder=newFolder)
+            self.folderName = newFolder
+            if not self.restoreData(folder=newFolder):
                 self.processFolder()
             else:
-                self.parseFolder(dataFolder)
+                self.parseFolder(newFolder)
  
     def onQuit(self) :
-        # save settings to folder
-        self.saveSettings(folder = self.folderName)
+        # save data to local folder
+        #self.saveSettings(folder = self.folderName)
+        self.saveData(folder = self.folderName)
         # save global settings
         self.saveSettings()
 
@@ -463,6 +471,7 @@ class DesignerMainWindow(QMainWindow):
         # save processed to member variable
         self.paramsAuto = params
         print('Auto parameters has been calculated')
+        self.saveData()
         return True
                 
     def debugDraw(self, par=[]):
@@ -1616,7 +1625,7 @@ class DesignerMainWindow(QMainWindow):
     return (X,Y,Z)
     '''
                 
-    def saveSettings(self, folder='', fileName=_settingsFile, local=False) :
+    def saveSettings(self, folder='', fileName=_settingsFile) :
         fullName = os.path.join(str(folder), fileName)
         config = ConfigParser()
         config['Common'] = {}
@@ -1626,38 +1635,48 @@ class DesignerMainWindow(QMainWindow):
         config['Common']['result'] = str(int(self.comboBox.currentIndex()))
         #config['Common']['paramsAuto'] = str(self.paramsAuto)
         config['history'] = {}
-        for count in range(min(self.comboBox_2.count(), 15)):
+        for count in range(min(self.comboBox_2.count(), 10)):
             config['history']['item%i'%count] = str(self.comboBox_2.itemText(count))
-        with open('example.ini', 'w') as configfile:
+        with open(fullName, 'w') as configfile:
             config.write(configfile)
+        print('Configuration saved to %s'%fullName)
+        return True
         
+    def saveData(self, folder='', fileName=_dataFile) :
+        fullName = os.path.join(str(folder), fileName)
         dbase = shelve.open(fullName, flag='n')
-        # data folder
-        dbase['folder'] = self.folderName
-        # default smooth
-        dbase['smooth'] = int(self.spinBox.value())
-        # scan voltage channel number
-        dbase['scan'] = int(self.spinBox_2.value())
-        # result combo
-        dbase['result'] = int(self.comboBox.currentIndex())
-        comboitems = [self.comboBox_2.itemText(count) for count in range(self.comboBox_2.count())]
-        if len(comboitems) > 10 :
-            comboitems = comboitems[:10]
-        dbase['history'] = comboitems
         # save paramsAuto
         dbase['paramsAuto'] = self.paramsAuto
         dbase.close()
-        print('Configuration saved to %s'%fullName)
+        print('Processed data saved to %s'%fullName)
         return True
    
-    def restoreSettings(self, folder='', fileName=_settingsFile, local=False) :
-        '''
-            Restore program settings from fileName in folder.
-            If local=True only local settings actual for current folder are restored,
-                global settings such as current folder and history are not restored.
-        '''
-        # execute initial script
-        self.execInitScript(folder)
+    def restoreSettings(self, folder='', fileName=_settingsFile) :
+        try :
+            fullName = os.path.join(str(folder), fileName)
+            config = ConfigParser()
+            config.read(fullName)
+            self.folderName = config['Common']['folder']
+            self.spinBox.setValue(int(config['Common']['smooth']))
+            self.spinBox_2.setValue(int(config['Common']['scan']))
+            self.comboBox.setCurrentIndex(int(config['Common']['result']))
+            self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+            self.comboBox_2.clear()
+            # add items to history  
+            count = 0
+            for item in config['history']:
+                self.comboBox_2.addItem(config['history']['item%i'%count])
+                count += 1
+            self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+            # print OK message and exit    
+            print('Configuration restored from %s.'%fullName)
+            return True
+        except :
+            # print error info    
+            self.printExceptionInfo()
+            print('Configuration file %s restore error.'%fullName)
+            return False
+        
         try :
             # read saved settings
             fullName = os.path.join(str(folder), fileName)
@@ -1692,25 +1711,35 @@ class DesignerMainWindow(QMainWindow):
                 dbase.close()
             # print OK message and exit    
             print('Configuration restored from %s.'%fullName)
-            config = ConfigParser()
-            config.read('example.ini')
-            #self.folderName = config['Common']['folder']
-            #self.spinBox.setValue(int(config['Common']['smooth']))
-            #self.spinBox_2.setValue(int(config['Common']['scan']))
-            #self.comboBox.setCurrentIndex(int(config['Common']['result']))
-            self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-            self.comboBox_2.clear()
-            # add items to history  
-            count = 0
-            for item in config['history']:
-                self.comboBox_2.addItem(item['item%i'%count])
-                count += 1
-            self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
             return True
         except :
             # print error info    
             self.printExceptionInfo()
             print('Configuration file %s restore error.'%fullName)
+            if hasattr(printl, "dbase"):
+                dbase.close()
+            return False
+
+    def restoreData(self, folder='', fileName=_dataFile) :
+        '''
+        Restore program settings from fileName in folder.
+        If local=True only local settings actual for current folder are restored,
+            global settings such as current folder and history are not restored.
+        '''
+        try :
+            # read saved settings
+            fullName = os.path.join(str(folder), fileName)
+            dbase = shelve.open(fullName)
+            # restore automatically processed parameters
+            self.paramsAuto = dbase['paramsAuto']
+            dbase.close()
+            # print OK message and exit    
+            print('Data restored from %s.'%fullName)
+            return True
+        except :
+            # print error info    
+            self.printExceptionInfo()
+            print('Data file %s restore error.'%fullName)
             if hasattr(printl, "dbase"):
                 dbase.close()
             return False

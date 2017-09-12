@@ -8,3 +8,7 @@
 /*.pyc
 /*.log
 /example.ini
+/Emittance.dat.bak
+/Emittance.dat.dat
+/Emittance.dat.dir
+/Emittance.ini
