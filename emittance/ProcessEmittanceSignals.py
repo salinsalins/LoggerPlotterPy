@@ -43,7 +43,7 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
-_progVersion = '_8_0'
+_progVersion = '_8_1'
 _settingsFile = _progName + '.ini'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '.log'
@@ -1675,49 +1675,6 @@ class DesignerMainWindow(QMainWindow):
             # print error info    
             self.printExceptionInfo()
             print('Configuration file %s restore error.'%fullName)
-            return False
-        
-        try :
-            # read saved settings
-            fullName = os.path.join(str(folder), fileName)
-            dbase = shelve.open(fullName)
-            # global settings
-            if not local :
-                # data folder name
-                self.folderName = dbase['folder']
-                # restore history and set history current index
-                self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-                self.comboBox_2.clear()
-                # add items to history  
-                self.comboBox_2.addItems(dbase['history'])
-                # set history current index
-                i = self.comboBox_2.findText(self.folderName)
-                if i >= 0:
-                    self.comboBox_2.setCurrentIndex(i)
-                else:
-                    self.comboBox_2.insertItem(-1, self.folderName)
-                    self.comboBox_2.setCurrentIndex(0)
-                self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-            # smooth number
-            self.spinBox.setValue(dbase['smooth'])
-            # index for results comboBox
-            self.comboBox.setCurrentIndex(dbase['result'])
-            # scan voltage channel number
-            self.spinBox_2.setValue(dbase['scan'])
-            if local:
-                # restore automatically processed parameters
-                self.paramsAuto = dbase['paramsAuto']
-            if hasattr(printl, "dbase"):
-                dbase.close()
-            # print OK message and exit    
-            print('Configuration restored from %s.'%fullName)
-            return True
-        except :
-            # print error info    
-            self.printExceptionInfo()
-            print('Configuration file %s restore error.'%fullName)
-            if hasattr(printl, "dbase"):
-                dbase.close()
             return False
 
     def restoreData(self, folder='', fileName=_dataFile) :
