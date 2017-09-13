@@ -471,7 +471,7 @@ class DesignerMainWindow(QMainWindow):
         # save processed to member variable
         self.paramsAuto = params
         print('Auto parameters has been calculated')
-        self.saveData()
+        self.saveData(folder = self.folderName)
         return True
                 
     def debugDraw(self, par=[]):
