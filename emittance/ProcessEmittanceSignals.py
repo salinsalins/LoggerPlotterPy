@@ -652,8 +652,15 @@ class DesignerMainWindow(QMainWindow):
             zr = self.paramsManual[row]['zero']
             for zi in zr:
                 try:
+                    if zi[0] == -2 :
+                        # linear interpolation between (x1,y1) (x2,y2) 
+                        x1 = zi[1]
+                        y1 = zi[2]
+                        x2 = zi[3]
+                        y2 = zi[4]
+                        z[x1:x2+1] = np.interp(np.arange(x1,x2+1), [x1,x2], [y1,y2])
                     if zi[0] == -1 :
-                        # linear interpolation
+                        # linear interpolation (-1, n1, n2)  y(n) = zeroLine(n)
                         z0 = self.data[row, :].copy()
                         ns = self.readParameter(row, "smooth", self.spinBox.value(), int)
                         smooth(z0, ns)

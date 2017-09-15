@@ -255,7 +255,7 @@
              <enum>Qt::NoFocus</enum>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="stackedWidgetPage1">
              <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -297,6 +297,9 @@
                  </size>
                 </property>
                 <property name="autoFillBackground">
+                 <bool>false</bool>
+                </property>
+                <property name="undoRedoEnabled">
                  <bool>false</bool>
                 </property>
                 <property name="readOnly">
