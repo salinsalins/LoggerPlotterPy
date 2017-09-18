@@ -7,15 +7,11 @@ Created on Jul 2, 2017
 # used to parse files more easily
 from __future__ import with_statement
 from __future__ import print_function
+from configparser import ConfigParser
 
 import os.path
 import shelve
 import sys
-from configparser import ConfigParser
-#try:
-#    import configparser
-#except:
-#    import ConfigParser as configparser 
 
 from findRegions import findRegions as findRegions
 from findRegions import restoreFromRegions as restoreFromRegions
@@ -29,6 +25,7 @@ try:
     from PyQt4.QtGui import qApp
     from PyQt4.QtGui import QFileDialog
     from PyQt4.QtGui import QTableWidgetItem
+    from PyQt4.QtGui import QMessageBox
     from PyQt4 import uic
 except:
     from PyQt5.QtWidgets import QMainWindow
@@ -36,6 +33,7 @@ except:
     from PyQt5.QtWidgets import qApp
     from PyQt5.QtWidgets import QFileDialog
     from PyQt5.QtWidgets import QTableWidgetItem
+    from PyQt5.QtWidgets import QMessageBox
     from PyQt5 import uic
 
 import numpy as np
@@ -43,7 +41,7 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
-_progVersion = '_8_0'
+_progVersion = '_8_1'
 _settingsFile = _progName + '.ini'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '.log'
@@ -68,6 +66,7 @@ class DesignerMainWindow(QMainWindow):
         self.actionPlot.triggered.connect(self.showPlot)
         self.actionLog.triggered.connect(self.showLog)
         self.actionParameters.triggered.connect(self.showParameters)
+        self.actionAbout.triggered.connect(self.showAbout)
         # variables definition
         self.folderName = ''
         self.fleNames = []
@@ -85,7 +84,11 @@ class DesignerMainWindow(QMainWindow):
         #self.restoreSettings(folder = self.folderName)
         if not self.restoreData(folder = self.folderName):
             self.processFolder()
-    
+
+    def showAbout(self):
+        QMessageBox.information(self, 'About', _progName + ' Version ' + _progVersion + 
+                                '\nBeam emittance calculation program.', QMessageBox.Ok)    
+
     def showPlot(self):
         self.stackedWidget.setCurrentIndex(0)
         self.actionPlot.setChecked(True)
@@ -159,15 +162,16 @@ class DesignerMainWindow(QMainWindow):
         self.mplWidget.canvas.draw()
 
     def parseFolder(self, folder, mask='*.isf'):
-        printl('%s%s switching to folder %s'%(_progName, _progVersion, folder))
+        printl('%s%s reading data from %s'%(_progName, _progVersion, folder))
         # read data
         self.data, self.fileNames = readTekFiles(folder, mask)
         # number of files
         nx = len(self.fileNames)
         if nx <= 0 :
             printl('Nothing to process in %s'%folder)
-            printl('Remains in %s'%self.folderName)
+            printl('Return to %s'%self.folderName)
             return
+        printl('%d files fond'%nx)
         self.folderName = folder
         # switch to local log file
         printl('', stamp=False, fileName = os.path.join(str(folder), _logFile))
@@ -181,23 +185,21 @@ class DesignerMainWindow(QMainWindow):
         # fill listWidget
         self.listWidget.addItems(names)
     
-    def processFolder(self):
-        folder = self.folderName
+    def processFolder(self, folder=None):
+        if folder is None:
+            folder = self.folderName
         # execute init script
         self.execInitScript()
-        print('Reading data ...')
         # parse folder
         self.parseFolder(folder)
         # read data array
         data = self.data
         files = self.fileNames
-        #data,files  = readTekFiles(folder)
         # number of files
         nx = len(files)
         if nx <= 0 :
             return False
         printl('%s%s processing folder %s'%(_progName, _progVersion, folder))
-        printl('%d files fond'%nx)
         # size of Y data
         ny = len(data[0])
         # define arrays
@@ -1682,49 +1684,6 @@ class DesignerMainWindow(QMainWindow):
             # print error info    
             self.printExceptionInfo()
             print('Configuration file %s restore error.'%fullName)
-            return False
-        
-        try :
-            # read saved settings
-            fullName = os.path.join(str(folder), fileName)
-            dbase = shelve.open(fullName)
-            # global settings
-            if not local :
-                # data folder name
-                self.folderName = dbase['folder']
-                # restore history and set history current index
-                self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-                self.comboBox_2.clear()
-                # add items to history  
-                self.comboBox_2.addItems(dbase['history'])
-                # set history current index
-                i = self.comboBox_2.findText(self.folderName)
-                if i >= 0:
-                    self.comboBox_2.setCurrentIndex(i)
-                else:
-                    self.comboBox_2.insertItem(-1, self.folderName)
-                    self.comboBox_2.setCurrentIndex(0)
-                self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-            # smooth number
-            self.spinBox.setValue(dbase['smooth'])
-            # index for results comboBox
-            self.comboBox.setCurrentIndex(dbase['result'])
-            # scan voltage channel number
-            self.spinBox_2.setValue(dbase['scan'])
-            if local:
-                # restore automatically processed parameters
-                self.paramsAuto = dbase['paramsAuto']
-            if hasattr(printl, "dbase"):
-                dbase.close()
-            # print OK message and exit    
-            print('Configuration restored from %s.'%fullName)
-            return True
-        except :
-            # print error info    
-            self.printExceptionInfo()
-            print('Configuration file %s restore error.'%fullName)
-            if hasattr(printl, "dbase"):
-                dbase.close()
             return False
 
     def restoreData(self, folder='', fileName=_dataFile) :
