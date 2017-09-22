@@ -810,7 +810,7 @@ class DesignerMainWindow(QMainWindow):
         for i in indexes :
             row = i.row()
             y = self.data[row, :].copy()
-            ns = self.readParameter(row, "smooth", self.spinBox.value(), int, True)
+            ns = self.readParameter(row, "smooth", self.spinBox.value(), int)
             smooth(y, ns)
             z = self.readZero(row) + self.readParameter(row, 'offset')
             axes.plot(x, y, label='raw '+str(row))
