@@ -144,11 +144,15 @@ class DesignerMainWindow(QMainWindow):
                 self.processFolder()
             else:
                 self.parseFolder(newFolder)
+        # switch to data folder
+        os.chdir(newFolder)
  
     def onQuit(self) :
         # save data to local folder
         #self.saveSettings(folder = self.folderName)
         self.saveData(folder = self.folderName)
+        # switch to initial folder
+        os.chdir(self.cwd)
         # save global settings
         self.saveSettings()
 
@@ -1731,6 +1735,7 @@ if __name__ == '__main__':
     # instantiate the main window
     dmw = DesignerMainWindow()
     app.aboutToQuit.connect(dmw.onQuit)
+    dmw.cwd = os.getcwd()
     # show it
     dmw.show()
     # start the Qt main loop execution, exiting from this script
