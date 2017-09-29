@@ -106,6 +106,7 @@ class DesignerMainWindow(QMainWindow):
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(True)
+        self.tableWidget.horizontalHeader().setVisible(True)
 
     def selectFolder(self):
         """Opens a file select dialog"""
