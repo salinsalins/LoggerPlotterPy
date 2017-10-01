@@ -84,6 +84,9 @@ class DesignerMainWindow(QMainWindow):
         #self.restoreSettings(folder = self.folderName)
         if not self.restoreData(folder = self.folderName):
             self.processFolder()
+        # connect mouse button press event
+        #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
+        #self.mplWidget.canvas.mpl_disconnect(cid)
 
     def showAbout(self):
         QMessageBox.information(self, 'About', _progName + ' Version ' + _progVersion + 
@@ -176,7 +179,7 @@ class DesignerMainWindow(QMainWindow):
             printl('Nothing to process in %s'%folder)
             printl('Return to %s'%self.folderName)
             return
-        printl('%d files fond'%nx)
+        printl('%d files found'%nx)
         self.folderName = folder
         # switch to local log file
         printl('', stamp=False, fileName = os.path.join(str(folder), _logFile))
@@ -637,7 +640,7 @@ class DesignerMainWindow(QMainWindow):
         if dtype is not None :
             v = dtype(v)
         if info :
-            print('row:%d name:%s %s value:%s (default:%s auto:%s manual:%s)'%(row, name, t, str(v), str(vd), str(va), str(vm)))
+            printl('row:%d parameter:%s; return %s value:%s (default:%s; auto:%s; manual:%s)'%(row, name, t, str(v), str(vd), str(va), str(vm)))
         if select == 'manual':
             return vm
         if select == 'auto':
@@ -808,10 +811,11 @@ class DesignerMainWindow(QMainWindow):
         self.clearPicture()
         if self.data is None :
             return
-        # draw chart
+        indexes = self.listWidget.selectedIndexes()
+        if len(indexes) <= 0:
+            return
         axes = self.mplWidget.canvas.ax
         x,xTitle = self.getX()
-        indexes = self.listWidget.selectedIndexes()
         for i in indexes :
             row = i.row()
             y = self.data[row, :].copy()
@@ -820,7 +824,7 @@ class DesignerMainWindow(QMainWindow):
             z = self.readZero(row) + self.readParameter(row, 'offset')
             axes.plot(x, y, label='raw '+str(row))
             axes.plot(x, z, label='zero'+str(row))
-        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
+        self.zoplot()
         axes.grid(True)
         axes.set_title('Signals with zero line')
         axes.set_xlabel(xTitle)
@@ -835,20 +839,22 @@ class DesignerMainWindow(QMainWindow):
         self.execInitScript()
         # clear the Axes
         self.clearPicture()
+        indexes = self.listWidget.selectedIndexes()
+        if len(indexes) <= 0:
+            return
+        axes = self.mplWidget.canvas.ax
         x,xTitle = self.getX()
         # draw chart
-        indexes = self.listWidget.selectedIndexes()
-        axes = self.mplWidget.canvas.ax
         for i in indexes :
             row = i.row()
             u,y,index = self.readSignal(row)
-            # convert back from Ampers to Volts
+            # convert back from Amperes to Volts
             y = y * self.readParameter(0, "R", 2.0e5, float)
             # plot processed signal
             self.plot(x, y, label='proc '+str(row))
             # highlight signal region
             self.plot(x[index], y[index], label='range'+str(row))
-            print('Signal %d'%row)
+            printl('Signal %d'%row)
             # print parameters
             self.readParameter(row, "smooth", 1, int, True)
             self.readParameter(row, "offset", 0.0, float, True)
@@ -867,7 +873,40 @@ class DesignerMainWindow(QMainWindow):
         axes.legend(loc='best') 
         # force an image redraw
         self.draw()
- 
+
+    def onclick(self, event):
+        print('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+              (event.button, event.x, event.y, event.xdata, event.ydata))
+
+    def pickZeroLine(self):
+        if self.data is None :
+            return
+        self.execInitScript()
+        axes = self.mplWidget.canvas.ax
+        self.clearPicture()
+        indexes = self.listWidget.selectedIndexes()
+        if len(indexes) <= 0:
+            return
+        # draw chart
+        row = indexes[0].row()
+        x,xTitle = self.getX()
+        y = self.data[row, :].copy()
+        ns = self.readParameter(row, "smooth", self.spinBox.value(), int)
+        smooth(y, ns)
+        z = self.readZero(row) + self.readParameter(row, 'offset')
+        axes.plot(x, y, label='raw '+str(row))
+        axes.plot(x, z, label='zero'+str(row))
+        self.zoplot()
+        axes.grid(True)
+        axes.set_title('Signal %s with zero line'%str(row))
+        axes.set_xlabel(xTitle)
+        axes.set_ylabel('Signal Voltage, V')
+        axes.legend(loc='best') 
+        self.mplWidget.canvas.draw()
+        # connect mouse button press event
+        #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
+        #self.mplWidget.canvas.mpl_disconnect(cid)
+
     def plotElementaryJets(self):
         """Plot elementary jet profile"""
         if self.data is None :
