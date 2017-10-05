@@ -68,6 +68,7 @@ class DesignerMainWindow(QMainWindow):
         self.actionParameters.triggered.connect(self.showParameters)
         self.actionAbout.triggered.connect(self.showAbout)
         # additional configuration
+        # disable text wrapping in log window
         self.plainTextEdit.setLineWrapMode(0)
         # variables definition
         self.folderName = ''
