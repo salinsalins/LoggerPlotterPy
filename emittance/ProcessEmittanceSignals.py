@@ -67,6 +67,8 @@ class DesignerMainWindow(QMainWindow):
         self.actionLog.triggered.connect(self.showLog)
         self.actionParameters.triggered.connect(self.showParameters)
         self.actionAbout.triggered.connect(self.showAbout)
+        # additional configuration
+        self.plainTextEdit.setLineWrapMode(0)
         # variables definition
         self.folderName = ''
         self.fleNames = []
@@ -1339,6 +1341,7 @@ class DesignerMainWindow(QMainWindow):
         U = self.readParameter(0, 'energy', 32000.0, float)
         printl('Beam energy U= %f V'%U)
         beta = np.sqrt(2.0*q*U/m)/c
+        print('beta=%e'%beta)
         # X6,Y6,Z6 -> X,Y,Z final array X and Y centered to plot and emittance calculation
         X = X6
         Y = Y6
