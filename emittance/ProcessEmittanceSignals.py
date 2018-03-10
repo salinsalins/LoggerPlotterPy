@@ -18,6 +18,7 @@ from findRegions import restoreFromRegions as restoreFromRegions
 from smooth import smooth
 from printl import printl 
 from readTekFiles import readTekFiles
+import logging
 
 try:
     from PyQt4.QtGui import QMainWindow
@@ -47,9 +48,31 @@ _initScript =  _progName + '_init.py'
 _logFile =  _progName + '.log'
 _dataFile = _progName + '.dat'
 
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
+# formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+# console_handler = logging.StreamHandler()
+# console_handler.setLevel(logging.WARNING)
+# console_handler.setFormatter(formatter)
+# file_handler = logging.FileHandler('logger.log')
+# file_handler.setLevel(logging.INFO)
+# file_handler.setFormatter(formatter)
+# logger.addHandler(console_handler)
+# logger.addHandler(file_handler)
+
+class TextEditHandler(logging.Handler):
+    def __init__(self, wdgt=None):
+        logging.Handler.__init__(self)
+        self.widget = wdgt
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        if self.widget is not None:
+            self.widget.appendPlainText(log_entry)
+
 class DesignerMainWindow(QMainWindow):
     """Customization for Qt Designer created window"""
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         # initialization of the superclass
         super(DesignerMainWindow, self).__init__(parent)
         # load the GUI 
@@ -77,8 +100,25 @@ class DesignerMainWindow(QMainWindow):
         self.data = None
         self.scanVoltage = None
         self.paramsAuto = None
+        # configure log handler
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+        self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+        self.console_handler = logging.StreamHandler()
+        #console_handler.setLevel(logging.WARNING)
+        self.console_handler.setFormatter(self.log_formatter)
+        self.logger.addHandler(self.console_handler)
+        self.file_handler = logging.FileHandler('logger.log')
+        #file_handler.setLevel(logging.INFO)
+        self.file_handler.setFormatter(self.log_formatter)
+        self.logger.addHandler(self.file_handler)
+        self.text_edit_handler = TextEditHandler(self.plainTextEdit)
+        #text_edit_handler.setLevel(logging.INFO)
+        self.text_edit_handler.setFormatter(self.log_formatter)
+        self.logger.addHandler(self.text_edit_handler)
         # welcome message
-        printl(_progName + _progVersion + ' started', widget=self.plainTextEdit)
+        #printl(_progName + _progVersion + ' started', widget=self.plainTextEdit)
+        self.logger.info(_progName + _progVersion + ' started')
         # restore global settings from default location
         self.restoreSettings()
         # read data files
@@ -134,12 +174,12 @@ class DesignerMainWindow(QMainWindow):
                 self.comboBox_2.setCurrentIndex(0)
     
     def selectionChanged(self, i):
-        #print('Selection changed %s'%str(i))
+        #self.logger.info('Selection changed %s'%str(i))
         if i < 0:
             return
         newFolder = str(self.comboBox_2.currentText())
         if not os.path.isdir(newFolder):
-            printl('Folder %s is not found'%newFolder)
+            self.logger.info('Folder %s is not found'%newFolder)
             self.comboBox_2.removeItem(i)
             return
         if self.folderName != newFolder:
@@ -173,20 +213,25 @@ class DesignerMainWindow(QMainWindow):
         self.mplWidget.canvas.draw()
 
     def parseFolder(self, folder, mask='*.isf'):
-        printl('%s%s reading data from %s'%(_progName, _progVersion, folder))
+        self.logger.info('%s%s reading data from %s'%(_progName, _progVersion, folder))
         # read data
         self.data, self.fileNames = readTekFiles(folder, mask)
         # number of files
         nx = len(self.fileNames)
         if nx <= 0 :
-            printl('Nothing to process in %s'%folder)
-            printl('Return to %s'%self.folderName)
+            self.logger.info('Nothing to process in %s'%folder)
+            self.logger.info('Return to %s'%self.folderName)
             return
-        printl('%d files found'%nx)
+        self.logger.info('%d files found'%nx)
         self.folderName = folder
         # switch to local log file
-        printl('', stamp=False, fileName = os.path.join(str(folder), _logFile))
-        printl('%s%s parsing folder %s'%(_progName, _progVersion, folder))
+        #printl('', stamp=False, fileName = os.path.join(str(folder), _logFile))
+        self.logger.removeHandler(self.file_handler)
+        self.file_handler = logging.FileHandler(os.path.join(str(folder), _logFile))
+        self.file_handler.setFormatter(self.log_formatter)
+        #file_handler.setLevel(logging.INFO)
+        self.logger.addHandler(self.file_handler)
+        self.logger.info('%s%s parsing folder %s'%(_progName, _progVersion, folder))
         # fill listWidget with file names
         self.listWidget.clear()
         # make file names list
@@ -210,7 +255,7 @@ class DesignerMainWindow(QMainWindow):
         nx = len(files)
         if nx <= 0 :
             return False
-        printl('%s%s processing folder %s'%(_progName, _progVersion, folder))
+        self.logger.info('%s%s processing folder %s'%(_progName, _progVersion, folder))
         # size of Y data
         ny = len(data[0])
         # define arrays
@@ -228,13 +273,13 @@ class DesignerMainWindow(QMainWindow):
         # default parameters array
         params = [{'smooth':ns, 'offset':0.0, 'zero':np.zeros(ny), 'scale': 1.95} for i in range(nx)]
         # smooth data array
-        print('Smoothing data ...')
+        self.logger.info('Smoothing data ...')
         for i in range(nx) :
             y = data[i,:]
             smooth(y, params[i]['smooth'])
             data[i,:] = y
         
-        print('Processing scan voltage ...')
+        self.logger.info('Processing scan voltage ...')
         # channel 0 is by default scan voltage 
         x = data[0,:].copy()
         # additionally smooth x 
@@ -256,14 +301,14 @@ class DesignerMainWindow(QMainWindow):
                 xr = r
         xi = np.arange(xr[0], xr[1])
         params[0]['range'] = xr
-        printl('Scan voltage region %s'%str(xr))
+        self.logger.info('Scan voltage region %s'%str(xr))
         # debug draw 8 Scan voltage region
         self.debugDraw([ix,x,ix[xi],x[xi]])
                     
         # auto process data for zero line and offset
-        print('Processing zero lines and offsets ...')
+        self.logger.info('Processing zero lines and offsets ...')
         for i in range(1,nx-1) :
-            #print('Channel %d'%(i))
+            #self.logger.info('Channel %d'%(i))
             y1 = data[i,:].copy()
             offset1 = params[i]['offset']
             y1 = y1 - offset1
@@ -283,10 +328,10 @@ class DesignerMainWindow(QMainWindow):
             dy = max([dy1, dy2])
             i1 = np.where(y1 > (y1max - 0.1*dy))[0]
             o1 = np.average(y1[i1])
-            #print('Offset 1 %f'%o1)
+            #self.logger.info('Offset 1 %f'%o1)
             i2 = np.where(y2 > (y2max - 0.1*dy))[0]
             o2 = np.average(y2[i2])
-            #print('Offset 2 %f'%o2)
+            #self.logger.info('Offset 2 %f'%o2)
             # debug draw 9 Offset calculation
             self.debugDraw([i,ix,y1,o1,y2,o2,i1,i2])
             # correct y2 and offset2 for calculated offsets
@@ -301,21 +346,21 @@ class DesignerMainWindow(QMainWindow):
                 index = np.where(mask)[0]
             # new offset
             offset = np.average(y2[index] - y1[index])
-            #print('Offset for channel %d = %f'%((i+1), offset))
+            #self.logger.info('Offset for channel %d = %f'%((i+1), offset))
             # shift y2 and offset2
             y2 = y2 - offset
             offset2 = offset2 + offset 
             # save processed offset
             params[i+1]['offset'] = offset2
             # index with new offset
-            #print('4% index with corrected offset')
+            #self.logger.info('4% index with corrected offset')
             mask = np.abs(y1 - y2) < 0.04*dy1
             index = np.where(mask)[0]
-            #print(findRegionsText(index))
+            #self.logger.info(findRegionsText(index))
             # filter signal intersection
             regions = findRegions(index, 50)
             index = restoreFromRegions(regions, 0, 150, length=ny)
-            #print(findRegionsText(index))
+            #self.logger.info(findRegionsText(index))
             # choose largest values
             mask[:] = False
             mask[index] = True
@@ -340,9 +385,9 @@ class DesignerMainWindow(QMainWindow):
             params[i]['zero'] = zero[i]
 
         # determine signal area
-        print('Processing signals ...')
+        self.logger.info('Processing signals ...')
         for i in range(1, nx) :
-            #print('Channel %d'%i)
+            #self.logger.info('Channel %d'%i)
             y0 = data[i,:].copy()[xi]
             smooth(y0, params[i]['smooth'])
             z = zero[i].copy()[xi] + params[i]['offset']
@@ -392,7 +437,7 @@ class DesignerMainWindow(QMainWindow):
         self.paramsAuto = params
 
         # common parameters
-        print('Set common parameters ...')
+        self.logger.info('Set common parameters ...')
         # Default parameters of measurements
         params[0]['R'] = 2.0e5  # Ohm   Resistor for scanner FC
         params[0]['d1'] = 0.5   # mm    Scanner analyzer hole diameter
@@ -408,13 +453,13 @@ class DesignerMainWindow(QMainWindow):
             s = self.readParameter(i, "scale", 2.0, float)
             u = self.readParameter(i, "minvoltage", 0.0, float)
             x00[i-1] = -s*u*l1/l2
-            #print('%3d N=%d Umin=%f scale=%f X00=%f'%(i, j, u, s, x00[i-1]))
+            #self.logger.info('%3d N=%d Umin=%f scale=%f X00=%f'%(i, j, u, s, x00[i-1]))
         npt = 0
         sp = 0.0
         nmt = 0
         sm = 0.0
         dx = x00.copy()*0.0
-        #print('%3d X00=%f DX=%f'%(0, x00[0], 0.0))
+        #self.logger.info('%3d X00=%f DX=%f'%(0, x00[0], 0.0))
         for i in range(1, nx-1) :
             dx[i] = x00[i] - x00[i-1]
             if dx[i] > 0.0:
@@ -423,8 +468,8 @@ class DesignerMainWindow(QMainWindow):
             if dx[i] < 0.0:
                 nmt += 1
                 sm += dx[i]
-            #print('%3d X00=%f DX=%f'%(i, x00[i], dx[i]))
-        #print('npt=%d %f nmt=%d %f %f'%(npt,sp/npt,nmt,sm/nmt,sp/npt-l1/l2*10.))
+            #self.logger.info('%3d X00=%f DX=%f'%(i, x00[i], dx[i]))
+        #self.logger.info('npt=%d %f nmt=%d %f %f'%(npt,sp/npt,nmt,sm/nmt,sp/npt-l1/l2*10.))
         x01 = x00.copy()
         h = x00.copy()*0.0
         for i in range(1, nx-1) :
@@ -449,11 +494,11 @@ class DesignerMainWindow(QMainWindow):
             u = self.readParameter(i, "minvoltage", 0.0, float)
             x01[i-1] = (h[i-1] - s*u)*l1/l2 
             params[i]['x0'] = x01[i-1] 
-            #print('%3d'%i, end='  ')
-            #print('X0=%f mm ndh=%4.1f mm'%(params[i]['x0'],params[i]['ndh']), end='  ')
-            #print('X00=%f mm DX=%f mm'%(x00[i-1], dx[i-1]))
-        # print calculated parameters
-        printl('Calculated parameters:')
+            #self.logger.info('%3d'%i, end='  ')
+            #self.logger.info('X0=%f mm ndh=%4.1f mm'%(params[i]['x0'],params[i]['ndh']), end='  ')
+            #self.logger.info('X00=%f mm DX=%f mm'%(x00[i-1], dx[i-1]))
+        # self.logger.info calculated parameters
+        self.logger.info('Calculated parameters:')
         for i in range(nx) :
             try:
                 s = 'Chan.%3d '%i
@@ -464,8 +509,8 @@ class DesignerMainWindow(QMainWindow):
                 s = s + 'x0=%5.1f mm; ndh=%5.1f mm'%(params[i]['x0'],params[i]['ndh'])
             except:
                 pass
-            printl(s)
-        printl('Actual parameters:')
+            self.logger.info(s)
+        self.logger.info('Actual parameters:')
         for i in range(nx) :
             try:
                 s = 'Chan.%3d '%i
@@ -478,12 +523,12 @@ class DesignerMainWindow(QMainWindow):
                 s = s + 'ndh=%5.1f mm'%(self.readParameter(i, "ndh"))
             except:
                 pass
-            printl(s)
+            self.logger.info(s)
         # debug draw X0 calculation
         self.debugDraw([x01,nx,k])
         # save processed to member variable
         self.paramsAuto = params
-        print('Auto parameters has been calculated')
+        self.logger.info('Auto parameters has been calculated')
         self.saveData(folder = self.folderName)
         return True
                 
@@ -643,7 +688,7 @@ class DesignerMainWindow(QMainWindow):
         if dtype is not None :
             v = dtype(v)
         if info :
-            printl('row:%d parameter:%s; return %s value:%s (default:%s; auto:%s; manual:%s)'%(row, name, t, str(v), str(vd), str(va), str(vm)))
+            self.logger.info('row:%d parameter:%s; return %s value:%s (default:%s; auto:%s; manual:%s)'%(row, name, t, str(v), str(vd), str(va), str(vm)))
         if select == 'manual':
             return vm
         if select == 'auto':
@@ -697,7 +742,7 @@ class DesignerMainWindow(QMainWindow):
     def readSignal(self, row):
         if self.data is None :
             return
-        #print('Processing %d'%row)
+        #self.logger.info('Processing %d'%row)
         # scan voltage
         u = self.data[0, :].copy()
         # smooth
@@ -857,7 +902,7 @@ class DesignerMainWindow(QMainWindow):
             self.plot(x, y, label='proc '+str(row))
             # highlight signal region
             self.plot(x[index], y[index], label='range'+str(row))
-            printl('Signal %d'%row)
+            self.logger.info('Signal %d'%row)
             # print parameters
             self.readParameter(row, "smooth", 1, int, True)
             self.readParameter(row, "offset", 0.0, float, True)
@@ -878,7 +923,7 @@ class DesignerMainWindow(QMainWindow):
         self.draw()
 
     def onclick(self, event):
-        print('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+        self.logger.info('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               (event.button, event.x, event.y, event.xdata, event.ydata))
 
     def pickZeroLine(self):
@@ -970,9 +1015,9 @@ class DesignerMainWindow(QMainWindow):
         # calculate common values
         x0 = np.zeros(nx-1)                         # [mm] X0 coordinates of scans
         flag = self.readParameter(0, 'autox0', False)
-        #printl('', stamp=False)
-        #printl('Emittance calculation using parameters:')
-        #printl('Use calculated X0 = %s'%str(flag))
+        #self.logger.info('', stamp=False)
+        #self.logger.info('Emittance calculation using parameters:')
+        #self.logger.info('Use calculated X0 = %s'%str(flag))
         for i in range(1, nx) :
             if flag:
                 x0[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
@@ -990,7 +1035,7 @@ class DesignerMainWindow(QMainWindow):
         a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
         # d2
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
-        #printl('R=%fOhm l1=%fmm l2=%fmm d1=%fmm d2=%fmm'%(R,l1,l2,d1,d2))
+        #self.logger.info('R=%fOhm l1=%fmm l2=%fmm d1=%fmm d2=%fmm'%(R,l1,l2,d1,d2))
         # calculate maximum and integral profiles
         self.profilemax = np.zeros(nx-1)
         self.profileint = np.zeros(nx-1)
@@ -1001,40 +1046,40 @@ class DesignerMainWindow(QMainWindow):
                 xx = x[index]
                 # select unique x values for spline interpolation
                 xu, h = np.unique(xx, return_index=True)
-                #print(i,h)
+                #self.logger.info(i,h)
                 yu = yy[h] # [A]
                 self.profilemax[i-1] = -1.0 * np.min(yu)      # [A]
                 yu = yu / (d2/l2) # convert Y to density [A/Radian]
                 # integrate by trapezoids method
                 self.profileint[i-1] = -1.0 * trapz(yu, xu)  # [A]
-                #print(i, self.profileint[i-1])
+                #self.logger.info(i, self.profileint[i-1])
             except:
                 self.printExceptionInfo()
         # sort in x0 increasing order
         ix0 = np.argsort(x0)
         x0s = x0[ix0]
-        #print(x0s)
+        #self.logger.info(x0s)
         self.profileint = self.profileint[ix0]
-        #print(self.profileint)
+        #self.logger.info(self.profileint)
         self.profilemax = self.profilemax[ix0]
-        #print(self.profilemax)
+        #self.logger.info(self.profilemax)
         # remove average x
         xavg = trapz(x0s * self.profileint, x0s) / trapz(self.profileint, x0s)
-        #print('Average X %f mm'%xavg)
+        #self.logger.info('Average X %f mm'%xavg)
         x0s = x0s - xavg
         self.profileint = self.profileint / a1 # convert to local current density [A/mm^2]
         # cross-section current
         self.Ics = trapz(self.profileint, x0s)*d1 # [A] -  integrate over x and multiply to y width
-        printl('Cross-section current %f mkA'%(self.Ics*1e6)) # from Amperes to mA
+        self.logger.info('Cross-section current %f mkA'%(self.Ics*1e6)) # from Amperes to mA
         # calculate total current
         index = np.where(x0s >= 0.0)[0]
         Ir = trapz(x0s[index]*self.profileint[index], x0s[index])*2.0*np.pi
-        #print('Total current right %f mA'%(Ir*1000.0)) # from Amperes to mA
+        #self.logger.info('Total current right %f mA'%(Ir*1000.0)) # from Amperes to mA
         index = np.where(x0s <= 0.0)[0]
         Il = -1.0*trapz(x0s[index]*self.profileint[index], x0s[index])*2.0*np.pi
-        #print('Total current left %f mA'%(Il*1000.0)) # from Amperes to mA
+        #self.logger.info('Total current left %f mA'%(Il*1000.0)) # from Amperes to mA
         self.I = (Il + Ir)/2.0 #[A]
-        printl('Total current %f mA'%(self.I*1000.0))  # from Amperes to mA
+        self.logger.info('Total current %f mA'%(self.I*1000.0))  # from Amperes to mA
         # save profile data
         folder = self.folderName
         fn = os.path.join(str(folder), 'InegralProfile.txt')
@@ -1143,8 +1188,8 @@ class DesignerMainWindow(QMainWindow):
         a1 = np.pi*d1*d1/4.0                            # [mm**2] analyzer hole area    
         d2 = self.readParameter(0, 'd2', 0.5, float)    # [mm] analyzer slit width
 
-        printl('Emittance calculation using parameters:')
-        printl('R=%fOhm; l1=%fmm; l2=%fmm; d1=%fmm; d2=%fmm'%(R,l1,l2,d1,d2))
+        self.logger.info('Emittance calculation using parameters:')
+        self.logger.info('R=%fOhm; l1=%fmm; l2=%fmm; d1=%fmm; d2=%fmm'%(R,l1,l2,d1,d2))
         for i in range(nx) :
             try:
                 s = 'Chan.%3d '%i
@@ -1155,7 +1200,7 @@ class DesignerMainWindow(QMainWindow):
                 s = s + 'MinI=%4d; Umin=%6.2f V; '%(self.params[i]['minindex'], self.params[i]['minvoltage'])
             except:
                 pass
-            printl(s)
+            self.logger.info(s)
 
         # calculate maximum and integral profiles
         self.calculateProfiles()
@@ -1229,7 +1274,7 @@ class DesignerMainWindow(QMainWindow):
         if int(self.comboBox.currentIndex()) == 10:
             # cross-section current
             Z2t = self.integrate2d(X2,Y2,Z2) * d1 *1e6 # [mkA]
-            print('Total Z2 (cross-section current) = %f mkA'%Z2t)
+            self.logger.info('Total Z2 (cross-section current) = %f mkA'%Z2t)
             self.clearPicture()
             axes.contour(X2, Y2, Z2)
             axes.grid(True)
@@ -1253,7 +1298,7 @@ class DesignerMainWindow(QMainWindow):
         if int(self.comboBox.currentIndex()) == 11:
             # cross-section current
             Z3t = self.integrate2d(X3,Y3,Z3) * d1 *1e6 # [mkA]
-            print('Total Z3 (cross-section current) = %f mkA'%Z3t)
+            self.logger.info('Total Z3 (cross-section current) = %f mkA'%Z3t)
             self.clearPicture()
             axes.contour(X3, Y3, Z3)
             axes.grid(True)
@@ -1295,7 +1340,7 @@ class DesignerMainWindow(QMainWindow):
         if int(self.comboBox.currentIndex()) == 13:
             # total beam current
             Z4t = self.integrate2d(X4,Y4,Z4) * 1000.0 # [mA]
-            print('Total Z4 (beam current) = %f mA'%Z4t)
+            self.logger.info('Total Z4 (beam current) = %f mA'%Z4t)
             self.clearPicture()
             axes.contour(X4, Y4, Z4)
             axes.grid(True)
@@ -1331,7 +1376,7 @@ class DesignerMainWindow(QMainWindow):
         # debug plot 18
         if int(self.comboBox.currentIndex()) == 18:
             Z5t = self.integrate2d(X5,Y5,Z5) * 1000.0 # [mA]
-            print('Total Z5 (beam current) = %f mA'%Z5t)
+            self.logger.info('Total Z5 (beam current) = %f mA'%Z5t)
             self.clearPicture()
             axes.contour(X5, Y5, Z5)
             axes.grid(True)
@@ -1354,18 +1399,18 @@ class DesignerMainWindow(QMainWindow):
         # debug plot 16
         if int(self.comboBox.currentIndex()) == 16:
             Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
-            print('Total Z6 (beam current) = %f mA'%Z6t)
+            self.logger.info('Total Z6 (beam current) = %f mA'%Z6t)
 
             # experimental resample function
             #ff = self.interpolatePlot(X1[0,:],Y1[:,0],F1)
             #for i in range(N) :
-            #    print(i)
+            #    self.logger.info(i)
             #    for k in range(N) :
             #        pass
             #        #Z6[i,k] = ff(X6[i,k], Y6[i,k])
             #Z6[Z6 < 0.0] = 0.0
             #Z6t = self.integrate2d(X6,Y6,Z6) * 1000.0 # [mA]
-            #print('Total Z6 (beam current) = %f mA'%Z6t)
+            #self.logger.info('Total Z6 (beam current) = %f mA'%Z6t)
 
             self.clearPicture()
             axes.contour(X6, Y6, Z6)
@@ -1379,9 +1424,9 @@ class DesignerMainWindow(QMainWindow):
         m=1.6726e-27     # [kg]  proton mass
         c=2.9979e8       # [m/s] speed of light
         U = self.readParameter(0, 'energy', 32000.0, float)
-        printl('Beam energy U= %f V'%U)
+        self.logger.info('Beam energy U= %f V'%U)
         beta = np.sqrt(2.0*q*U/m)/c
-        print('beta=%e'%beta)
+        self.logger.info('beta=%e'%beta)
         # X6,Y6,Z6 -> X,Y,Z final array X and Y centered to plot and emittance calculation
         X = X6
         Y = Y6
@@ -1399,7 +1444,7 @@ class DesignerMainWindow(QMainWindow):
         YYavg = self.integrate2d(X,Y,Y*Y*Z)/Zt
         # RMS Emittance
         self.RMS = np.sqrt(XXavg*YYavg-XYavg*XYavg) * 1000.0 # [Pi*mm*mrad]
-        printl('Normalized RMS Emittance of total beam    %f Pi*mm*mrad'%(self.RMS*beta))
+        self.logger.info('Normalized RMS Emittance of total beam    %f Pi*mm*mrad'%(self.RMS*beta))
         # cross section RMS emittance
         Z2 = Z2 * d1 # [A/mm/Radian]
         Z2t = self.integrate2d(X2,Y2,Z2) # [A]
@@ -1414,7 +1459,7 @@ class DesignerMainWindow(QMainWindow):
         YY2avg = self.integrate2d(X2,Y2,Y2*Y2*Z2)/Z2t
         # cross section RMS Emittance
         self.RMScs = np.sqrt(XX2avg*YY2avg-XY2avg*XY2avg) * 1000.0  # [Pi*mm*mrad]
-        printl('Normalized RMS Emittance of cross-section %f Pi*mm*mrad'%(self.RMScs*beta))
+        self.logger.info('Normalized RMS Emittance of cross-section %f Pi*mm*mrad'%(self.RMScs*beta))
         # calculate emittance fraction for density levels 
         # number of levels
         nz = 100    
@@ -1455,10 +1500,10 @@ class DesignerMainWindow(QMainWindow):
         
         emit = emit*(X[0,0]-X[0,1])*(Y[0,0]-Y[1,0])/np.pi*beta*1000.0
         rms = rms*beta
-        printl('% Current  Normalized emittance      Normalized RMS emittance')
+        self.logger.info('% Current  Normalized emittance      Normalized RMS emittance')
         for i in range(len(levels)):
-            printl('%2.0f %%       %5.3f Pi*mm*milliRadians  %5.3f Pi*mm*milliRadians'%(fractions[i]*100.0, emit[i], rms[i]))
-        printl('%2.0f %%                                %5.3f Pi*mm*milliRadians'%(100.0, self.RMS*beta))
+            self.logger.info('%2.0f %%       %5.3f Pi*mm*milliRadians  %5.3f Pi*mm*milliRadians'%(fractions[i]*100.0, emit[i], rms[i]))
+        self.logger.info('%2.0f %%                                %5.3f Pi*mm*milliRadians'%(100.0, self.RMS*beta))
         # return X and Y to symmetrical range
         X = X + Xavg
         Y = Y + Yavg
@@ -1696,7 +1741,7 @@ class DesignerMainWindow(QMainWindow):
             config['history']['item%i'%count] = str(self.comboBox_2.itemText(count))
         with open(fullName, 'w') as configfile:
             config.write(configfile)
-        print('Configuration saved to %s'%fullName)
+        self.logger.info('Configuration saved to %s'%fullName)
         return True
         
     def saveData(self, folder='', fileName=_dataFile) :
@@ -1705,7 +1750,7 @@ class DesignerMainWindow(QMainWindow):
         # save paramsAuto
         dbase['paramsAuto'] = self.paramsAuto
         dbase.close()
-        print('Processed data saved to %s'%fullName)
+        self.logger.info('Processed data saved to %s'%fullName)
         return True
    
     def restoreSettings(self, folder='', fileName=_settingsFile) :
@@ -1719,19 +1764,19 @@ class DesignerMainWindow(QMainWindow):
             self.comboBox.setCurrentIndex(int(config['Common']['result']))
             self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
             self.comboBox_2.clear()
-            # add items to history  
+            # read items from history  
             count = 0
             for item in config['history']:
                 self.comboBox_2.addItem(config['history']['item%i'%count])
                 count += 1
             self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
             # print OK message and exit    
-            print('Configuration restored from %s.'%fullName)
+            self.logger.info('Configuration restored from %s'%fullName)
             return True
         except :
             # print error info    
             self.printExceptionInfo()
-            print('Configuration file %s restore error.'%fullName)
+            self.logger.info('Configuration restore error from %s'%fullName)
             return False
 
     def restoreData(self, folder='', fileName=_dataFile) :
@@ -1748,13 +1793,13 @@ class DesignerMainWindow(QMainWindow):
             self.paramsAuto = dbase['paramsAuto']
             dbase.close()
             # print OK message and exit    
-            print('Data restored from %s.'%fullName)
+            self.logger.info('Data restored from %s.'%fullName)
             return True
         except :
             # print error info    
             self.printExceptionInfo()
-            print('Data file %s restore error.'%fullName)
-            if hasattr(printl, "dbase"):
+            self.logger.info('Data file %s restore error.'%fullName)
+            if hasattr(self.logger.info, "dbase"):
                 dbase.close()
             return False
 
@@ -1764,14 +1809,14 @@ class DesignerMainWindow(QMainWindow):
         try:
             fullName = os.path.join(str(folder), fileName)
             exec(open(fullName).read(), globals(), locals())
-            print('Init script %s executed'%fullName)
+            self.logger.info('Init script %s executed'%fullName)
         except:
             self.printExceptionInfo()
-            print('Init script %s error.'%fullName)
+            self.logger.info('Init script %s error.'%fullName)
 
     def printExceptionInfo(self):
         (tp, value) = sys.exc_info()[:2]
-        print('Exception %s %s'%(str(tp), str(value)))
+        self.logger.info('Exception %s %s'%(str(tp), str(value)))
 
 if __name__ == '__main__':
     # create the GUI application
