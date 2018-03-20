@@ -3,7 +3,7 @@
 Created on Jul 2, 2017
 
 @author: sanin
-'''
+''' 
 # used to parse files more easily
 from __future__ import with_statement
 from __future__ import print_function
@@ -12,6 +12,7 @@ from configparser import ConfigParser
 import os.path
 import shelve
 import sys
+import json
 
 from findRegions import findRegions as findRegions
 from findRegions import restoreFromRegions as restoreFromRegions
@@ -100,6 +101,8 @@ class DesignerMainWindow(QMainWindow):
         self.data = None
         self.scanVoltage = None
         self.paramsAuto = None
+        self.paramsManual = {}
+        
         # configure log handler
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -116,17 +119,22 @@ class DesignerMainWindow(QMainWindow):
         #text_edit_handler.setLevel(logging.INFO)
         self.text_edit_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.text_edit_handler)
+        
         # welcome message
         #printl(_progName + _progVersion + ' started', widget=self.plainTextEdit)
         self.logger.info(_progName + _progVersion + ' started')
+        
         # restore global settings from default location
         self.restoreSettings()
+        
         # read data files
         self.parseFolder(self.folderName)
+        
         # restore local settings
         #self.restoreSettings(folder = self.folderName)
         if not self.restoreData(folder = self.folderName):
             self.processFolder()
+        
         # connect mouse button press event
         #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
         #self.mplWidget.canvas.mpl_disconnect(cid)
@@ -1742,6 +1750,17 @@ class DesignerMainWindow(QMainWindow):
         with open(fullName, 'w') as configfile:
             config.write(configfile)
         self.logger.info('Configuration saved to %s'%fullName)
+
+        self.conf = {}
+        self.conf['folderName'] = self.folderName
+        self.conf['smooth'] = int(self.spinBox.value())
+        self.conf['scan'] = int(self.spinBox_2.value())
+        self.conf['result'] = int(self.comboBox.currentIndex())
+        self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
+        self.conf['parameters'] = self.paramsManual
+        with open(fullName+'.json', 'w', encoding='utf-8') as configfile:
+            configfile.write(json.dumps(self.conf, indent=4))
+        
         return True
         
     def saveData(self, folder='', fileName=_dataFile) :
@@ -1755,6 +1774,7 @@ class DesignerMainWindow(QMainWindow):
    
     def restoreSettings(self, folder='', fileName=_settingsFile) :
         try :
+            self.execInitScript()
             fullName = os.path.join(str(folder), fileName)
             config = ConfigParser()
             config.read(fullName)
@@ -1779,7 +1799,7 @@ class DesignerMainWindow(QMainWindow):
             self.logger.info('Configuration restore error from %s'%fullName)
             return False
 
-    def restoreData(self, folder='', fileName=_dataFile) :
+    def restoreData(self, folder='',  fileName=_dataFile) :
         '''
         Restore program settings from fileName in folder.
         If local=True only local settings actual for current folder are restored,
@@ -1796,11 +1816,13 @@ class DesignerMainWindow(QMainWindow):
             self.logger.info('Data restored from %s.'%fullName)
             return True
         except :
+            try :
+                dbase.close()
+            except :
+                pass
             # print error info    
             self.printExceptionInfo()
             self.logger.info('Data file %s restore error.'%fullName)
-            if hasattr(self.logger.info, "dbase"):
-                dbase.close()
             return False
 
     def execInitScript(self, folder=None, fileName=_initScript):
