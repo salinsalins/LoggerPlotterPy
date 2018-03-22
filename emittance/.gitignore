@@ -1,0 +1,15 @@
+/Emittance_init.dat
+/ProcessEmittanceSignals.spec
+/__init__.py
+/Emittance_init.dat.dat
+/Emittance_init.dat.dir
+/dist/*
+/build/*
+/*.pyc
+/*.log
+/example.ini
+/Emittance.dat.bak
+/Emittance.dat.dat
+/Emittance.dat.dir
+/Emittance.ini
+/Emittance.dat
