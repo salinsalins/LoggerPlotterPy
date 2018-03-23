@@ -1,1 +1,6 @@
-/emittance/__pycache__
+/emittance/__pycache__/*
+/.settings/
+.project
+EmittanceSignals.pyproj
+EmittanceSignals.sln
+*.pyc
