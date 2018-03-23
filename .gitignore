@@ -4,3 +4,4 @@
 EmittanceSignals.pyproj
 EmittanceSignals.sln
 *.pyc
+.vs/*
