@@ -1129,6 +1129,7 @@ class DesignerMainWindow(QMainWindow):
             self.mplWidget.canvas.draw()
 
     # experimental interpolation function
+    
     def interpolatePlot(self, x, y, F):
         # x,F -> x1,F1 sort data according rising x0
         nx = len(x)
