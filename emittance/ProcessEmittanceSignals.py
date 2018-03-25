@@ -103,7 +103,7 @@ class DesignerMainWindow(QMainWindow):
         self.paramsAuto = None
         self.paramsManual = {}
         
-        # configure log handler
+        # configure log handlers
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
         self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
@@ -1744,7 +1744,6 @@ class DesignerMainWindow(QMainWindow):
         config['Common']['smooth'] = str(int(self.spinBox.value()))
         config['Common']['scan'] = str(int(self.spinBox_2.value()))
         config['Common']['result'] = str(int(self.comboBox.currentIndex()))
-        #config['Common']['paramsAuto'] = str(self.paramsAuto)
         config['history'] = {}
         for count in range(min(self.comboBox_2.count(), 10)):
             config['history']['item%i'%count] = str(self.comboBox_2.itemText(count))
@@ -1791,6 +1790,22 @@ class DesignerMainWindow(QMainWindow):
                 self.comboBox_2.addItem(config['history']['item%i'%count])
                 count += 1
             self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+
+            with open(fullName+'.json', 'r', encoding='utf-8') as configfile:
+                s = configfile.read()
+                self.conf = json.loads(s)
+            self.folderName = self.conf['folderName']
+            self.spinBox.setValue(int(self.conf['smooth']))
+            self.spinBox_2.setValue(int(self.conf['scan']))
+            self.comboBox.setCurrentIndex(int(self.conf['result']))
+            # read items from history  
+            self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+            self.comboBox_2.clear()
+            #for item in self.conf['history']:
+            #    self.comboBox_2.addItem(item)
+            self.comboBox_2.addItems(self.conf['history'])
+            self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+
             # print OK message and exit    
             self.logger.info('Configuration restored from %s'%fullName)
             return True
@@ -1802,9 +1817,7 @@ class DesignerMainWindow(QMainWindow):
 
     def restoreData(self, folder='',  fileName=_dataFile) :
         '''
-        Restore program settings from fileName in folder.
-        If local=True only local settings actual for current folder are restored,
-            global settings such as current folder and history are not restored.
+        Restore program data from fileName in folder.
         '''
         try :
             # read saved settings
@@ -1832,7 +1845,7 @@ class DesignerMainWindow(QMainWindow):
         try:
             fullName = os.path.join(str(folder), fileName)
             exec(open(fullName).read(), globals(), locals())
-            self.logger.info('Init script %s executed'%fullName)
+            self.logger.info('Init script %s executed.'%fullName)
         except:
             self.printExceptionInfo()
             self.logger.info('Init script %s error.'%fullName)

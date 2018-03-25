@@ -1,7 +1,10 @@
-/emittance/__pycache__/*
-/.settings/
+/emittance/__pycache__/
+.settings/
 .project
-EmittanceSignals.pyproj
-EmittanceSignals.sln
+.pydevproject
+/EmittanceSignals.pyproj
+/EmittanceSignals.sln
 *.pyc
-.vs/*
+.vs/
+*.ini
+*.json
