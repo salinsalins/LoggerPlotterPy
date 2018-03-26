@@ -1738,21 +1738,20 @@ class DesignerMainWindow(QMainWindow):
                 
     def saveSettings(self, folder='', fileName=_settingsFile) :
         fullName = os.path.join(str(folder), fileName)
-        config = ConfigParser()
-        config['Common'] = {}
-        config['Common']['folder'] = self.folderName
-        config['Common']['smooth'] = str(int(self.spinBox.value()))
-        config['Common']['scan'] = str(int(self.spinBox_2.value()))
-        config['Common']['result'] = str(int(self.comboBox.currentIndex()))
-        config['history'] = {}
-        for count in range(min(self.comboBox_2.count(), 10)):
-            config['history']['item%i'%count] = str(self.comboBox_2.itemText(count))
-        with open(fullName, 'w') as configfile:
-            config.write(configfile)
-        self.logger.info('Configuration saved to %s'%fullName)
+#         config = ConfigParser()
+#         config['Common'] = {}
+#         config['Common']['folder'] = self.folderName
+#         config['Common']['smooth'] = str(int(self.spinBox.value()))
+#         config['Common']['scan'] = str(int(self.spinBox_2.value()))
+#         config['Common']['result'] = str(int(self.comboBox.currentIndex()))
+#         config['history'] = {}
+#         for count in range(min(self.comboBox_2.count(), 10)):
+#             config['history']['item%i'%count] = str(self.comboBox_2.itemText(count))
+#         with open(fullName, 'w') as configfile:
+#             config.write(configfile)
 
         self.conf = {}
-        self.conf['folderName'] = self.folderName
+        self.conf['folder'] = self.folderName
         self.conf['smooth'] = int(self.spinBox.value())
         self.conf['scan'] = int(self.spinBox_2.value())
         self.conf['result'] = int(self.comboBox.currentIndex())
@@ -1760,7 +1759,7 @@ class DesignerMainWindow(QMainWindow):
         self.conf['parameters'] = self.paramsManual
         with open(fullName+'.json', 'w', encoding='utf-8') as configfile:
             configfile.write(json.dumps(self.conf, indent=4))
-        
+        self.logger.info('Configuration saved to %s'%fullName)
         return True
         
     def saveData(self, folder='', fileName=_dataFile) :
@@ -1775,26 +1774,29 @@ class DesignerMainWindow(QMainWindow):
     def restoreSettings(self, folder='', fileName=_settingsFile) :
         try :
             self.execInitScript()
+        except :
+            pass
+        try :
             fullName = os.path.join(str(folder), fileName)
-            config = ConfigParser()
-            config.read(fullName)
-            self.folderName = config['Common']['folder']
-            self.spinBox.setValue(int(config['Common']['smooth']))
-            self.spinBox_2.setValue(int(config['Common']['scan']))
-            self.comboBox.setCurrentIndex(int(config['Common']['result']))
-            self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-            self.comboBox_2.clear()
-            # read items from history  
-            count = 0
-            for item in config['history']:
-                self.comboBox_2.addItem(config['history']['item%i'%count])
-                count += 1
-            self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+#             config = ConfigParser()
+#             config.read(fullName)
+#             self.folderName = config['Common']['folder']
+#             self.spinBox.setValue(int(config['Common']['smooth']))
+#             self.spinBox_2.setValue(int(config['Common']['scan']))
+#             self.comboBox.setCurrentIndex(int(config['Common']['result']))
+#             self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+#             self.comboBox_2.clear()
+#             # read items from history  
+#             count = 0
+#             for item in config['history']:
+#                 self.comboBox_2.addItem(config['history']['item%i'%count])
+#                 count += 1
+#             self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
 
             with open(fullName+'.json', 'r', encoding='utf-8') as configfile:
                 s = configfile.read()
                 self.conf = json.loads(s)
-            self.folderName = self.conf['folderName']
+            self.folderName = self.conf['folder']
             self.spinBox.setValue(int(self.conf['smooth']))
             self.spinBox_2.setValue(int(self.conf['scan']))
             self.comboBox.setCurrentIndex(int(self.conf['result']))
