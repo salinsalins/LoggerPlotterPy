@@ -1738,24 +1738,13 @@ class DesignerMainWindow(QMainWindow):
                 
     def saveSettings(self, folder='', fileName=_settingsFile) :
         fullName = os.path.join(str(folder), fileName)
-#         config = ConfigParser()
-#         config['Common'] = {}
-#         config['Common']['folder'] = self.folderName
-#         config['Common']['smooth'] = str(int(self.spinBox.value()))
-#         config['Common']['scan'] = str(int(self.spinBox_2.value()))
-#         config['Common']['result'] = str(int(self.comboBox.currentIndex()))
-#         config['history'] = {}
-#         for count in range(min(self.comboBox_2.count(), 10)):
-#             config['history']['item%i'%count] = str(self.comboBox_2.itemText(count))
-#         with open(fullName, 'w') as configfile:
-#             config.write(configfile)
-
         self.conf = {}
         self.conf['folder'] = self.folderName
         self.conf['smooth'] = int(self.spinBox.value())
         self.conf['scan'] = int(self.spinBox_2.value())
         self.conf['result'] = int(self.comboBox.currentIndex())
         self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
+        self.conf['history_index'] = self.comboBox_2.currentIndex()
         self.conf['parameters'] = self.paramsManual
         with open(fullName, 'w', encoding='utf-8') as configfile:
             configfile.write(json.dumps(self.conf, indent=4))
