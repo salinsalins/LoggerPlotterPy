@@ -44,7 +44,7 @@ from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
 _progVersion = '_8_1'
-_settingsFile = _progName + '.ini'
+_settingsFile = _progName + '.json'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '.log'
 _dataFile = _progName + '.dat'
@@ -1757,7 +1757,7 @@ class DesignerMainWindow(QMainWindow):
         self.conf['result'] = int(self.comboBox.currentIndex())
         self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
         self.conf['parameters'] = self.paramsManual
-        with open(fullName+'.json', 'w', encoding='utf-8') as configfile:
+        with open(fullName, 'w', encoding='utf-8') as configfile:
             configfile.write(json.dumps(self.conf, indent=4))
         self.logger.info('Configuration saved to %s'%fullName)
         return True
@@ -1793,7 +1793,7 @@ class DesignerMainWindow(QMainWindow):
 #                 count += 1
 #             self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
 
-            with open(fullName+'.json', 'r', encoding='utf-8') as configfile:
+            with open(fullName, 'r', encoding='utf-8') as configfile:
                 s = configfile.read()
                 self.conf = json.loads(s)
             self.folderName = self.conf['folder']
