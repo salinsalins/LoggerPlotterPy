@@ -1745,6 +1745,7 @@ class DesignerMainWindow(QMainWindow):
         self.conf['result'] = int(self.comboBox.currentIndex())
         self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
         self.conf['history_index'] = self.comboBox_2.currentIndex()
+        self.conf['log_level'] = 0
         self.conf['parameters'] = self.paramsManual
         with open(fullName, 'w', encoding='utf-8') as configfile:
             configfile.write(json.dumps(self.conf, indent=4))
