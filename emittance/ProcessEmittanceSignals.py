@@ -43,7 +43,7 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
-_progVersion = '_8_1'
+_progVersion = '_8_2'
 _settingsFile = _progName + '.json'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '.log'
@@ -79,14 +79,14 @@ class DesignerMainWindow(QMainWindow):
         # load the GUI 
         uic.loadUi('Emittance1.ui', self)
         # connect the signals with the slots
-        self.actionOpen.triggered.connect(self.selectFolder)
         self.pushButton_2.clicked.connect(self.selectFolder)
-        self.actionQuit.triggered.connect(qApp.quit)
         self.pushButton_4.clicked.connect(self.processFolder)
         self.pushButton_6.clicked.connect(self.pushPlotButton)
         self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-        #
+        # menu actions connection
+        self.actionOpen.triggered.connect(self.selectFolder)
+        self.actionQuit.triggered.connect(qApp.quit)
         self.actionPlot.triggered.connect(self.showPlot)
         self.actionLog.triggered.connect(self.showLog)
         self.actionParameters.triggered.connect(self.showParameters)
@@ -102,33 +102,29 @@ class DesignerMainWindow(QMainWindow):
         self.scanVoltage = None
         self.paramsAuto = None
         self.paramsManual = {}
-        
-        # configure log handlers
-        self.logger = logging.getLogger(__name__)
+        # configure logging
+        self.logger = logging.getLogger(_progName+_progVersion)
         self.logger.setLevel(logging.DEBUG)
         self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
         self.console_handler = logging.StreamHandler()
-        #console_handler.setLevel(logging.WARNING)
+        #self.console_handler.setLevel(logging.WARNING)
         self.console_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.console_handler)
-        self.file_handler = logging.FileHandler('logger.log')
-        #file_handler.setLevel(logging.INFO)
+        self.file_handler = logging.FileHandler(_logFile)
         self.file_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.file_handler)
         self.text_edit_handler = TextEditHandler(self.plainTextEdit)
-        #text_edit_handler.setLevel(logging.INFO)
         self.text_edit_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.text_edit_handler)
         
         # welcome message
-        #printl(_progName + _progVersion + ' started', widget=self.plainTextEdit)
         self.logger.info(_progName + _progVersion + ' started')
         
         # restore global settings from default location
         self.restoreSettings()
         
         # read data files
-        self.parseFolder(self.folderName)
+        self.parseFolder()
         
         # restore local settings
         #self.restoreSettings(folder = self.folderName)
@@ -220,7 +216,9 @@ class DesignerMainWindow(QMainWindow):
         self.mplWidget.canvas.ax.clear()
         self.mplWidget.canvas.draw()
 
-    def parseFolder(self, folder, mask='*.isf'):
+    def parseFolder(self, folder=None, mask='*.isf'):
+        if folder is None:
+            folder = self.folderName
         self.logger.info('%s%s reading data from %s'%(_progName, _progVersion, folder))
         # read data
         self.data, self.fileNames = readTekFiles(folder, mask)
