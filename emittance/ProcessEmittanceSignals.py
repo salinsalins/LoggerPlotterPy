@@ -29,6 +29,7 @@ try:
     from PyQt4.QtGui import QTableWidgetItem
     from PyQt4.QtGui import QMessageBox
     from PyQt4 import uic
+    from PyQt4.QtCore import QPoint, QSize
 except:
     from PyQt5.QtWidgets import QMainWindow
     from PyQt5.QtWidgets import QApplication
@@ -37,6 +38,7 @@ except:
     from PyQt5.QtWidgets import QTableWidgetItem
     from PyQt5.QtWidgets import QMessageBox
     from PyQt5 import uic
+    from PyQt5.QtCore import QPoint, QSize
 
 import numpy as np
 from scipy.integrate import trapz
@@ -1736,7 +1738,11 @@ class DesignerMainWindow(QMainWindow):
                 
     def saveSettings(self, folder='', fileName=_settingsFile) :
         fullName = os.path.join(str(folder), fileName)
-        self.conf = {}
+        # save window size and position
+        p = self.pos()
+        s = self.size()
+        self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
+        #
         self.conf['folder'] = self.folderName
         self.conf['smooth'] = int(self.spinBox.value())
         self.conf['scan'] = int(self.spinBox_2.value())
@@ -1766,24 +1772,13 @@ class DesignerMainWindow(QMainWindow):
             pass
         try :
             fullName = os.path.join(str(folder), fileName)
-#             config = ConfigParser()
-#             config.read(fullName)
-#             self.folderName = config['Common']['folder']
-#             self.spinBox.setValue(int(config['Common']['smooth']))
-#             self.spinBox_2.setValue(int(config['Common']['scan']))
-#             self.comboBox.setCurrentIndex(int(config['Common']['result']))
-#             self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-#             self.comboBox_2.clear()
-#             # read items from history  
-#             count = 0
-#             for item in config['history']:
-#                 self.comboBox_2.addItem(config['history']['item%i'%count])
-#                 count += 1
-#             self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-
             with open(fullName, 'r', encoding='utf-8') as configfile:
                 s = configfile.read()
                 self.conf = json.loads(s)
+            # restore window size and position
+            self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
+            self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
+            #
             self.folderName = self.conf['folder']
             self.spinBox.setValue(int(self.conf['smooth']))
             self.spinBox_2.setValue(int(self.conf['scan']))
