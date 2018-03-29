@@ -1770,26 +1770,31 @@ class DesignerMainWindow(QMainWindow):
             self.execInitScript()
         except :
             pass
+        self.conf = {}
         try :
             fullName = os.path.join(str(folder), fileName)
             with open(fullName, 'r', encoding='utf-8') as configfile:
                 s = configfile.read()
                 self.conf = json.loads(s)
             # restore window size and position
-            self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
-            self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
+            if 'main_window' in self.conf:
+                self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
+                self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
             #
-            self.folderName = self.conf['folder']
-            self.spinBox.setValue(int(self.conf['smooth']))
-            self.spinBox_2.setValue(int(self.conf['scan']))
-            self.comboBox.setCurrentIndex(int(self.conf['result']))
+            if 'folder' in self.conf:
+                self.folderName = self.conf['folder']
+            if 'smooth' in self.conf:
+                self.spinBox.setValue(int(self.conf['smooth']))
+            if 'scan' in self.conf:
+                self.spinBox_2.setValue(int(self.conf['scan']))
+            if 'result' in self.conf:
+                self.comboBox.setCurrentIndex(int(self.conf['result']))
             # read items from history  
-            self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-            self.comboBox_2.clear()
-            #for item in self.conf['history']:
-            #    self.comboBox_2.addItem(item)
-            self.comboBox_2.addItems(self.conf['history'])
-            self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+            if 'history' in self.conf:
+                self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+                self.comboBox_2.clear()
+                self.comboBox_2.addItems(self.conf['history'])
+                self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
 
             # print OK message and exit    
             self.logger.info('Configuration restored from %s'%fullName)
