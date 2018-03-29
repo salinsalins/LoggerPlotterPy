@@ -180,12 +180,12 @@ class DesignerMainWindow(QMainWindow):
                 self.comboBox_2.setCurrentIndex(0)
     
     def selectionChanged(self, i):
-        #self.logger.info('Selection changed %s'%str(i))
+        #self.logger.debug('Selection changed to %s'%str(i))
         if i < 0:
             return
         newFolder = str(self.comboBox_2.currentText())
         if not os.path.isdir(newFolder):
-            self.logger.info('Folder %s is not found'%newFolder)
+            self.logger.warning('Folder %s is not found'%newFolder)
             self.comboBox_2.removeItem(i)
             return
         if self.folderName != newFolder:
