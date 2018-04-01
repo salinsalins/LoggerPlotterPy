@@ -45,7 +45,7 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
 _progName = 'Emittance'
-_progVersion = '_8_2'
+_progVersion = '_8_3'
 _settingsFile = _progName + '.json'
 _initScript =  _progName + '_init.py'
 _logFile =  _progName + '.log'
@@ -1737,24 +1737,29 @@ class DesignerMainWindow(QMainWindow):
     '''
                 
     def saveSettings(self, folder='', fileName=_settingsFile) :
-        fullName = os.path.join(str(folder), fileName)
-        # save window size and position
-        p = self.pos()
-        s = self.size()
-        self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
-        #
-        self.conf['folder'] = self.folderName
-        self.conf['smooth'] = int(self.spinBox.value())
-        self.conf['scan'] = int(self.spinBox_2.value())
-        self.conf['result'] = int(self.comboBox.currentIndex())
-        self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
-        self.conf['history_index'] = self.comboBox_2.currentIndex()
-        self.conf['log_level'] = 0
-        self.conf['parameters'] = self.paramsManual
-        with open(fullName, 'w', encoding='utf-8') as configfile:
-            configfile.write(json.dumps(self.conf, indent=4))
-        self.logger.info('Configuration saved to %s'%fullName)
-        return True
+        try:
+            fullName = os.path.join(str(folder), fileName)
+            # save window size and position
+            p = self.pos()
+            s = self.size()
+            self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
+            #
+            self.conf['folder'] = self.folderName
+            self.conf['smooth'] = int(self.spinBox.value())
+            self.conf['scan'] = int(self.spinBox_2.value())
+            self.conf['result'] = int(self.comboBox.currentIndex())
+            self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
+            self.conf['history_index'] = self.comboBox_2.currentIndex()
+            self.conf['log_level'] = logging.DEBUG
+            self.conf['parameters'] = self.paramsManual
+            with open(fullName, 'w', encoding='utf-8') as configfile:
+                configfile.write(json.dumps(self.conf, indent=4))
+            self.logger.info('Configuration saved to %s'%fullName)
+            return True
+        except :
+            self.printExceptionInfo()
+            self.logger.info('Configuration save error to %s'%fullName)
+            return False
         
     def saveData(self, folder='', fileName=_dataFile) :
         fullName = os.path.join(str(folder), fileName)
