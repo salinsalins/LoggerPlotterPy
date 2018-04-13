@@ -21,24 +21,25 @@ from printl import printl
 from readTekFiles import readTekFiles
 import logging
 
-try:
-    from PyQt4.QtGui import QMainWindow
-    from PyQt4.QtGui import QApplication
-    from PyQt4.QtGui import qApp
-    from PyQt4.QtGui import QFileDialog
-    from PyQt4.QtGui import QTableWidgetItem
-    from PyQt4.QtGui import QMessageBox
-    from PyQt4 import uic
-    from PyQt4.QtCore import QPoint, QSize
+# PyQt4-5 universal imports
+try:            
+    from PyQt4.QtGui import QMainWindow      # @UnresolvedImport @UnusedImport
+    from PyQt4.QtGui import QApplication     # @UnresolvedImport @UnusedImport
+    from PyQt4.QtGui import qApp             # @UnresolvedImport @UnusedImport
+    from PyQt4.QtGui import QFileDialog      # @UnresolvedImport @UnusedImport
+    from PyQt4.QtGui import QTableWidgetItem # @UnresolvedImport @UnusedImport
+    from PyQt4.QtGui import QMessageBox      # @UnresolvedImport @UnusedImport
+    from PyQt4 import uic                    # @UnresolvedImport @UnusedImport
+    from PyQt4.QtCore import QPoint, QSize   # @UnresolvedImport @UnusedImport
 except:
-    from PyQt5.QtWidgets import QMainWindow
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtWidgets import qApp
-    from PyQt5.QtWidgets import QFileDialog
-    from PyQt5.QtWidgets import QTableWidgetItem
-    from PyQt5.QtWidgets import QMessageBox
-    from PyQt5 import uic
-    from PyQt5.QtCore import QPoint, QSize
+    from PyQt5.QtWidgets import QMainWindow     # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt5.QtWidgets import QApplication    # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt5.QtWidgets import qApp            # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt5.QtWidgets import QFileDialog     # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt5.QtWidgets import QTableWidgetItem # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt5.QtWidgets import QMessageBox     # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt5 import uic                       # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt5.QtCore import QPoint, QSize      # @UnresolvedImport @UnusedImport @Reimport
 
 import numpy as np
 from scipy.integrate import trapz
@@ -749,7 +750,7 @@ class DesignerMainWindow(QMainWindow):
 
     def readSignal(self, row):
         if self.data is None :
-            return
+            return (None, None, None)
         #self.logger.info('Processing %d'%row)
         # scan voltage
         u = self.data[0, :].copy()
@@ -891,12 +892,14 @@ class DesignerMainWindow(QMainWindow):
     def plotProcessedSignals(self):
         """Plots processed signals"""
         if self.data is None :
+            self.logger.info('data is None')
             return
         self.execInitScript()
         # clear the Axes
         self.clearPicture()
         indexes = self.listWidget.selectedIndexes()
         if len(indexes) <= 0:
+            self.logger.debug('Selection is empty')
             return
         axes = self.mplWidget.canvas.ax
         x,xTitle = self.getX()
@@ -910,7 +913,7 @@ class DesignerMainWindow(QMainWindow):
             self.plot(x, y, label='proc '+str(row))
             # highlight signal region
             self.plot(x[index], y[index], label='range'+str(row))
-            self.logger.info('Signal %d'%row)
+            self.logger.info('Plot Processed Signal %d'%row)
             # print parameters
             self.readParameter(row, "smooth", 1, int, True)
             self.readParameter(row, "offset", 0.0, float, True)
