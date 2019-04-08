@@ -80,7 +80,7 @@ class DesignerMainWindow(QMainWindow):
         # initialization of the superclass
         super(DesignerMainWindow, self).__init__(parent)
         # load the GUI 
-        uic.loadUi('Emittance1.ui', self)
+        uic.loadUi('.\emittance\Emittance1.ui', self)
         # connect the signals with the slots
         self.pushButton_2.clicked.connect(self.selectFolder)
         self.pushButton_4.clicked.connect(self.processFolder)

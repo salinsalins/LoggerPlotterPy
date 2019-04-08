@@ -8,3 +8,7 @@
 .vs/
 *.ini
 *.json
+/Emittance.dat.bak
+/Emittance.dat.dat
+/Emittance.dat.dir
+/Emittance.log
