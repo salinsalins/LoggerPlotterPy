@@ -829,16 +829,16 @@ class MainWindow(QMainWindow):
     def draw(self):
         self.mplWidget.canvas.draw()
 
-    def zoplot(self, v=0.0, color='k'):
+    def zoplot(self, value=0.0, color='k'):
         axes = self.mplWidget.canvas.ax
         xlim = axes.get_xlim()
-        axes.plot(xlim, [v, v], color=color)
+        axes.plot(xlim, [value, value], color=color)
         axes.set_xlim(xlim)
 
-    def voplot(self, v=0.0, color='k'):
+    def voplot(self, value=0.0, color='k'):
         axes = self.mplWidget.canvas.ax
         ylim = axes.get_ylim()
-        axes.plot([v, v], ylim, color=color)
+        axes.plot([value, value], ylim, color=color)
         axes.set_ylim(ylim)
 
     def cls(self):
