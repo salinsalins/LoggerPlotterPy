@@ -10,16 +10,11 @@ from __future__ import print_function
 from configparser import ConfigParser
 
 import os.path
-import shelve
 import sys
 import json
-
-from findRegions import findRegions as findRegions
-from findRegions import restoreFromRegions as restoreFromRegions
-from smooth import smooth
-from printl import printl 
-from readTekFiles import readTekFiles
 import logging
+
+import numpy as np
 
 # PyQt4-5 universal imports
 try:            
@@ -41,9 +36,7 @@ except:
     from PyQt5 import uic                       # @UnresolvedImport @UnusedImport @Reimport
     from PyQt5.QtCore import QPoint, QSize      # @UnresolvedImport @UnusedImport @Reimport
 
-import numpy as np
-from scipy.integrate import trapz
-from scipy.interpolate import interp1d
+from smooth import smooth
 
 progName = 'LoggerPlotterPy'
 progVersion = '_1_0'
@@ -52,19 +45,9 @@ initScript =  progName + '_init.py'
 logFile =  progName + '.log'
 dataFile = progName + '.dat'
 
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
-# formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-# console_handler = logging.StreamHandler()
-# console_handler.setLevel(logging.WARNING)
-# console_handler.setFormatter(formatter)
-# file_handler = logging.FileHandler('logger.log')
-# file_handler.setLevel(logging.INFO)
-# file_handler.setFormatter(formatter)
-# logger.addHandler(console_handler)
-# logger.addHandler(file_handler)
-
 class TextEditHandler(logging.Handler):
+    widget = None
+    
     def __init__(self, wdgt=None):
         logging.Handler.__init__(self)
         self.widget = wdgt
@@ -82,13 +65,13 @@ class MainWindow(QMainWindow):
         # load the GUI 
         uic.loadUi('.\emittance\Emittance1.ui', self)
         # connect the signals with the slots
-        self.pushButton_2.clicked.connect(self.selectFolder)
-        self.pushButton_4.clicked.connect(self.processFolder)
+        self.pushButton_2.clicked.connect(self.selectLogFile)
+        #self.pushButton_4.clicked.connect(self.processFolder)
         self.pushButton_6.clicked.connect(self.pushPlotButton)
         self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         # menu actions connection
-        self.actionOpen.triggered.connect(self.selectFolder)
+        self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionQuit.triggered.connect(qApp.quit)
         self.actionPlot.triggered.connect(self.showPlot)
         self.actionLog.triggered.connect(self.showLog)
@@ -97,8 +80,9 @@ class MainWindow(QMainWindow):
         # additional configuration
         # disable text wrapping in log window
         self.plainTextEdit.setLineWrapMode(0)
-        # variables definition
-        self.folderName = ''
+
+        # class member variables definition
+        self.logFileName = ''
         self.fleNames = []
         self.nx = 0
         self.data = None
@@ -113,9 +97,9 @@ class MainWindow(QMainWindow):
         #self.console_handler.setLevel(logging.WARNING)
         self.console_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.console_handler)
-        self.file_handler = logging.FileHandler(logFile)
-        self.file_handler.setFormatter(self.log_formatter)
-        self.logger.addHandler(self.file_handler)
+        #self.file_handler = logging.FileHandler(logFile)
+        #self.file_handler.setFormatter(self.log_formatter)
+        #self.logger.addHandler(self.file_handler)
         self.text_edit_handler = TextEditHandler(self.plainTextEdit)
         self.text_edit_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.text_edit_handler)
@@ -129,18 +113,13 @@ class MainWindow(QMainWindow):
         # read data files
         self.parseFolder()
         
-        # restore local settings
-        #self.restoreSettings(folder = self.folderName)
-        if not self.restoreData(folder = self.folderName):
-            self.processFolder()
-        
         # connect mouse button press event
         #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
         #self.mplWidget.canvas.mpl_disconnect(cid)
 
     def showAbout(self):
         QMessageBox.information(self, 'About', progName + ' Version ' + progVersion + 
-                                '\nPlot Logger traces in a directory.', QMessageBox.Ok)    
+                                '\nPlot Logger traces.', QMessageBox.Ok)    
 
     def showPlot(self):
         self.stackedWidget.setCurrentIndex(0)
@@ -161,45 +140,36 @@ class MainWindow(QMainWindow):
         self.actionParameters.setChecked(True)
         self.tableWidget.horizontalHeader().setVisible(True)
 
-    def selectFolder(self):
+    def selectLogFile(self):
         """Opens a file select dialog"""
-        # open the dialog and get the selected dataFolder
-        folder = self.folderName
-        fileOpenDialog = QFileDialog(caption='Select directory with data files', directory=folder)
-        # select folder, not file
-        dataFolder = fileOpenDialog.getExistingDirectory()
-        # if a dataFolder is selected
-        if dataFolder:
-            if self.folderName == dataFolder:
+        fileOpenDialog = QFileDialog(caption='Select log file', directory=os.path.dirname(self.logFileName))
+        # select lfn, not file
+        lfn = fileOpenDialog.getOpenFileName()
+        # if a lfn is selected
+        if lfn:
+            if self.logFileName == lfn:
                 return
-            i = self.comboBox_2.findText(dataFolder)
+            i = self.comboBox_2.findText(lfn)
             if i >= 0:
                 self.comboBox_2.setCurrentIndex(i)
             else:
                 # add item to history  
-                self.comboBox_2.insertItem(-1, dataFolder)
+                self.comboBox_2.insertItem(-1, lfn)
                 self.comboBox_2.setCurrentIndex(0)
     
     def selectionChanged(self, i):
         #self.logger.debug('Selection changed to %s'%str(i))
         if i < 0:
             return
-        newFolder = str(self.comboBox_2.currentText())
-        if not os.path.isdir(newFolder):
-            self.logger.warning('Folder %s is not found'%newFolder)
+        newFileName = str(self.comboBox_2.currentText())
+        if not os.path.isfile(newFileName):
+            self.logger.warning('%s is not a file'%newFileName)
             self.comboBox_2.removeItem(i)
             return
-        if self.folderName != newFolder:
+        if self.logFileName != newFileName:
             self.clearPicture()
-            # restore local settings
-            #self.restoreSettings(folder=newFolder)
-            self.folderName = newFolder
-            if not self.restoreData(folder=newFolder):
-                self.processFolder()
-            else:
-                self.parseFolder(newFolder)
-        # switch to data folder
-        os.chdir(newFolder)
+            self.logFileName = newFileName
+            self.parseFolder()
  
     def onQuit(self) :
         # save global settings
@@ -214,356 +184,35 @@ class MainWindow(QMainWindow):
         self.mplWidget.canvas.ax.clear()
         self.mplWidget.canvas.draw()
 
-    def parseFolder(self, folder=None):
-        if folder is None:
-            folder = self.folderName
-        self.logger.info('Reading data from %s'%folder)
-        # read log file and folder content
-        #self.fileNames = readTekFiles(folder, mask)
-        # number of files
-        nx = len(self.fileNames)
+    def parseFolder(self, fn=None):
+        if fn is None:
+            fn = self.logFileName
+        self.logger.info('Reading data from %s'%fn)
+        # read log file content
+        stream = open(self.LogFileName, "r")
+        buf = stream.read()
+        stream.close()
+        # number of lines?
+        nx = len(buf)
         if nx <= 0 :
-            self.logger.info('Nothing to process in %s'%folder)
-            self.logger.info('Return to %s'%self.folderName)
+            self.logger.info('Nothing to process in %s'%fn)
             return
-        self.logger.info('%d files found in %s'%(nx, folder))
-        self.folderName = folder
-        # switch to local log file
-        self.file_handler = logging.FileHandler(os.path.join(str(folder), logFile))
-        self.file_handler.setFormatter(self.log_formatter)
-        #file_handler.setLevel(logging.INFO)
-        self.logger.addHandler(self.file_handler)
+        self.logger.info('%d lines in %s'%(nx, self.logFileName))
+        self.logFileName = fn
+
+        folder = os.path.dirname(self.logFileName)
         self.logger.info('Parsing %s'%folder)
+        dirlist = os.listdir(folder)
         # fill listWidget with file names
         self.listWidget.clear()
-        # make file names list
-        names = [name.replace(folder, '')[1:] for name in self.fileNames]
-        for i in range(nx):
-            names[i] = '%3d - %s'%(i,names[i])
+        # make zip file names list
+        names = [f for f in dirlist if f.endswith(".zip")]
+        nx = len(names)
+        #for i in range(nx):
+        #    names[i] = '%3d - %s'%(i, names[i])
         # fill listWidget
         self.listWidget.addItems(names)
     
-    def processFolder(self, folder=None):
-        if folder is None:
-            folder = self.folderName
-        # execute init script
-        self.execInitScript()
-        # parse folder
-        self.parseFolder(folder)
-        # read data array
-        data = self.data
-        files = self.fileNames
-        # number of files
-        nx = len(files)
-        if nx <= 0 :
-            return False
-        self.logger.info('%s%s processing folder %s'%(progName, progVersion, folder))
-        # size of Y data
-        ny = len(data[0])
-        # define arrays
-        zero  = np.zeros((nx, ny), dtype=np.float64)
-        weight = np.zeros((nx, ny), dtype=np.float64)
-        # index array
-        ix = np.arange(ny)
-        # smooth
-        ns = 1
-        try:
-            ns = int(self.spinBox.value())
-        except:
-            pass
-
-        # default parameters array
-        params = [{'smooth':ns, 'offset':0.0, 'zero':np.zeros(ny), 'scale': 1.95} for i in range(nx)]
-        # smooth data array
-        self.logger.info('Smoothing data ...')
-        for i in range(nx) :
-            y = data[i,:]
-            smooth(y, params[i]['smooth'])
-            data[i,:] = y
-        
-        self.logger.info('Processing scan voltage ...')
-        # channel 0 is by default scan voltage 
-        x = data[0,:].copy()
-        # additionally smooth x 
-        smooth(x, params[0]['smooth']*2)
-        # find longest monotonic region of scan voltage
-        xdiff = np.diff(x)
-        xdiff = np.append(xdiff, xdiff[-1])
-        mask = xdiff >= 0.0
-        regions = findRegions(np.where(mask)[0])         
-        # find longest region
-        xr = [0,1]
-        for r in regions:
-            if r[1]-r[0] >= xr[1]-xr[0]:
-                xr = r
-        mask = xdiff <= 0.0
-        regions = findRegions(np.where(mask)[0])         
-        for r in regions:
-            if r[1]-r[0] >= xr[1]-xr[0]:
-                xr = r
-        xi = np.arange(xr[0], xr[1])
-        params[0]['range'] = xr
-        self.logger.info('Scan voltage region %s'%str(xr))
-        # debug draw 8 Scan voltage region
-        self.debugDraw([ix,x,ix[xi],x[xi]])
-                    
-        # auto process data for zero line and offset
-        self.logger.info('Processing zero lines and offsets ...')
-        for i in range(1,nx-1) :
-            #self.logger.info('Channel %d'%(i))
-            y1 = data[i,:].copy()
-            offset1 = params[i]['offset']
-            y1 = y1 - offset1
-            y2 = data[i+1,:].copy()
-            offset2 = params[i+1]['offset']
-            y2 = y2 - offset2
-            # double smooth because zero line is slow 
-            smooth(y1, params[i]['smooth']*2)
-            smooth(y2, params[i+1]['smooth']*2)
-            # offsets calculated from upper 10%
-            y1min = np.min(y1)
-            y1max = np.max(y1)
-            dy1 = y1max - y1min
-            y2min = np.min(y2)
-            y2max = np.max(y2)
-            dy2 = y2max - y2min
-            dy = max([dy1, dy2])
-            i1 = np.where(y1 > (y1max - 0.1*dy))[0]
-            o1 = np.average(y1[i1])
-            #self.logger.info('Offset 1 %f'%o1)
-            i2 = np.where(y2 > (y2max - 0.1*dy))[0]
-            o2 = np.average(y2[i2])
-            #self.logger.info('Offset 2 %f'%o2)
-            # debug draw 9 Offset calculation
-            self.debugDraw([i,ix,y1,o1,y2,o2,i1,i2])
-            # correct y2 and offset2 for calculated offsets
-            y2 = y2 - o2 + o1
-            offset2 = offset2 + o2 - o1 
-            # zero line = where 2 signals are almost equal
-            mask = np.abs(y1 - y2) < 0.05*dy1
-            index = np.where(mask)[0]
-            # filter signal intersection regions
-            index = restoreFromRegions(findRegions(index, 50, 300, 100, 100, length=ny))
-            if len(index) <= 0:
-                index = np.where(mask)[0]
-            # new offset
-            offset = np.average(y2[index] - y1[index])
-            #self.logger.info('Offset for channel %d = %f'%((i+1), offset))
-            # shift y2 and offset2
-            y2 = y2 - offset
-            offset2 = offset2 + offset 
-            # save processed offset
-            params[i+1]['offset'] = offset2
-            # index with new offset
-            #self.logger.info('4% index with corrected offset')
-            mask = np.abs(y1 - y2) < 0.04*dy1
-            index = np.where(mask)[0]
-            #self.logger.info(findRegionsText(index))
-            # filter signal intersection
-            regions = findRegions(index, 50)
-            index = restoreFromRegions(regions, 0, 150, length=ny)
-            #self.logger.info(findRegionsText(index))
-            # choose largest values
-            mask[:] = False
-            mask[index] = True
-            mask3 = np.logical_and(mask, y1 >= y2)
-            index3 = np.where(mask3)[0]
-            # update zero line for all channels
-            for j in range(1,nx) :
-                w = 1.0/((abs(i - j))**2 + 1.0)
-                zero[j,index3] = (zero[j,index3]*weight[j,index3] + y1[index3]*w)/(weight[j,index3] + w)
-                weight[j,index3] += w
-            mask4 = np.logical_and(mask, y1 <= y2)
-            index4 = np.where(mask4)[0]
-            # update zero line for all channels
-            for j in range(1,nx) :
-                w = 1.0/((abs(i + 1 - j))**2 + 1.0)
-                zero[j,index4] = (zero[j,index4]*weight[j,index4] + y2[index4]*w)/(weight[j,index4] + w)
-                weight[j,index4] += w
-            # debug draw 10 zero line intermediate results
-            self.debugDraw([ix, data, zero, params])
-        # save processed zero line
-        for i in range(nx) :
-            params[i]['zero'] = zero[i]
-
-        # determine signal area
-        self.logger.info('Processing signals ...')
-        for i in range(1, nx) :
-            #self.logger.info('Channel %d'%i)
-            y0 = data[i,:].copy()[xi]
-            smooth(y0, params[i]['smooth'])
-            z = zero[i].copy()[xi] + params[i]['offset']
-            smooth(z, params[i]['smooth']*2)
-            y = y0 - z
-            ymin = np.min(y)
-            ymax = np.max(y)
-            dy = ymax - ymin
-            mask = y < (ymax - 0.6*dy)
-            index = np.where(mask)[0]
-            ra = findRegions(index)
-            params[i]['range'] = xr
-            # determine scale
-            is1 = xi[0]
-            is2 = xi[-1]
-            if len(ra) >= 1:
-                is1 = np.argmin(y[ra[0][0]:ra[0][1]]) + ra[0][0] + xi[0]
-            if len(ra) >= 2:
-                is2 = np.argmin(y[ra[1][0]:ra[1][1]]) + ra[1][0] + xi[0]
-            params[i]['scale'] = 10.0/(x[is2] - x[is1])   # [mm/Volt]
-            if np.abs(x[is1]) < np.abs(x[is2]) :
-                index = is1
-            else:
-                index = is2
-            params[i]['minindex'] = index
-            params[i]['minvoltage'] = x[index]
-            di = int(abs(is2 - is1)/2.0)
-            ir1 = max([xi[ 0], index - di])
-            ir2 = min([xi[-1], index + di])
-            params[i]['range'] = [ir1, ir2]
-            # debug draw 11 Range and scale calculation
-            self.debugDraw([i,xi,y,ix[ir1:ir2],y[ir1 - xi[0]:ir2 - xi[0]],is1,is2])
-        # filter scales
-        sc0 = np.array([params[i]['scale'] for i in range(1,nx)])
-        sc = sc0.copy()
-        asc = np.average(sc)
-        ssc = np.std(sc)
-        while ssc > 0.3*np.abs(asc):
-            index1 = np.where(abs(sc - asc) <= 2.0*ssc)[0]
-            index2 = np.where(abs(sc - asc) > 2.0*ssc)[0]
-            sc[index2] = np.average(sc[index1])
-            asc = np.average(sc)
-            ssc = np.std(sc)
-        for i in range(1,nx) :
-            params[i]['scale'] = sc[i-1] 
-        # save processed to member variable
-        self.paramsAuto = params
-
-        # common parameters
-        self.logger.info('Set common parameters ...')
-        # Default parameters of measurements
-        params[0]['R'] = 2.0e5  # Ohm   Resistor for scanner FC
-        params[0]['d1'] = 0.5   # mm    Scanner analyzer hole diameter
-        params[0]['d2'] = 0.5   # mm    Scanner FC slit width
-        params[0]['l1'] = 213.0 # mm    Distance from emission hole to scanner analyzer hole
-        params[0]['l2'] = 195.0 # mm    Scanner base
-        
-        # X0 and ndh calculation
-        l1 = self.readParameter(0, "l1", 213.0, float)
-        l2 = self.readParameter(0, "l2", 195.0, float)
-        x00 = np.zeros(nx-1)
-        for i in range(1, nx) :
-            s = self.readParameter(i, "scale", 2.0, float)
-            u = self.readParameter(i, "minvoltage", 0.0, float)
-            x00[i-1] = -s*u*l1/l2
-            #self.logger.info('%3d N=%d Umin=%f scale=%f X00=%f'%(i, j, u, s, x00[i-1]))
-        npt = 0
-        sp = 0.0
-        nmt = 0
-        sm = 0.0
-        dx = x00.copy()*0.0
-        #self.logger.info('%3d X00=%f DX=%f'%(0, x00[0], 0.0))
-        for i in range(1, nx-1) :
-            dx[i] = x00[i] - x00[i-1]
-            if dx[i] > 0.0:
-                npt += 1
-                sp += dx[i]
-            if dx[i] < 0.0:
-                nmt += 1
-                sm += dx[i]
-            #self.logger.info('%3d X00=%f DX=%f'%(i, x00[i], dx[i]))
-        #self.logger.info('npt=%d %f nmt=%d %f %f'%(npt,sp/npt,nmt,sm/nmt,sp/npt-l1/l2*10.))
-        x01 = x00.copy()
-        h = x00.copy()*0.0
-        for i in range(1, nx-1) :
-            if npt > nmt :
-                x01[i] = x01[i-1] + sp/npt
-                if dx[i] > 0.0:
-                    h[i] = h[i-1]
-                else:
-                    h[i] = h[i-1] + 10.0
-            else:
-                x01[i] = x01[i-1] + sm/nmt
-                if dx[i] < 0.0:
-                    h[i] = h[i-1]
-                else:
-                    h[i] = h[i-1] - 10.0
-        x01 = x01 - np.average(x01)
-        k = int(np.argmin(np.abs(x01)))
-        h = h - h[k]
-        for i in range(1, nx) :
-            params[i]['ndh'] = h[i-1]
-            s = self.readParameter(i, "scale", 1.7, float)
-            u = self.readParameter(i, "minvoltage", 0.0, float)
-            x01[i-1] = (h[i-1] - s*u)*l1/l2 
-            params[i]['x0'] = x01[i-1] 
-            #self.logger.info('%3d'%i, end='  ')
-            #self.logger.info('X0=%f mm ndh=%4.1f mm'%(params[i]['x0'],params[i]['ndh']), end='  ')
-            #self.logger.info('X00=%f mm DX=%f mm'%(x00[i-1], dx[i-1]))
-        # self.logger.info calculated parameters
-        self.logger.info('Calculated parameters:')
-        for i in range(nx) :
-            try:
-                s = 'Chan.%3d '%i
-                s = s + 'range=%s; '%str(params[i]['range'])
-                s = s + 'offset=%f V; '%params[i]['offset']
-                s = s + 'scale=%6.2f mm/V; '%params[i]['scale']
-                s = s + 'MinI=%4d; Umin=%6.2f V; '%(params[i]['minindex'], params[i]['minvoltage'])
-                s = s + 'x0=%5.1f mm; ndh=%5.1f mm'%(params[i]['x0'],params[i]['ndh'])
-            except:
-                pass
-            self.logger.info(s)
-        self.logger.info('Actual parameters:')
-        for i in range(nx) :
-            try:
-                s = 'Chan.%3d '%i
-                s = s + 'range=%s; '%str(self.readParameter(i, "range"))
-                s = s + 'offset=%f V; '%self.readParameter(i, "offset")
-                s = s + 'scale=%6.2f mm/V; '%self.readParameter(i, "scale")
-                s = s + 'MinI=%4d; '%(self.readParameter(i, "minindex"))
-                s = s + 'Umin=%6.2f V; '%(self.readParameter(i, "minvoltage"))
-                s = s + 'x0=%5.1f mm; '%(self.readParameter(i, "x0"))
-                s = s + 'ndh=%5.1f mm'%(self.readParameter(i, "ndh"))
-            except:
-                pass
-            self.logger.info(s)
-        # debug draw X0 calculation
-        self.debugDraw([x01,nx,k])
-        # save processed to member variable
-        self.paramsAuto = params
-        self.logger.info('Auto parameters has been calculated')
-        self.saveData(folder = self.folderName)
-        return True
-                
-    def readParameter(self, row, name, default=None, dtype=None, info=False, select=''):
-        if name == 'zero':
-            return self.readZero(row)
-        vd = default
-        t = 'default'
-        v = vd
-        try:
-            va = self.paramsAuto[row][name]
-            t = 'auto'
-            v = va
-        except:
-            va = None
-        try:
-            vm = self.paramsManual[row][name]
-            t = 'manual'
-            v = vm
-        except:
-            vm = None
-        if dtype is not None :
-            v = dtype(v)
-        if info :
-            self.logger.info('row:%d parameter:%s; return %s value:%s (default:%s; auto:%s; manual:%s)'%(row, name, t, str(v), str(vd), str(va), str(vm)))
-        if select == 'manual':
-            return vm
-        if select == 'auto':
-            return va
-        if select == 'default':
-            return vd
-        return v
-
     def readSignal(self, row):
         if self.data is None :
             return (None, None, None)
@@ -862,7 +511,7 @@ class MainWindow(QMainWindow):
         self.I = (Il + Ir)/2.0 #[A]
         self.logger.info('Total current %f mA'%(self.I*1000.0))  # from Amperes to mA
         # save profile data
-        folder = self.folderName
+        folder = self.logFileName
         fn = os.path.join(str(folder), 'InegralProfile.txt')
         np.savetxt(fn, np.array([x0,self.profileint]).T, delimiter='; ' )
         fn = os.path.join(str(folder), 'MaximumProfile.txt')
@@ -1312,7 +961,7 @@ class MainWindow(QMainWindow):
         Z[Z < 0.0] = 0.0
 
         # save data to text file
-        folder = self.folderName
+        folder = self.logFileName
         fn = os.path.join(str(folder), progName + '_X.gz')
         np.savetxt(fn, X, delimiter='; ' )
         fn = os.path.join(str(folder), progName + '_Y.gz')
@@ -1432,7 +1081,7 @@ class MainWindow(QMainWindow):
             Z[Z < 0.0] = 0.0
 
             # save data to text file
-            folder = self.folderName
+            folder = self.logFileName
             fn = os.path.join(str(folder), progName + '_X_cs.gz')
             np.savetxt(fn, X, delimiter='; ' )
             fn = os.path.join(str(folder), progName + '_Y_cs.gz')
@@ -1517,7 +1166,7 @@ class MainWindow(QMainWindow):
             s = self.size()
             self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
             #
-            self.conf['folder'] = self.folderName
+            self.conf['folder'] = self.logFileName
             self.conf['smooth'] = int(self.spinBox.value())
             self.conf['scan'] = int(self.spinBox_2.value())
             self.conf['result'] = int(self.comboBox.currentIndex())
@@ -1551,7 +1200,7 @@ class MainWindow(QMainWindow):
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
             #
             if 'folder' in self.conf:
-                self.folderName = self.conf['folder']
+                self.logFileName = self.conf['folder']
             if 'smooth' in self.conf:
                 self.spinBox.setValue(int(self.conf['smooth']))
             if 'scan' in self.conf:
@@ -1576,7 +1225,7 @@ class MainWindow(QMainWindow):
 
     def execInitScript(self, folder=None, fileName=initScript):
         if folder is None :
-            folder = self.folderName
+            folder = self.logFileName
         try:
             fullName = os.path.join(str(folder), fileName)
             exec(open(fullName).read(), globals(), locals())
