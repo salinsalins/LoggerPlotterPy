@@ -45,12 +45,12 @@ import numpy as np
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
-_progName = 'Emittance'
-_progVersion = '_8_3'
-_settingsFile = _progName + '.json'
-_initScript =  _progName + '_init.py'
-_logFile =  _progName + '.log'
-_dataFile = _progName + '.dat'
+progName = 'LoggerPlotterPy'
+progVersion = '_1_0'
+settingsFile = progName + '.json'
+initScript =  progName + '_init.py'
+logFile =  progName + '.log'
+dataFile = progName + '.dat'
 
 # logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
@@ -74,11 +74,11 @@ class TextEditHandler(logging.Handler):
         if self.widget is not None:
             self.widget.appendPlainText(log_entry)
 
-class DesignerMainWindow(QMainWindow):
+class MainWindow(QMainWindow):
     """Customization for Qt Designer created window"""
     def __init__(self, parent=None):
         # initialization of the superclass
-        super(DesignerMainWindow, self).__init__(parent)
+        super(MainWindow, self).__init__(parent)
         # load the GUI 
         uic.loadUi('.\emittance\Emittance1.ui', self)
         # connect the signals with the slots
@@ -106,14 +106,14 @@ class DesignerMainWindow(QMainWindow):
         self.paramsAuto = None
         self.paramsManual = {}
         # configure logging
-        self.logger = logging.getLogger(_progName+_progVersion)
+        self.logger = logging.getLogger(progName+progVersion)
         self.logger.setLevel(logging.DEBUG)
         self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
         self.console_handler = logging.StreamHandler()
         #self.console_handler.setLevel(logging.WARNING)
         self.console_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.console_handler)
-        self.file_handler = logging.FileHandler(_logFile)
+        self.file_handler = logging.FileHandler(logFile)
         self.file_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.file_handler)
         self.text_edit_handler = TextEditHandler(self.plainTextEdit)
@@ -121,7 +121,7 @@ class DesignerMainWindow(QMainWindow):
         self.logger.addHandler(self.text_edit_handler)
         
         # welcome message
-        self.logger.info(_progName + _progVersion + ' started')
+        self.logger.info(progName + progVersion + ' started')
         
         # restore global settings from default location
         self.restoreSettings()
@@ -139,8 +139,8 @@ class DesignerMainWindow(QMainWindow):
         #self.mplWidget.canvas.mpl_disconnect(cid)
 
     def showAbout(self):
-        QMessageBox.information(self, 'About', _progName + ' Version ' + _progVersion + 
-                                '\nBeam emittance calculation program.', QMessageBox.Ok)    
+        QMessageBox.information(self, 'About', progName + ' Version ' + progVersion + 
+                                '\nPlot Logger traces in a directory.', QMessageBox.Ok)    
 
     def showPlot(self):
         self.stackedWidget.setCurrentIndex(0)
@@ -202,11 +202,6 @@ class DesignerMainWindow(QMainWindow):
         os.chdir(newFolder)
  
     def onQuit(self) :
-        # save data to local folder
-        #self.saveSettings(folder = self.folderName)
-        self.saveData(folder = self.folderName)
-        # switch to initial folder
-        os.chdir(self.cwd)
         # save global settings
         self.saveSettings()
 
@@ -219,28 +214,26 @@ class DesignerMainWindow(QMainWindow):
         self.mplWidget.canvas.ax.clear()
         self.mplWidget.canvas.draw()
 
-    def parseFolder(self, folder=None, mask='*.isf'):
+    def parseFolder(self, folder=None):
         if folder is None:
             folder = self.folderName
-        self.logger.info('%s%s reading data from %s'%(_progName, _progVersion, folder))
-        # read data
-        self.data, self.fileNames = readTekFiles(folder, mask)
+        self.logger.info('Reading data from %s'%folder)
+        # read log file and folder content
+        #self.fileNames = readTekFiles(folder, mask)
         # number of files
         nx = len(self.fileNames)
         if nx <= 0 :
             self.logger.info('Nothing to process in %s'%folder)
             self.logger.info('Return to %s'%self.folderName)
             return
-        self.logger.info('%d files found'%nx)
+        self.logger.info('%d files found in %s'%(nx, folder))
         self.folderName = folder
         # switch to local log file
-        #printl('', stamp=False, fileName = os.path.join(str(folder), _logFile))
-        self.logger.removeHandler(self.file_handler)
-        self.file_handler = logging.FileHandler(os.path.join(str(folder), _logFile))
+        self.file_handler = logging.FileHandler(os.path.join(str(folder), logFile))
         self.file_handler.setFormatter(self.log_formatter)
         #file_handler.setLevel(logging.INFO)
         self.logger.addHandler(self.file_handler)
-        self.logger.info('%s%s parsing folder %s'%(_progName, _progVersion, folder))
+        self.logger.info('Parsing %s'%folder)
         # fill listWidget with file names
         self.listWidget.clear()
         # make file names list
@@ -264,7 +257,7 @@ class DesignerMainWindow(QMainWindow):
         nx = len(files)
         if nx <= 0 :
             return False
-        self.logger.info('%s%s processing folder %s'%(_progName, _progVersion, folder))
+        self.logger.info('%s%s processing folder %s'%(progName, progVersion, folder))
         # size of Y data
         ny = len(data[0])
         # define arrays
@@ -1543,11 +1536,11 @@ class DesignerMainWindow(QMainWindow):
 
         # save data to text file
         folder = self.folderName
-        fn = os.path.join(str(folder), _progName + '_X.gz')
+        fn = os.path.join(str(folder), progName + '_X.gz')
         np.savetxt(fn, X, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_Y.gz')
+        fn = os.path.join(str(folder), progName + '_Y.gz')
         np.savetxt(fn, Y, delimiter='; ' )
-        fn = os.path.join(str(folder), _progName + '_Z.gz')
+        fn = os.path.join(str(folder), progName + '_Z.gz')
         np.savetxt(fn, Z, delimiter='; ' )
             
         # plot contours
@@ -1663,11 +1656,11 @@ class DesignerMainWindow(QMainWindow):
 
             # save data to text file
             folder = self.folderName
-            fn = os.path.join(str(folder), _progName + '_X_cs.gz')
+            fn = os.path.join(str(folder), progName + '_X_cs.gz')
             np.savetxt(fn, X, delimiter='; ' )
-            fn = os.path.join(str(folder), _progName + '_Y_cs.gz')
+            fn = os.path.join(str(folder), progName + '_Y_cs.gz')
             np.savetxt(fn, Y, delimiter='; ' )
-            fn = os.path.join(str(folder), _progName + '_Z_cs.gz')
+            fn = os.path.join(str(folder), progName + '_Z_cs.gz')
             np.savetxt(fn, Z, delimiter='; ' )
             
             self.clearPicture()
@@ -1739,7 +1732,7 @@ class DesignerMainWindow(QMainWindow):
     return (X,Y,Z)
     '''
                 
-    def saveSettings(self, folder='', fileName=_settingsFile) :
+    def saveSettings(self, folder='', fileName=settingsFile) :
         try:
             fullName = os.path.join(str(folder), fileName)
             # save window size and position
@@ -1764,7 +1757,7 @@ class DesignerMainWindow(QMainWindow):
             self.logger.info('Configuration save error to %s'%fullName)
             return False
         
-    def saveData(self, folder='', fileName=_dataFile) :
+    def saveData(self, folder='', fileName=dataFile) :
         fullName = os.path.join(str(folder), fileName)
         dbase = shelve.open(fullName, flag='n')
         # save paramsAuto
@@ -1773,7 +1766,7 @@ class DesignerMainWindow(QMainWindow):
         self.logger.info('Processed data saved to %s'%fullName)
         return True
    
-    def restoreSettings(self, folder='', fileName=_settingsFile) :
+    def restoreSettings(self, folder='', fileName=settingsFile) :
         try :
             self.execInitScript()
         except :
@@ -1813,7 +1806,7 @@ class DesignerMainWindow(QMainWindow):
             self.logger.info('Configuration restore error from %s'%fullName)
             return False
 
-    def restoreData(self, folder='',  fileName=_dataFile) :
+    def restoreData(self, folder='',  fileName=dataFile) :
         '''
         Restore program data from fileName in folder.
         '''
@@ -1837,7 +1830,7 @@ class DesignerMainWindow(QMainWindow):
             self.logger.info('Data file %s restore error.'%fullName)
             return False
 
-    def execInitScript(self, folder=None, fileName=_initScript):
+    def execInitScript(self, folder=None, fileName=initScript):
         if folder is None :
             folder = self.folderName
         try:
@@ -1856,7 +1849,7 @@ if __name__ == '__main__':
     # create the GUI application
     app = QApplication(sys.argv)
     # instantiate the main window
-    dmw = DesignerMainWindow()
+    dmw = MainWindow()
     app.aboutToQuit.connect(dmw.onQuit)
     dmw.cwd = os.getcwd()
     # show it
