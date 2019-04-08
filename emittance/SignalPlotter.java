@@ -363,24 +363,3 @@ public class SignalPlotter extends WindowAdapter {
         oldEntryName = entryName;
     }
 }
-
-class ChartCellRenderer extends SignalChartPanel implements ListCellRenderer<Object> {
-
-    // This is the only method defined by ListCellRenderer.
-    // We just reconfigure the JLabel each time we're called.
-    /**
-     *
-     */
-    private static final long serialVersionUID = 1974824706479080006L;
-
-    public Component getListCellRendererComponent(
-            JList<?> list, // the list
-            Object value, // value to display
-            int index, // cell index
-            boolean isSelected, // is the cell selected
-            boolean cellHasFocus) // does the cell have focus
-    {
-        return (Component) value;
-    }
-
-}

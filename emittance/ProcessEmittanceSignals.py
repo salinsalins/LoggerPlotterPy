@@ -534,141 +534,6 @@ class MainWindow(QMainWindow):
         self.saveData(folder = self.folderName)
         return True
                 
-    def debugDraw(self, par=[]):
-        try:
-            axes = self.mplWidget.canvas.ax
-            # debug draw 17
-            #self.debugDraw([Y3, Z3, Y1, Z1])
-            if int(self.comboBox.currentIndex()) == 17:
-                Y3 = par[0]
-                Z3 = par[1]
-                Y1 = par[2]
-                Z1 = par[3]
-                self.clearPicture()
-                indexes = self.listWidget.selectedIndexes()
-                for j in indexes:
-                    k = j.row()             
-                    self.plot(Y3[:,k-1]*1e3, Z3[:,k-1]*1e6, '.-', label='sh'+str(k))
-                    self.plot(Y1[:,k-1]*1e3, Z1[:,k-1]*1e6, '.-', label='or'+str(k))
-                axes.set_title('Shifted elementary jets')
-                axes.set_xlabel('X\', milliRadians')
-                axes.set_ylabel('Current, mkA')
-                self.mplWidget.canvas.draw()
-                return
-            # debug draw 11
-            #self.debugDraw([X3, Y3, Z3])
-            if int(self.comboBox.currentIndex()) == 11:
-                X3 = par[0]
-                Y3 = par[1]
-                Z3 = par[2]
-                self.clearPicture()
-                axes.contour(X3, Y3, Z3)
-                axes.grid(True)
-                axes.set_title('Z3 [N,nx-1] Regular divergence reduced')
-                self.mplWidget.canvas.draw()
-                return
-            # debug draw 12 Scan voltage region
-            #self.debugDraw([ix,x,ix[xi],x[xi]])
-            if int(self.comboBox.currentIndex()) == 12:
-                self.clearPicture()
-                axes.set_title('Scan voltage region')
-                axes.set_xlabel('Point index')
-                axes.set_ylabel('Voltage, V')
-                axes.plot(par[0], par[1], label='Scan voltage')
-                axes.plot(par[2], par[3], '.', label='Region')
-                self.zoplot()
-                axes.grid(True)
-                axes.legend(loc='best') 
-                self.mplWidget.canvas.draw()
-                return
-            # debug draw 13 Offset calculation
-            #self.debugDraw([i,ix,y1,o1,y2,o2,i1,i2])
-            if int(self.comboBox.currentIndex()) == 13 :
-                indexes = self.listWidget.selectedIndexes()
-                i = par[0]
-                ix = par[1]
-                y1 = par[2]
-                o1 = par[3]
-                y2 = par[4]
-                o2 = par[5]
-                i1 = par[6]
-                i2 = par[7]
-                if (len(indexes) > 0) and (i == indexes[0].row()):
-                    self.clearPicture()
-                    axes.set_title('Offset calculation')
-                    axes.set_xlabel('Point index')
-                    axes.set_ylabel('Signal, V')
-                    axes.plot(ix, y1,'r', label='raw'+str(i))
-                    self.zoplot(o1,'r')
-                    axes.plot(ix, y2,'b', label='raw'+str(i+1))
-                    self.zoplot(o2,'b')
-                    axes.plot(ix[i1], y1[i1], '.')
-                    axes.plot(ix[i2], y2[i2], '.')
-                    axes.grid(True)
-                    axes.legend(loc='best') 
-                    self.mplWidget.canvas.draw()
-                return
-            # debug draw 14 zero line intermediate results
-            #self.debugDraw([ix, par, zero, params])
-            if int(self.comboBox.currentIndex()) == 14 :
-                ix = par[0]
-                d = par[1]
-                zero = par[2]
-                params = par[3]
-                indexes = self.listWidget.selectedIndexes()
-                if len(indexes) > 0:
-                    k = indexes[0].row()             
-                    self.clearPicture()
-                    axes.set_title('Zero line calculation')
-                    axes.set_xlabel('Point index')
-                    axes.set_ylabel('Signal, V')
-                    axes.plot(ix, d[k,:], label='raw '+str(k))
-                    z = zero[k].copy() + params[k]['offset']
-                    smooth(z, params[k]['smooth']*2)
-                    axes.plot(ix, z, label='zero'+str(k))
-                    axes.grid(True)
-                    axes.legend(loc='best') 
-                    self.mplWidget.canvas.draw()
-                return
-            # debug draw 15 Range and scale calculation
-            #self.debugDraw([i,xi,y,ix[ir1:ir2],y[ir1 - xi[0]:ir2 - xi[0]],is1,is2])
-            if int(self.comboBox.currentIndex()) == 15:
-                indexes = self.listWidget.selectedIndexes()
-                i = par[0]
-                if (len(indexes) > 0) and (i == indexes[0].row()):
-                    self.clearPicture()
-                    axes.set_title('Range and scale calculation')
-                    axes.set_xlabel('Point index')
-                    axes.set_ylabel('Signal, V')
-                    axes.plot(par[1], par[2], label='proc '+str(i))
-                    axes.plot(par[3], par[4], '.', label='range'+str(i))
-                    self.voplot(par[5], 'r')
-                    self.voplot(par[6], 'b')
-                    axes.grid(True)
-                    axes.legend(loc='best') 
-                    self.mplWidget.canvas.draw()
-            # debug draw 16 X0 calculation
-            #self.debugDraw([x01,nx,k])
-            if int(self.comboBox.currentIndex()) == 16:
-                x01 = par[0]
-                nx = par[1]
-                k = par[2]
-                x0 = x01.copy()
-                for i in range(1, nx) :
-                    x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
-                self.clearPicture()
-                axes.set_title('X0 calculation')
-                axes.set_xlabel('Index')
-                axes.set_ylabel('X0, mm')
-                axes.plot(x01-x01[k], 'o-', label='X0 calculated')
-                axes.plot(x0-x0[k], 'd-', label='X0 from parameters')
-                axes.grid(True)
-                axes.legend(loc='best') 
-                self.mplWidget.canvas.draw()
-                return
-        except:
-            self.printExceptionInfo()
-
     def readParameter(self, row, name, default=None, dtype=None, info=False, select=''):
         if name == 'zero':
             return self.readZero(row)
@@ -698,48 +563,6 @@ class MainWindow(QMainWindow):
         if select == 'default':
             return vd
         return v
-
-    def readZero(self, row):
-        if self.data is None:
-            return None
-        try:
-            z = self.paramsAuto[row]['zero'].copy()
-        except:
-            z = np.zeros_like(self.data[0])
-        # manual zero line
-        try:
-            # manual regions
-            zr = self.paramsManual[row]['zero']
-            for zi in zr:
-                try:
-                    if zi[0] == -2 :
-                        # linear interpolation between (x1,y1) (x2,y2) 
-                        x1 = zi[1]
-                        y1 = zi[2]
-                        x2 = zi[3]
-                        y2 = zi[4]
-                        z[x1:x2+1] = np.interp(np.arange(x1,x2+1), [x1,x2], [y1,y2])
-                    if zi[0] == -1 :
-                        # linear interpolation (-1, n1, n2)  y(n) = zeroLine(n)
-                        z0 = self.data[row, :].copy()
-                        ns = self.readParameter(row, "smooth", self.spinBox.value(), int)
-                        smooth(z0, ns)
-                        of = self.readParameter(row, "offset", 0.0, float)
-                        z0 = z0 - of # minus is correct !!!
-                        y1 = z0[zi[1]]
-                        y2 = z0[zi[2]]
-                        z[zi[1]:zi[2]+1] = np.interp(np.arange(zi[1],zi[2]+1), [zi[1],zi[2]], [y1,y2])
-                    if zi[0] > 0 :
-                        z0 = self.data[zi[0], :].copy()
-                        ns = self.readParameter(zi[0], "smooth", 1, int)
-                        of = self.readParameter(zi[0], "offset", 0.0, float)
-                        smooth(z0, 2*ns)
-                        z[zi[1]:zi[2]] = z0[zi[1]:zi[2]] + of
-                except:
-                    pass
-        except:
-            pass
-        return z
 
     def readSignal(self, row):
         if self.data is None :
@@ -780,41 +603,7 @@ class MainWindow(QMainWindow):
         # x' in Radians
         xsub = (ndh - s*u) / l2
         return (xsub, y, index)
-        
-    def smoothX(self,x,y):
-        # filter x to be unique and smooth
-        n = len(x)
-        xmax = x.max()
-        xmin = x.min()
-        dx = (xmax-xmin)/(n-1)
-        ys = np.zeros(n)
-        yn = np.zeros(n)
-        m = np.floor((x-xmin)/dx)
-        for i in range(n):
-            k = int(m[i])
-            ys[k] += y[i]
-            yn[k] += 1.0
-        mask = yn > 0.0 
-        ay = np.zeros(n)
-        ay[mask] = ys[mask]/yn[mask]
-        #maskn = np.logical_not(mask)
-        ax = np.linspace(xmin,xmax,n)
-        return (ax[mask].copy(), ay[mask].copy())
-
-    def readX0(self):
-        nx = len(self.fileNames) 
-        if nx <= 0 :
-            return
-        self.execInitScript()
-        x0 = np.zeros(nx-1)                         # [mm] X0 coordinates of scans
-        flag = self.readParameter(0, 'autox0', False)
-        for i in range(1, nx) :
-            if flag:
-                x0[i-1] = self.readParameter(i, 'x0', 0.0, float, select='auto')
-            else:
-                x0[i-1] = self.readParameter(i, 'x0', 0.0, float)
-        return x0
-        
+    
     def plot(self, *args, **kwargs):
         axes = self.mplWidget.canvas.ax
         axes.plot(*args, **kwargs)
@@ -843,18 +632,6 @@ class MainWindow(QMainWindow):
 
     def cls(self):
         self.clearPicture()
-
-    def getX(self):
-        ix = self.spinBox_2.value()
-        if ix >= 0:
-            x = self.data[ix, :].copy()
-            ns = self.readParameter(ix, "smooth", self.spinBox.value(), int, True)
-            smooth(x, ns)
-            xTitle = 'Scan Voltage, V'
-        else:
-            x = np.arange(len(self.data[0, :]))
-            xTitle = 'Point index'
-        return (x,xTitle)
 
     def plotRawSignals(self):
         self.execInitScript()
@@ -1757,15 +1534,6 @@ class MainWindow(QMainWindow):
             self.logger.info('Configuration save error to %s'%fullName)
             return False
         
-    def saveData(self, folder='', fileName=dataFile) :
-        fullName = os.path.join(str(folder), fileName)
-        dbase = shelve.open(fullName, flag='n')
-        # save paramsAuto
-        dbase['paramsAuto'] = self.paramsAuto
-        dbase.close()
-        self.logger.info('Processed data saved to %s'%fullName)
-        return True
-   
     def restoreSettings(self, folder='', fileName=settingsFile) :
         try :
             self.execInitScript()
@@ -1806,30 +1574,6 @@ class MainWindow(QMainWindow):
             self.logger.info('Configuration restore error from %s'%fullName)
             return False
 
-    def restoreData(self, folder='',  fileName=dataFile) :
-        '''
-        Restore program data from fileName in folder.
-        '''
-        try :
-            # read saved settings
-            fullName = os.path.join(str(folder), fileName)
-            dbase = shelve.open(fullName)
-            # restore automatically processed parameters
-            self.paramsAuto = dbase['paramsAuto']
-            dbase.close()
-            # print OK message and exit    
-            self.logger.info('Data restored from %s.'%fullName)
-            return True
-        except :
-            try :
-                dbase.close()
-            except :
-                pass
-            # print error info    
-            self.printExceptionInfo()
-            self.logger.info('Data file %s restore error.'%fullName)
-            return False
-
     def execInitScript(self, folder=None, fileName=initScript):
         if folder is None :
             folder = self.folderName
@@ -1841,9 +1585,9 @@ class MainWindow(QMainWindow):
             self.printExceptionInfo()
             self.logger.info('Init script %s error.'%fullName)
 
-    def printExceptionInfo(self):
+    def printExceptionInfo(self, level=logging.INFO):
         (tp, value) = sys.exc_info()[:2]
-        self.logger.info('Exception %s %s'%(str(tp), str(value)))
+        self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
 
 if __name__ == '__main__':
     # create the GUI application
@@ -1851,7 +1595,6 @@ if __name__ == '__main__':
     # instantiate the main window
     dmw = MainWindow()
     app.aboutToQuit.connect(dmw.onQuit)
-    dmw.cwd = os.getcwd()
     # show it
     dmw.show()
     # start the Qt main loop execution, exiting from this script
