@@ -89,6 +89,7 @@ class MainWindow(QMainWindow):
         self.scanVoltage = None
         self.paramsAuto = None
         self.paramsManual = {}
+        
         # configure logging
         self.logger = logging.getLogger(progName+progVersion)
         self.logger.setLevel(logging.DEBUG)
@@ -1184,11 +1185,7 @@ class MainWindow(QMainWindow):
             return False
         
     def restoreSettings(self, folder='', fileName=settingsFile) :
-        try :
-            self.execInitScript()
-        except :
-            pass
-        self.conf = {}
+        self.setDefaultSettings()
         try :
             fullName = os.path.join(str(folder), fileName)
             with open(fullName, 'r', encoding='utf-8') as configfile:
@@ -1223,16 +1220,32 @@ class MainWindow(QMainWindow):
             self.logger.info('Configuration restore error from %s'%fullName)
             return False
 
-    def execInitScript(self, folder=None, fileName=initScript):
-        if folder is None :
-            folder = self.logFileName
-        try:
-            fullName = os.path.join(str(folder), fileName)
-            exec(open(fullName).read(), globals(), locals())
-            self.logger.info('Init script %s executed.'%fullName)
-        except:
-            self.printExceptionInfo()
-            self.logger.info('Init script %s error.'%fullName)
+    def setDefaultSettings(self) :
+        try :
+            # window size and position
+            self.resize(QSize(640, 480))
+            self.move(QPoint(0, 0))
+            # log file name
+            self.logFileName = None
+            # smooth
+            self.spinBox.setValue(100)
+            # scan
+            self.spinBox_2.setValue(0)
+            # result
+            self.comboBox.setCurrentIndex(0)
+            # items in history  
+            self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+            self.comboBox_2.clear()
+            self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+
+            # print OK message and exit    
+            self.logger.info('Default configuration set.')
+            return True
+        except :
+            # print error info    
+            self.printExceptionInfo(level=logging.DEBUG)
+            self.logger.log(logging.INFO, 'Default configuration set error.')
+            return False
 
     def printExceptionInfo(self, level=logging.INFO):
         (tp, value) = sys.exc_info()[:2]
