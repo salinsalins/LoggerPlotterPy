@@ -191,7 +191,7 @@ class MainWindow(QMainWindow):
             fn = self.logFileName
         if fn is None:
             return
-        self.logger.info('Reading %s'%fn)
+        self.logger.log(logging.INFO, 'Reading %s'%fn)
         # read log file content
         try:
             stream = open(fn, "r")
@@ -207,13 +207,13 @@ class MainWindow(QMainWindow):
     
             folder = os.path.dirname(self.logFileName)
             self.logger.info('Parsing %s'%folder)
-            dirlist = os.listdir(folder)
+            self.dirlist = os.listdir(folder)
             # fill listWidget with file zipFiles
             self.listWidget.clear()
             # make zip file zipFiles list
-            zipFiles = [f for f in dirlist if f.endswith(".zip")]
-            nx = len(zipFiles)
-            self.listWidget.addItems(zipFiles)
+            self.zipFiles = [f for f in self.dirlist if f.endswith(".zip")]
+            nx = len(self.zipFiles)
+            self.listWidget.addItems(self.zipFiles)
         except :
             return
     
@@ -446,12 +446,12 @@ class MainWindow(QMainWindow):
             self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
 
             # print OK message and exit    
-            self.logger.info('Default configuration set.')
+            self.logger.log(logging.DEBUG, 'Default configuration set.')
             return True
         except :
             # print error info    
             self.printExceptionInfo(level=logging.DEBUG)
-            self.logger.log(logging.INFO, 'Default configuration set error.')
+            self.logger.log(logging.WARNING, 'Default configuration set error.')
             return False
 
     def printExceptionInfo(self, level=logging.INFO):
