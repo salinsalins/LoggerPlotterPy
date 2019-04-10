@@ -204,6 +204,19 @@ class MainWindow(QMainWindow):
                 return
             self.logger.info('%d bytes in %s'%(nx, self.logFileName))
             self.logFileName = fn
+            # split to lines
+            lns = self.buf.split('\n')
+            for ln in lns:
+                # split line to fields
+                flds =ln.split("; ")
+                time = flds[0].split(" ")[1].strip()
+                self.tableWidget_2.insertRow()
+                self.addColumn("Time", time)
+                #print("Time = -", time, "-")
+                for fld in flds[1:]:
+                    print(fld)
+                    kv = fld.split("=")
+                    print(kv)
     
             folder = os.path.dirname(self.logFileName)
             self.logger.info('Parsing %s'%folder)
@@ -216,6 +229,14 @@ class MainWindow(QMainWindow):
             self.listWidget.addItems(self.zipFiles)
         except :
             return
+
+    def addColumn(self, col, val):
+        x = self.columns.find(col)
+        if col in self.columns:
+            self.tableWidget_2.setItem(x, y, QTableWidgetItem(val))
+        else:
+            self.columns.add(col)
+            self.tableWidget_2.insertColumn()
     
     def readSignal(self, row):
         if self.data is None :
