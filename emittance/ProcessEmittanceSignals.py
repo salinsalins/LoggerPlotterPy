@@ -316,11 +316,7 @@ class MainWindow(QMainWindow):
         self.logger.info('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               (event.button, event.x, event.y, event.xdata, event.ydata))
 
-    def plotElementaryJets(self):
-        """Plot elementary jet profile"""
-        if self.data is None :
-            return
-        self.execInitScript()
+    def plotElementaryJets(self, file=None, entry=None):
         axes = self.mplWidget.canvas.ax
         self.clearPicture()
         # draw chart
@@ -331,8 +327,6 @@ class MainWindow(QMainWindow):
             xx = x[index]*1000.0 # convert to milliRadians
             yy = -1.0e6*y[index] # convert to microAmpers
             axes.plot(xx, yy, label='jet '+str(row))
-            #axes.plot(xx, gaussfit(xx, yy), '--', label='gauss '+str(row))
-        # plot axis y=0
         axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
         # decorate the plot
         axes.grid(True)
