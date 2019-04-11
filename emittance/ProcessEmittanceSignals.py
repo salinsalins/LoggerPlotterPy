@@ -15,6 +15,7 @@ import json
 import logging
 
 import numpy as np
+from astropy import table
 
 # PyQt4-5 universal imports
 try:            
@@ -143,7 +144,11 @@ class MainWindow(QMainWindow):
 
     def selectLogFile(self):
         """Opens a file select dialog"""
-        fileOpenDialog = QFileDialog(caption='Select log file', directory=os.path.dirname(self.logFileName))
+        if self.logFileName is None:
+            d = "./"
+        else:
+            d = os.path.dirname(self.logFileName)
+        fileOpenDialog = QFileDialog(caption='Select log file', directory=d)
         # select lfn, not file
         lfn = fileOpenDialog.getOpenFileName()[0]
         # if a lfn is selected
@@ -207,25 +212,40 @@ class MainWindow(QMainWindow):
             lns = self.buf.split('\n')
             i = 0
             for ln in lns:
+                j = 0
                 # split line to fields
                 flds =ln.split("; ")
-                if len(flds[0]) < 
+                if len(flds[0]) < 19:
+                    continue
                 # first field is date time
                 time = flds[0].split(" ")[1].strip()
                 # add row to table
+                self.tableWidget_2.insertRow(i)
                 if "Time" not in table:
                     table["Time"] = ['' for j in range(i)]
+                    self.tableWidget_2.insertColumn(j)
+                    self.tableWidget_2.setHorizontalHeaderItem (j, QTableWidgetItem("Time"))
                 table["Time"].append(time)
-                #self.tableWidget_2.insertRow()
-                #self.addColumn("Time", time)
+                self.tableWidget_2.setItem(i, j, QTableWidgetItem(time))
+                j += 1
                 #print("Time = -", time, "-")
                 for fld in flds[1:]:
-                    print(fld)
+                    #print(fld)
                     kv = fld.split("=")
                     print(kv)
                     if kv[0] not in table:
                         table[kv[0]] = ['' for j in range(i)]
+                        j = self.tableWidget_2.columnCount()
+                        self.tableWidget_2.insertColumn(j)
+                        self.tableWidget_2.setHorizontalHeaderItem (j, QTableWidgetItem(kv[0]))
+                    else:
+                        #j = table.has_key(kv[0])
+                        
+                    self.tableWidget_2.setItem(i, j, QTableWidgetItem(kv[1]))
                     table[kv[0]].append(kv[1])
+                for t in table :
+                    if len(table[t]) < len(table["Time"]) :
+                        table[t].append("")
                 i += 1
     
             folder = os.path.dirname(self.logFileName)
@@ -471,7 +491,9 @@ class MainWindow(QMainWindow):
             self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
             self.comboBox_2.clear()
             self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-
+            
+            self.conf = {}
+            
             # print OK message and exit    
             self.logger.log(logging.DEBUG, 'Default configuration set.')
             return True
