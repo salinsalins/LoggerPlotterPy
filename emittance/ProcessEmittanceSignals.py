@@ -197,26 +197,36 @@ class MainWindow(QMainWindow):
             stream = open(fn, "r")
             self.buf = stream.read()
             stream.close()
-            # number of lines?
-            nx = len(self.buf)
-            if nx <= 0 :
+            if len(self.buf) <= 0 :
                 self.logger.info('Nothing to process in %s'%fn)
                 return
-            self.logger.info('%d bytes in %s'%(nx, self.logFileName))
             self.logFileName = fn
+            
+            table = {}
             # split to lines
             lns = self.buf.split('\n')
+            i = 0
             for ln in lns:
                 # split line to fields
                 flds =ln.split("; ")
+                if len(flds[0]) < 
+                # first field is date time
                 time = flds[0].split(" ")[1].strip()
-                self.tableWidget_2.insertRow()
-                self.addColumn("Time", time)
+                # add row to table
+                if "Time" not in table:
+                    table["Time"] = ['' for j in range(i)]
+                table["Time"].append(time)
+                #self.tableWidget_2.insertRow()
+                #self.addColumn("Time", time)
                 #print("Time = -", time, "-")
                 for fld in flds[1:]:
                     print(fld)
                     kv = fld.split("=")
                     print(kv)
+                    if kv[0] not in table:
+                        table[kv[0]] = ['' for j in range(i)]
+                    table[kv[0]].append(kv[1])
+                i += 1
     
             folder = os.path.dirname(self.logFileName)
             self.logger.info('Parsing %s'%folder)
@@ -228,6 +238,8 @@ class MainWindow(QMainWindow):
             nx = len(self.zipFiles)
             self.listWidget.addItems(self.zipFiles)
         except :
+            self.logger.log(logging.WARNING, 'Exception in parseFolder')
+            self.printExceptionInfo()
             return
 
     def addColumn(self, col, val):
