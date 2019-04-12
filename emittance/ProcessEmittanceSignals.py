@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
             fn = self.logFileName
         if fn is None:
             return
-        self.logger.log(logging.INFO, 'Reading %s'%fn)
+        self.logger.log(logging.DEBUG, 'Reading %s'%fn)
         # read log file content
         try:
             stream = open(fn, "r")
@@ -211,8 +211,9 @@ class MainWindow(QMainWindow):
             self.logFileName = fn
             
             table = {}
-            # split to lines
+            # split buf to lines
             lns = self.buf.split('\n')
+            # loop for lines
             i = 0
             for ln in lns:
                 j = 0
@@ -258,7 +259,6 @@ class MainWindow(QMainWindow):
             self.listWidget.clear()
             # make zip file zipFiles list
             self.zipFiles = [f for f in self.dirlist if f.endswith(".zip")]
-            nx = len(self.zipFiles)
             self.listWidget.addItems(self.zipFiles)
         except :
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
