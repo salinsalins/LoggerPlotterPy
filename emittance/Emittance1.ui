@@ -461,7 +461,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>542</width>
-                       <height>199</height>
+                       <height>143</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -510,7 +510,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>542</width>
-                       <height>198</height>
+                       <height>254</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -521,7 +521,35 @@
                      </property>
                      <layout class="QGridLayout" name="gridLayout_2">
                       <item row="0" column="0">
-                       <widget class="QTableWidget" name="tableWidget_2"/>
+                       <widget class="QTableWidget" name="tableWidget_2">
+                        <property name="selectionMode">
+                         <enum>QAbstractItemView::SingleSelection</enum>
+                        </property>
+                        <property name="selectionBehavior">
+                         <enum>QAbstractItemView::SelectRows</enum>
+                        </property>
+                        <property name="rowCount">
+                         <number>0</number>
+                        </property>
+                        <property name="columnCount">
+                         <number>0</number>
+                        </property>
+                        <attribute name="horizontalHeaderVisible">
+                         <bool>true</bool>
+                        </attribute>
+                        <attribute name="horizontalHeaderDefaultSectionSize">
+                         <number>70</number>
+                        </attribute>
+                        <attribute name="horizontalHeaderMinimumSectionSize">
+                         <number>30</number>
+                        </attribute>
+                        <attribute name="verticalHeaderDefaultSectionSize">
+                         <number>25</number>
+                        </attribute>
+                        <attribute name="verticalHeaderMinimumSectionSize">
+                         <number>20</number>
+                        </attribute>
+                       </widget>
                       </item>
                      </layout>
                     </widget>

@@ -112,6 +112,9 @@ class MainWindow(QMainWindow):
         # restore global settings from default location
         self.restoreSettings()
         
+        # additional decorations
+        #self.tableWidget_2.horizontalHeader().
+        
         # read data files
         self.parseFolder()
         
