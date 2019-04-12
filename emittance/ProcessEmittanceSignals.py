@@ -17,25 +17,15 @@ import logging
 import numpy as np
 from astropy import table
 
-# PyQt4-5 universal imports
-try:            
-    from PyQt4.QtGui import QMainWindow      # @UnresolvedImport @UnusedImport
-    from PyQt4.QtGui import QApplication     # @UnresolvedImport @UnusedImport
-    from PyQt4.QtGui import qApp             # @UnresolvedImport @UnusedImport
-    from PyQt4.QtGui import QFileDialog      # @UnresolvedImport @UnusedImport
-    from PyQt4.QtGui import QTableWidgetItem # @UnresolvedImport @UnusedImport
-    from PyQt4.QtGui import QMessageBox      # @UnresolvedImport @UnusedImport
-    from PyQt4 import uic                    # @UnresolvedImport @UnusedImport
-    from PyQt4.QtCore import QPoint, QSize   # @UnresolvedImport @UnusedImport
-except:
-    from PyQt5.QtWidgets import QMainWindow     # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt5.QtWidgets import QApplication    # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt5.QtWidgets import qApp            # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt5.QtWidgets import QFileDialog     # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt5.QtWidgets import QTableWidgetItem # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt5.QtWidgets import QMessageBox     # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt5 import uic                       # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt5.QtCore import QPoint, QSize      # @UnresolvedImport @UnusedImport @Reimport
+from PyQt5.QtWidgets import QMainWindow     # @UnresolvedImport @UnusedImport @Reimport
+from PyQt5.QtWidgets import QApplication    # @UnresolvedImport @UnusedImport @Reimport
+from PyQt5.QtWidgets import qApp            # @UnresolvedImport @UnusedImport @Reimport
+from PyQt5.QtWidgets import QFileDialog     # @UnresolvedImport @UnusedImport @Reimport
+from PyQt5.QtWidgets import QTableWidgetItem # @UnresolvedImport @UnusedImport @Reimport
+from PyQt5.QtWidgets import QTableWidget     # @UnresolvedImport @UnusedImport
+from PyQt5.QtWidgets import QMessageBox     # @UnresolvedImport @UnusedImport @Reimport
+from PyQt5 import uic                       # @UnresolvedImport @UnusedImport @Reimport
+from PyQt5.QtCore import QPoint, QSize      # @UnresolvedImport @UnusedImport @Reimport
 
 from smooth import smooth
 
@@ -510,6 +500,17 @@ class MainWindow(QMainWindow):
         (tp, value) = sys.exc_info()[:2]
         self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
 
+class LogTable(QTableWidget):
+    def __init__(self, parent=None):
+        # initialization of the superclass
+        super.__init__(parent)
+        self.data = {}
+        
+    def addRow(self):
+        super.addRow()
+        for item in self.data :
+            item.append("")
+    
 if __name__ == '__main__':
     # create the GUI application
     app = QApplication(sys.argv)
