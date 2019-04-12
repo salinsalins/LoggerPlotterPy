@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
                 for fld in flds[1:]:
                     #print(fld)
                     kv = fld.split("=")
-                    print(kv)
+                    #print(kv)
                     if kv[0] not in table:
                         table[kv[0]] = ['' for j in range(i)]
                         j = self.tableWidget_2.columnCount()
@@ -241,6 +241,9 @@ class MainWindow(QMainWindow):
                     if len(table[t]) < len(table["Time"]) :
                         table[t].append("")
                 i += 1
+            self.tableWidget_2.selectRow(self.tableWidget_2.rowCount()-1)
+            self.tableWidget_2.scrollToBottom()
+            #self.scrollArea_2.scrollToBottom()
     
             folder = os.path.dirname(self.logFileName)
             self.logger.info('Parsing %s'%folder)
@@ -255,14 +258,6 @@ class MainWindow(QMainWindow):
             self.printExceptionInfo()
             return
 
-    def addColumn(self, col, val):
-        x = self.columns.find(col)
-        if col in self.columns:
-            self.tableWidget_2.setItem(x, y, QTableWidgetItem(val))
-        else:
-            self.columns.add(col)
-            self.tableWidget_2.insertColumn()
-    
     def readSignal(self, row):
         if self.data is None :
             return (None, None, None)
