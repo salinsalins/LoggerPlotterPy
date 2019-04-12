@@ -239,7 +239,7 @@ class MainWindow(QMainWindow):
                         self.tableWidget_2.insertColumn(j)
                         self.tableWidget_2.setHorizontalHeaderItem (j, QTableWidgetItem(kv[0]))
                     else:
-                        #j = table.has_key(kv[0])
+                        j = list(table.keys()).index(kv[0])
                         
                     self.tableWidget_2.setItem(i, j, QTableWidgetItem(kv[1]))
                     table[kv[0]].append(kv[1])
