@@ -171,37 +171,41 @@ class MainWindow(QMainWindow):
         self.logger.log(logging.DEBUG, 'Folder %s'%folder)
         with zipfile.ZipFile(os.path.join(folder, zipFileName), 'r') as zipobj:
             files = zipobj.namelist()
-            jj = 0
             layout = self.scrollAreaWidgetContents.layout()
-            layout.
             #self.mplWidget_3.canvas.ax.clear()
+            jj = 0
             for f in files :
                 if f.find("chan") >= 0 and f.find("param") < 0:
-                    #self.logger.log(logging.DEBUG, f)
+                    self.logger.log(logging.DEBUG, f)
                     buf = zipobj.read(f)
                     lines = buf.split(b"\r\n")
                     n = len(lines)
                     x = np.empty(n)
                     y = np.empty(n)
-                    i = 0
+                    ii = 0
                     for ln in lines:
                         xy = ln.split(b'; ')
-                        x[i] = float(xy[0].replace(b',', b'.'))
-                        y[i] = float(xy[1].replace(b',', b'.'))
-                        i += 1
-                        
-                    mplw = MplWidget()
-                    layout.addWidget(mplw)
+                        x[ii] = float(xy[0].replace(b',', b'.'))
+                        y[ii] = float(xy[1].replace(b',', b'.'))
+                        ii += 1
+                    
+                    if jj < layout.count() :    
+                        mplw = layout.itemAt(jj).widget()
+                    else:
+                        mplw = MplWidget()
+                        mplw.setMinimumHeight(300)
+                        layout.addWidget(mplw)
                     axes = mplw.canvas.ax
+                    axes.clear()
                     axes.plot(x, y, label='plot '+str(jj))
-                    jj += 1
                     # decorate the plot
                     axes.grid(True)
-                    axes.set_title('Signal')
+                    axes.set_title(f)
                     axes.set_xlabel('Time, s')
                     axes.set_ylabel('Signal, V')
                     axes.legend(loc='best') 
                     mplw.canvas.draw()
+                    jj += 1
 
                     #print(x[0])
                     pass
