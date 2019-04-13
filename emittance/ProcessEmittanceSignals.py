@@ -13,6 +13,8 @@ import os.path
 import sys
 import json
 import logging
+import zipfile
+import re
 
 import numpy as np
 from astropy import table
@@ -60,7 +62,8 @@ class MainWindow(QMainWindow):
         #self.pushButton_4.clicked.connect(self.processFolder)
         self.pushButton_6.clicked.connect(self.pushPlotButton)
         self.pushButton_7.clicked.connect(self.erasePicture)
-        self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+        #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+        self.tableWidget_2.itemSelectionChanged.connect(self.selectionChanged)
         # menu actions connection
         self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionQuit.triggered.connect(qApp.quit)
@@ -156,10 +159,50 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.insertItem(-1, lfn)
                 self.comboBox_2.setCurrentIndex(0)
     
-    def selectionChanged(self, i):
-        self.logger.log(logging.DEBUG, 'Selection changed to %s'%str(i))
+    def selectionChanged(self):
+        i = self.tableWidget_2.selectedRanges()[0].topRow()
+        self.logger.log(logging.DEBUG, 'Selection changed to row %s'%str(i))
         if i < 0:
             return
+        zipFileName = self.table["File"][i]
+        self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
+        folder = os.path.dirname(self.logFileName)
+        self.logger.log(logging.DEBUG, 'Folder %s'%folder)
+        with zipfile.ZipFile(os.path.join(folder, zipFileName), 'r') as zipobj:
+            files = zipobj.namelist()
+            jj = 0
+            self.mplWidget_3.canvas.ax.clear()
+            for f in files :
+                if f.find("chan") >= 0 and f.find("param") < 0:
+                    #self.logger.log(logging.DEBUG, f)
+                    buf = zipobj.read(f)
+                    lines = buf.split(b"\r\n")
+                    n = len(lines)
+                    x = np.empty(n)
+                    y = np.empty(n)
+                    i = 0
+                    for ln in lines:
+                        xy = ln.split(b'; ')
+                        x[i] = float(xy[0].replace(b',', b'.'))
+                        y[i] = float(xy[1].replace(b',', b'.'))
+                        i += 1
+                        
+                    axes = self.mplWidget_3.canvas.ax
+                    axes.plot(x, y, label='plot '+str(jj))
+                    jj += 1
+                    # decorate the plot
+                    axes.grid(True)
+                    axes.set_title('Elementary jet profile')
+                    axes.set_xlabel('X\', milliRadians')
+                    axes.set_ylabel('Signal, mkA')
+                    axes.legend(loc='best') 
+                    self.mplWidget_3.canvas.draw()
+
+                    #print(x[0])
+                    pass
+                       
+        
+        return        
         newFileName = str(self.comboBox_2.currentText())
         self.logger.log(logging.DEBUG, 'Selected %s'%newFileName)
         if not os.path.isfile(newFileName):
@@ -200,7 +243,7 @@ class MainWindow(QMainWindow):
                 return
             self.logFileName = fn
             
-            table = {}
+            self.table = {}
             # split buf to lines
             lns = self.buf.split('\n')
             # loop for lines
@@ -215,31 +258,33 @@ class MainWindow(QMainWindow):
                 time = flds[0].split(" ")[1].strip()
                 # add row to table
                 self.tableWidget_2.insertRow(i)
-                if "Time" not in table:
-                    table["Time"] = ['' for j in range(i)]
+                if "Time" not in self.table:
+                    self.table["Time"] = ['' for j in range(i)]
                     self.tableWidget_2.insertColumn(j)
                     self.tableWidget_2.setHorizontalHeaderItem (j, QTableWidgetItem("Time"))
-                table["Time"].append(time)
+                self.table["Time"].append(time)
                 self.tableWidget_2.setItem(i, j, QTableWidgetItem(time))
                 j += 1
                 #print("Time = -", time, "-")
                 for fld in flds[1:]:
                     #print(fld)
                     kv = fld.split("=")
+                    key = kv[0].strip()
+                    val = kv[1].strip()
                     #print(kv)
-                    if kv[0] not in table:
-                        table[kv[0]] = ['' for j in range(i)]
+                    if key not in self.table:
+                        self.table[key] = ['' for j in range(i)]
                         j = self.tableWidget_2.columnCount()
                         self.tableWidget_2.insertColumn(j)
-                        self.tableWidget_2.setHorizontalHeaderItem (j, QTableWidgetItem(kv[0]))
+                        self.tableWidget_2.setHorizontalHeaderItem (j, QTableWidgetItem(key))
                     else:
-                        j = list(table.keys()).index(kv[0])
+                        j = list(self.table.keys()).index(key)
                         
-                    self.tableWidget_2.setItem(i, j, QTableWidgetItem(kv[1]))
-                    table[kv[0]].append(kv[1])
-                for t in table :
-                    if len(table[t]) < len(table["Time"]) :
-                        table[t].append("")
+                    self.tableWidget_2.setItem(i, j, QTableWidgetItem(val))
+                    self.table[key].append(val)
+                for t in self.table :
+                    if len(self.table[t]) < len(self.table["Time"]) :
+                        self.table[t].append("")
                 i += 1
             self.tableWidget_2.selectRow(self.tableWidget_2.rowCount()-1)
             self.tableWidget_2.scrollToBottom()
@@ -257,46 +302,6 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.printExceptionInfo()
             return
-
-    def readSignal(self, row):
-        if self.data is None :
-            return (None, None, None)
-        #self.logger.info('Processing %d'%row)
-        # scan voltage
-        u = self.data[0, :].copy()
-        # smooth
-        ns = self.readParameter(0, "smooth", 100, int)
-        smooth(u, 2*ns)
-        # signal
-        y = self.data[row, :].copy()
-        # smooth
-        ns = self.readParameter(row, "smooth", 1, int)
-        # offset
-        of = self.readParameter(row, "offset", 0.0, float)
-        # zero line
-        z = self.readZero(row)
-        # smooth
-        smooth(y, ns)
-        smooth(z, 2*ns)
-        # subtract offset and zero
-        y = y - z - of
-        # load resistor
-        R = self.readParameter(0, "R", 2.0e5, float)
-        # convert signal to Amperes
-        y = y/R
-        # signal region
-        r0 = self.readParameter(0, "range", (0, len(y)))
-        r = self.readParameter(row, "range", r0)
-        index = np.arange(r[0],r[1])
-        # scale
-        s = self.readParameter(row, "scale", 1.7, float)
-        # ndh
-        ndh = self.readParameter(row, "ndh", 0.0, float)
-        # scanner base
-        l2 = self.readParameter(0, "l2", 195.0, float)
-        # x' in Radians
-        xsub = (ndh - s*u) / l2
-        return (xsub, y, index)
     
     def plot(self, *args, **kwargs):
         axes = self.mplWidget.canvas.ax
@@ -328,7 +333,6 @@ class MainWindow(QMainWindow):
         self.clearPicture()
 
     def plotRawSignals(self):
-        self.execInitScript()
         self.clearPicture()
         if self.data is None :
             return
@@ -495,17 +499,30 @@ class MainWindow(QMainWindow):
         (tp, value) = sys.exc_info()[:2]
         self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
 
-class LogTable(QTableWidget):
-    def __init__(self, parent=None):
-        # initialization of the superclass
-        super.__init__(parent)
-        self.data = {}
+class LogTable():
+    wdgt = None
+    headers = []
+    data = []
+    
+    def __init__(self, wdgt=None):
+        self.data = []
+        self.headers = []
+        self.wdgt = wdgt
         
     def addRow(self):
-        super.addRow()
         for item in self.data :
             item.append("")
     
+    def addColumn(self, columnName=None):
+        if columnName is None:
+            return
+        self.headers.append(columnName)
+        newColumn = ["" for i in range(len(self.data[0]))]
+        self.data.append(newColumn) 
+        
+    def findColumn(self, columnName):
+        return self.headers.index(columnName)
+
 if __name__ == '__main__':
     # create the GUI application
     app = QApplication(sys.argv)
