@@ -30,6 +30,7 @@ from PyQt5 import uic                       # @UnresolvedImport @UnusedImport @R
 from PyQt5.QtCore import QPoint, QSize      # @UnresolvedImport @UnusedImport @Reimport
 
 from smooth import smooth
+from mplwidget import MplWidget
 
 progName = 'LoggerPlotterPy'
 progVersion = '_1_0'
@@ -171,7 +172,9 @@ class MainWindow(QMainWindow):
         with zipfile.ZipFile(os.path.join(folder, zipFileName), 'r') as zipobj:
             files = zipobj.namelist()
             jj = 0
-            self.mplWidget_3.canvas.ax.clear()
+            layout = self.scrollAreaWidgetContents.layout()
+            layout.
+            #self.mplWidget_3.canvas.ax.clear()
             for f in files :
                 if f.find("chan") >= 0 and f.find("param") < 0:
                     #self.logger.log(logging.DEBUG, f)
@@ -187,16 +190,18 @@ class MainWindow(QMainWindow):
                         y[i] = float(xy[1].replace(b',', b'.'))
                         i += 1
                         
-                    axes = self.mplWidget_3.canvas.ax
+                    mplw = MplWidget()
+                    layout.addWidget(mplw)
+                    axes = mplw.canvas.ax
                     axes.plot(x, y, label='plot '+str(jj))
                     jj += 1
                     # decorate the plot
                     axes.grid(True)
-                    axes.set_title('Elementary jet profile')
-                    axes.set_xlabel('X\', milliRadians')
-                    axes.set_ylabel('Signal, mkA')
+                    axes.set_title('Signal')
+                    axes.set_xlabel('Time, s')
+                    axes.set_ylabel('Signal, V')
                     axes.legend(loc='best') 
-                    self.mplWidget_3.canvas.draw()
+                    mplw.canvas.draw()
 
                     #print(x[0])
                     pass

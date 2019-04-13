@@ -24,6 +24,7 @@ except:
 # Qt4Agg backend. It also inherits from QWidget
 # Matplotlib Figure object
 # import the NavigationToolbar Qt4Agg widget
+
 class MplCanvas(FigureCanvas):
     """Class to represent the FigureCanvas widget"""
     def __init__(self):
