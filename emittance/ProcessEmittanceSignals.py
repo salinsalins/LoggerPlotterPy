@@ -172,11 +172,12 @@ class MainWindow(QMainWindow):
         with zipfile.ZipFile(os.path.join(folder, zipFileName), 'r') as zipobj:
             files = zipobj.namelist()
             layout = self.scrollAreaWidgetContents.layout()
-            #self.mplWidget_3.canvas.ax.clear()
             jj = 0
+            col = 0
+            row = 0
             for f in files :
                 if f.find("chan") >= 0 and f.find("param") < 0:
-                    self.logger.log(logging.DEBUG, f)
+                    self.logger.log(logging.DEBUG, "Signal %s"%f)
                     buf = zipobj.read(f)
                     lines = buf.split(b"\r\n")
                     n = len(lines)
@@ -193,18 +194,40 @@ class MainWindow(QMainWindow):
                         mplw = layout.itemAt(jj).widget()
                     else:
                         mplw = MplWidget()
-                        mplw.setMinimumHeight(300)
-                        layout.addWidget(mplw)
+                        mplw.setMinimumHeight(320)
+                        mplw.setMinimumWidth(320)
+                        layout.addWidget(mplw, row, col)
+                        col += 1
+                        if col > 1:
+                            col = 0
+                            row += 1
                     axes = mplw.canvas.ax
                     axes.clear()
                     axes.plot(x, y, label='plot '+str(jj))
+
+                    pf = f.replace('chan', 'paramchan')
+                    buf = zipobj.read(pf)
+                    lines = buf.split(b"\r\n")
+                    keys = []
+                    vals = []
+                    for ln in lines:
+                        kv = ln.split(b'=')
+                        if len(kv) == 2:
+                            keys.append(kv[0].strip())
+                            vals.append(kv[1].strip())
+                    title = f
+                    if b"label" in keys:
+                        i = keys.index(b"label")
+                        title = vals[i].decode('ascii')
+                        
                     # decorate the plot
                     axes.grid(True)
-                    axes.set_title(f)
+                    axes.set_title(title)
                     axes.set_xlabel('Time, s')
                     axes.set_ylabel('Signal, V')
                     axes.legend(loc='best') 
                     mplw.canvas.draw()
+
                     jj += 1
 
                     #print(x[0])
