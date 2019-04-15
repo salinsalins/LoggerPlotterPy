@@ -445,7 +445,8 @@ class LogTable():
         return self.headers.index(columnName)
 
 class Signal():
-    def __init__(self, n):
+    
+    def __init__(self):
         self.x = np.empty()
         self.y = self.x.copy()
         
@@ -492,8 +493,58 @@ class Signal():
                 if k.start("mark"):
                     print(k)
 
-class ZipFileSignals():
-    pass
+class DataFile():
+    
+    def __init__(self, fileName, folder=""):
+        self.fileName = None
+        self.files = []
+        self.signals = []
+        fn = os.path.join(folder, fileName)
+        with zipfile.ZipFile(fn, 'r') as zipobj:
+            self.files = zipobj.namelist()
+        self.fileName = fn
+        for f in self.files:
+            if f.find("chan") >= 0 and f.find("param") < 0:
+                self.signals.append(f)
+        
+    def readSignal(self, signalName):
+        signal = None
+        if signalName not in self.signals:
+            self.logger.log(logging.INFO, "Signal %s is not found"%signalName)
+            return signal
+        with zipfile.ZipFile(self.fileName, 'r') as zipobj:
+            buf = zipobj.read(signalName)
+            lines = buf.split(b"\r\n")
+            n = len(lines)
+            signal.x = np.empty(n)
+            signal.y = np.empty(n)
+            ii = 0
+            for ln in lines:
+                xy = ln.split(b'; ')
+                signal.x[ii] = float(xy[0].replace(b',', b'.'))
+                signal.y[ii] = float(xy[1].replace(b',', b'.'))
+                ii += 1
+            # read parameters        
+            signal.params = {}
+            pf = signalName.replace('chan', 'paramchan')
+            buf = zipobj.read(pf)
+            lines = buf.split(b"\r\n")
+            for ln in lines:
+                kv = ln.split(b'=')
+                if len(kv) == 2:
+                    signal.params[kv[0].strip()] = kv[1].strip()
+            # title of the signal
+            signal.title = ""
+            signal.title = self.params[b"label"].decode('ascii')
+            # find marks
+            signal.marks = []
+            ms = int(signal.params['mark_start'])
+            ml = int(signal.params['mark_length'])
+            mv = signal.y[ms:ms+ml].mean()
+            signal.mark.append((ms, ml, mv))
+            for k in signal.params:
+                if k.endswith("_start"):
+                    print(k)
 
                         
 if __name__ == '__main__':
