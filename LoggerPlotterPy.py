@@ -61,7 +61,7 @@ class MainWindow(QMainWindow):
         self.pushButton_6.clicked.connect(self.pushPlotButton)
         self.pushButton_7.clicked.connect(self.erasePicture)
         #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-        self.tableWidget_2.itemSelectionChanged.connect(self.selectionChanged)
+        self.tableWidget_3.itemSelectionChanged.connect(self.selectionChanged)
         # menu actions connection
         self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionQuit.triggered.connect(qApp.quit)
@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
         self.restoreSettings()
         
         # additional decorations
-        #self.tableWidget_2.horizontalHeader().
+        #self.tableWidget_3.horizontalHeader().
         
         # read data files
         self.parseFolder()
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.setCurrentIndex(0)
     
     def selectionChanged(self):
-        i = self.tableWidget_2.selectedRanges()[0].topRow()
+        i = self.tableWidget_3.selectedRanges()[0].topRow()
         self.logger.log(logging.DEBUG, 'Selection changed to row %s'%str(i))
         if i < 0:
             return
@@ -168,7 +168,7 @@ class MainWindow(QMainWindow):
         self.logger.log(logging.DEBUG, 'Folder %s'%folder)
         with zipfile.ZipFile(os.path.join(folder, zipFileName), 'r') as zipobj:
             files = zipobj.namelist()
-            layout = self.scrollAreaWidgetContents.layout()
+            layout = self.scrollAreaWidgetContents_3.layout()
             jj = 0
             col = 0
             row = 0
@@ -286,13 +286,13 @@ class MainWindow(QMainWindow):
                 # first field is date time
                 time = flds[0].split(" ")[1].strip()
                 # add row to table
-                self.tableWidget_2.insertRow(i)
+                self.tableWidget_3.insertRow(i)
                 if "Time" not in self.table:
                     self.table["Time"] = ['' for j in range(i)]
-                    self.tableWidget_2.insertColumn(j)
-                    self.tableWidget_2.setHorizontalHeaderItem (j, QTableWidgetItem("Time"))
+                    self.tableWidget_3.insertColumn(j)
+                    self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem("Time"))
                 self.table["Time"].append(time)
-                self.tableWidget_2.setItem(i, j, QTableWidgetItem(time))
+                self.tableWidget_3.setItem(i, j, QTableWidgetItem(time))
                 j += 1
                 #print("Time = -", time, "-")
                 for fld in flds[1:]:
@@ -303,20 +303,20 @@ class MainWindow(QMainWindow):
                     #print(kv)
                     if key not in self.table:
                         self.table[key] = ['' for j in range(i)]
-                        j = self.tableWidget_2.columnCount()
-                        self.tableWidget_2.insertColumn(j)
-                        self.tableWidget_2.setHorizontalHeaderItem (j, QTableWidgetItem(key))
+                        j = self.tableWidget_3.columnCount()
+                        self.tableWidget_3.insertColumn(j)
+                        self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem(key))
                     else:
                         j = list(self.table.keys()).index(key)
                         
-                    self.tableWidget_2.setItem(i, j, QTableWidgetItem(val))
+                    self.tableWidget_3.setItem(i, j, QTableWidgetItem(val))
                     self.table[key].append(val)
                 for t in self.table :
                     if len(self.table[t]) < len(self.table["Time"]) :
                         self.table[t].append("")
                 i += 1
-            self.tableWidget_2.selectRow(self.tableWidget_2.rowCount()-1)
-            self.tableWidget_2.scrollToBottom()
+            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
+            self.tableWidget_3.scrollToBottom()
         except :
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.printExceptionInfo()
