@@ -58,8 +58,8 @@ class MainWindow(QMainWindow):
         # connect the signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
         #self.pushButton_4.clicked.connect(self.processFolder)
-        self.pushButton_6.clicked.connect(self.pushPlotButton)
-        self.pushButton_7.clicked.connect(self.erasePicture)
+        #self.pushButton_6.clicked.connect(self.pushPlotButton)
+        #self.pushButton_7.clicked.connect(self.erasePicture)
         #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         self.tableWidget_2.itemSelectionChanged.connect(self.selectionChanged)
         # menu actions connection
@@ -434,8 +434,8 @@ class MainWindow(QMainWindow):
             #
             self.conf['folder'] = self.logFileName
             self.conf['smooth'] = int(self.spinBox.value())
-            self.conf['scan'] = int(self.spinBox_2.value())
-            self.conf['result'] = int(self.comboBox.currentIndex())
+            #self.conf['scan'] = int(self.spinBox_2.value())
+            #self.conf['result'] = int(self.comboBox.currentIndex())
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
             self.conf['log_level'] = logging.DEBUG
@@ -543,9 +543,13 @@ class LogTable():
         return self.headers.index(columnName)
 
 class Signal():
-    def __init__(self, n):
-        self.x = np.empty(n, float)
-        self.y = self.x.copy()
+    def __init__(self, file = None, signal = None, folder = ""):
+        self.x = np.empty()
+        self.y = np.empty()
+        self.title = "Empty_Signal"
+        self.marks = []
+        if file is not None and signal is not None:
+            self.read(self, file, signal, folder = folder)
         
     def read(self, fileName, signalName, folder=''):
         if signalName.find("chan") < 0 or signalName.find("param") >= 0:
