@@ -35,9 +35,7 @@ from mplwidget import MplWidget
 progName = 'LoggerPlotterPy'
 progVersion = '_1_0'
 settingsFile = progName + '.json'
-initScript =  progName + '_init.py'
 logFile =  progName + '.log'
-dataFile = progName + '.dat'
 
 class TextEditHandler(logging.Handler):
     widget = None
