@@ -555,6 +555,55 @@ class LogTable():
     def findColumn(self, columnName):
         return self.headers.index(columnName)
 
+class Signal():
+    def __init__(self, n):
+        self.x = np.empty(n, float)
+        self.y = self.x.copy()
+        
+    def read(self, fileName, signalName, folder=''):
+        if signalName.find("chan") < 0 or signalName.find("param") >= 0:
+            self.logger.log(logging.INFO, "Wrong Signal Name %s"%signalName)
+            return
+        fn = os.path.join(folder, fileName)
+        self.logger.log(logging.DEBUG, 'File %s'%fn)
+        with zipfile.ZipFile(os.path.join(folder, fn), 'r') as zipobj:
+            files = zipobj.namelist()
+            if signalName not in files :
+                self.logger.log(logging.INFO, "Signal %s not in file"%signalName)
+                return
+            buf = zipobj.read(signalName)
+            lines = buf.split(b"\r\n")
+            n = len(lines)
+            self.x = np.empty(n)
+            self.y = np.empty(n)
+            ii = 0
+            for ln in lines:
+                xy = ln.split(b'; ')
+                self.x[ii] = float(xy[0].replace(b',', b'.'))
+                self.y[ii] = float(xy[1].replace(b',', b'.'))
+                ii += 1
+            # read parameters        
+            self.params = {}
+            pf = signalName.replace('chan', 'paramchan')
+            buf = zipobj.read(pf)
+            lines = buf.split(b"\r\n")
+            for ln in lines:
+                kv = ln.split(b'=')
+                if len(kv) == 2:
+                    self.params[kv[0].strip()] = kv[1].strip()
+            # title of the signal
+            self.title = ""
+            self.title = self.params[b"label"].decode('ascii')
+            # find marks
+            self.marks = []
+            ms = int(self.params['mark_start'])
+            ml = int(self.params['mark_length'])
+            self.mark.append((ms, ml))
+            for k in self.params:
+                if k.start("mark"):
+                    print(k)
+
+                        
 if __name__ == '__main__':
     # create the GUI application
     app = QApplication(sys.argv)
