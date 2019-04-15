@@ -19,7 +19,7 @@
    <string>Emittance Plot Processing</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_4">
+   <layout class="QHBoxLayout" name="horizontalLayout_4">
     <item>
      <widget class="QFrame" name="frame">
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -375,116 +375,113 @@
             <widget class="QWidget" name="stackedWidgetPage3">
              <layout class="QHBoxLayout" name="horizontalLayout_5">
               <item>
-               <widget class="QSplitter" name="splitter">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
+               <widget class="QFrame" name="frame">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
                 </property>
-                <widget class="QTableWidget" name="tableWidget">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                   <horstretch>1</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
+                <property name="frameShape">
+                 <enum>QFrame::StyledPanel</enum>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Raised</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QTableWidget" name="tableWidget">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>10</pointsize>
+                 </font>
+                </property>
+                <property name="alternatingRowColors">
+                 <bool>true</bool>
+                </property>
+                <attribute name="horizontalHeaderVisible">
+                 <bool>false</bool>
+                </attribute>
+                <attribute name="horizontalHeaderCascadingSectionResizes">
+                 <bool>false</bool>
+                </attribute>
+                <attribute name="horizontalHeaderDefaultSectionSize">
+                 <number>100</number>
+                </attribute>
+                <attribute name="horizontalHeaderStretchLastSection">
+                 <bool>true</bool>
+                </attribute>
+                <attribute name="verticalHeaderVisible">
+                 <bool>false</bool>
+                </attribute>
+                <row>
+                 <property name="text">
+                  <string>New Row</string>
+                 </property>
+                </row>
+                <row>
+                 <property name="text">
+                  <string>New Row</string>
+                 </property>
+                </row>
+                <row>
+                 <property name="text">
+                  <string>New Row</string>
+                 </property>
+                </row>
+                <row>
+                 <property name="text">
+                  <string>New Row</string>
+                 </property>
+                </row>
+                <row>
+                 <property name="text">
+                  <string>New Row</string>
+                 </property>
+                </row>
+                <row>
+                 <property name="text">
+                  <string>New Row</string>
+                 </property>
+                </row>
+                <row>
+                 <property name="text">
+                  <string>New Row</string>
+                 </property>
+                </row>
+                <row>
+                 <property name="text">
+                  <string>New Row</string>
+                 </property>
+                </row>
+                <column>
+                 <property name="text">
+                  <string>Parameter</string>
                  </property>
                  <property name="font">
                   <font>
-                   <pointsize>10</pointsize>
+                   <pointsize>12</pointsize>
+                   <kerning>false</kerning>
                   </font>
                  </property>
-                 <property name="alternatingRowColors">
-                  <bool>true</bool>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Value</string>
                  </property>
-                 <attribute name="horizontalHeaderVisible">
-                  <bool>false</bool>
-                 </attribute>
-                 <attribute name="horizontalHeaderCascadingSectionResizes">
-                  <bool>false</bool>
-                 </attribute>
-                 <attribute name="horizontalHeaderDefaultSectionSize">
-                  <number>100</number>
-                 </attribute>
-                 <attribute name="horizontalHeaderStretchLastSection">
-                  <bool>true</bool>
-                 </attribute>
-                 <attribute name="verticalHeaderVisible">
-                  <bool>false</bool>
-                 </attribute>
-                 <row>
-                  <property name="text">
-                   <string>New Row</string>
-                  </property>
-                 </row>
-                 <row>
-                  <property name="text">
-                   <string>New Row</string>
-                  </property>
-                 </row>
-                 <row>
-                  <property name="text">
-                   <string>New Row</string>
-                  </property>
-                 </row>
-                 <row>
-                  <property name="text">
-                   <string>New Row</string>
-                  </property>
-                 </row>
-                 <row>
-                  <property name="text">
-                   <string>New Row</string>
-                  </property>
-                 </row>
-                 <row>
-                  <property name="text">
-                   <string>New Row</string>
-                  </property>
-                 </row>
-                 <row>
-                  <property name="text">
-                   <string>New Row</string>
-                  </property>
-                 </row>
-                 <row>
-                  <property name="text">
-                   <string>New Row</string>
-                  </property>
-                 </row>
-                 <column>
-                  <property name="text">
-                   <string>Parameter</string>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>12</pointsize>
-                    <kerning>false</kerning>
-                   </font>
-                  </property>
-                 </column>
-                 <column>
-                  <property name="text">
-                   <string>Value</string>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>12</pointsize>
-                   </font>
-                  </property>
-                 </column>
-                </widget>
-                <widget class="QFrame" name="frame">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                   <horstretch>1</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                  </font>
                  </property>
-                 <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
-                 </property>
-                 <property name="frameShadow">
-                  <enum>QFrame::Raised</enum>
-                 </property>
-                </widget>
+                </column>
                </widget>
               </item>
              </layout>
