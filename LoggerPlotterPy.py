@@ -65,9 +65,9 @@ class MainWindow(QMainWindow):
         # menu actions connection
         self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionQuit.triggered.connect(qApp.quit)
-        self.actionPlot.triggered.connect(self.showPlot)
-        self.actionLog.triggered.connect(self.showLog)
-        self.actionParameters.triggered.connect(self.showParameters)
+        self.actionPlot.triggered.connect(self.showPlotPane)
+        self.actionLog.triggered.connect(self.showLogPane)
+        self.actionParameters.triggered.connect(self.showParametersPane)
         self.actionAbout.triggered.connect(self.showAbout)
         # additional configuration
         # disable text wrapping in log window
@@ -85,7 +85,8 @@ class MainWindow(QMainWindow):
         # configure logging
         self.logger = logging.getLogger(progName+progVersion)
         self.logger.setLevel(logging.DEBUG)
-        self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+        #self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%H:%M:%S')
         self.console_handler = logging.StreamHandler()
         #self.console_handler.setLevel(logging.WARNING)
         self.console_handler.setFormatter(self.log_formatter)
@@ -117,19 +118,19 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, 'About', progName + ' Version ' + progVersion + 
                                 '\nPlot Logger traces.', QMessageBox.Ok)    
 
-    def showPlot(self):
+    def showPlotPane(self):
         self.stackedWidget.setCurrentIndex(0)
         self.actionPlot.setChecked(True)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
     
-    def showLog(self):
+    def showLogPane(self):
         self.stackedWidget.setCurrentIndex(1)
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(True)
         self.actionParameters.setChecked(False)
 
-    def showParameters(self):
+    def showParametersPane(self):
         self.stackedWidget.setCurrentIndex(2)
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(False)
