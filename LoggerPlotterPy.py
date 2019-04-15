@@ -58,8 +58,8 @@ class MainWindow(QMainWindow):
         # connect the signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
         #self.pushButton_4.clicked.connect(self.processFolder)
-        self.pushButton_6.clicked.connect(self.pushPlotButton)
-        self.pushButton_7.clicked.connect(self.erasePicture)
+        #self.pushButton_6.clicked.connect(self.pushPlotButton)
+        #self.pushButton_7.clicked.connect(self.erasePicture)
         #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         self.tableWidget_3.itemSelectionChanged.connect(self.selectionChanged)
         # menu actions connection
@@ -434,8 +434,8 @@ class MainWindow(QMainWindow):
             #
             self.conf['folder'] = self.logFileName
             self.conf['smooth'] = int(self.spinBox.value())
-            self.conf['scan'] = int(self.spinBox_2.value())
-            self.conf['result'] = int(self.comboBox.currentIndex())
+            #self.conf['scan'] = int(self.spinBox_2.value())
+            #self.conf['result'] = int(self.comboBox.currentIndex())
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
             self.conf['log_level'] = logging.DEBUG
@@ -465,16 +465,16 @@ class MainWindow(QMainWindow):
                 self.logFileName = self.conf['folder']
             if 'smooth' in self.conf:
                 self.spinBox.setValue(int(self.conf['smooth']))
-            if 'scan' in self.conf:
-                self.spinBox_2.setValue(int(self.conf['scan']))
-            if 'result' in self.conf:
-                self.comboBox.setCurrentIndex(int(self.conf['result']))
+            #if 'scan' in self.conf:
+                #self.spinBox_2.setValue(int(self.conf['scan']))
+            #if 'result' in self.conf:
+                #self.comboBox.setCurrentIndex(int(self.conf['result']))
             # read items from history  
-            if 'history' in self.conf:
-                self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-                self.comboBox_2.clear()
-                self.comboBox_2.addItems(self.conf['history'])
-                self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+            #if 'history' in self.conf:
+                #self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+                #self.comboBox_2.clear()
+                #self.comboBox_2.addItems(self.conf['history'])
+                #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
 
             # print OK message and exit    
             self.logger.info('Configuration restored from %s'%fullName)
@@ -495,13 +495,13 @@ class MainWindow(QMainWindow):
             # smooth
             self.spinBox.setValue(100)
             # scan
-            self.spinBox_2.setValue(0)
+            #self.spinBox_2.setValue(0)
             # result
-            self.comboBox.setCurrentIndex(0)
+            #self.comboBox.setCurrentIndex(0)
             # items in history  
-            self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-            self.comboBox_2.clear()
-            self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+            #self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+            #self.comboBox_2.clear()
+            #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
             
             self.conf = {}
             
