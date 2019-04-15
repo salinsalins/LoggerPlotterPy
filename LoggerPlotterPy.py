@@ -543,13 +543,9 @@ class LogTable():
         return self.headers.index(columnName)
 
 class Signal():
-    def __init__(self, file = None, signal = None, folder = ""):
-        self.x = np.empty()
-        self.y = np.empty()
-        self.title = "Empty_Signal"
-        self.marks = []
-        if file is not None and signal is not None:
-            self.read(self, file, signal, folder = folder)
+    def __init__(self, n):
+        self.x = np.empty(n, float)
+        self.y = self.x.copy()
         
     def read(self, fileName, signalName, folder=''):
         if signalName.find("chan") < 0 or signalName.find("param") >= 0:
