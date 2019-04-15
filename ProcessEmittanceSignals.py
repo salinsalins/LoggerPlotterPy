@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         # initialization of the superclass
         super(MainWindow, self).__init__(parent)
         # load the GUI 
-        uic.loadUi('Emittance1.ui', self)
+        uic.loadUi('LoggerPlotter.ui', self)
         # connect the signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
         #self.pushButton_4.clicked.connect(self.processFolder)
