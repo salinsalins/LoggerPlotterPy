@@ -14,29 +14,28 @@ import sys
 import json
 import logging
 import zipfile
-import re
+
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import qApp
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidget
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5 import uic
+from PyQt5.QtCore import QPoint, QSize
 
 import numpy as np
-from astropy import table
-
-from PyQt5.QtWidgets import QMainWindow     # @UnresolvedImport @UnusedImport @Reimport
-from PyQt5.QtWidgets import QApplication    # @UnresolvedImport @UnusedImport @Reimport
-from PyQt5.QtWidgets import qApp            # @UnresolvedImport @UnusedImport @Reimport
-from PyQt5.QtWidgets import QFileDialog     # @UnresolvedImport @UnusedImport @Reimport
-from PyQt5.QtWidgets import QTableWidgetItem # @UnresolvedImport @UnusedImport @Reimport
-from PyQt5.QtWidgets import QTableWidget     # @UnresolvedImport @UnusedImport
-from PyQt5.QtWidgets import QMessageBox     # @UnresolvedImport @UnusedImport @Reimport
-from PyQt5 import uic                       # @UnresolvedImport @UnusedImport @Reimport
-from PyQt5.QtCore import QPoint, QSize      # @UnresolvedImport @UnusedImport @Reimport
-
-from smooth import smooth
 from mplwidget import MplWidget
+# my imports
+from smooth import smooth
 
 progName = 'LoggerPlotterPy'
 progVersion = '_1_0'
 settingsFile = progName + '.json'
 logFile =  progName + '.log'
 
+# logging to the text panel
 class TextEditHandler(logging.Handler):
     widget = None
     
