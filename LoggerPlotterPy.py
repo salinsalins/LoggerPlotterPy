@@ -247,15 +247,6 @@ class MainWindow(QMainWindow):
         # save global settings
         self.saveSettings()
 
-    def clearPicture(self, force=False):
-        if force or self.checkBox.isChecked():
-            # clear the axes
-            self.erasePicture()
-        
-    def erasePicture(self):
-        self.mplWidget.canvas.ax.clear()
-        self.mplWidget.canvas.draw()
-
     def parseFolder(self, fn=None):
         if fn is None:
             fn = self.logFileName
@@ -322,20 +313,6 @@ class MainWindow(QMainWindow):
             self.printExceptionInfo()
             return
     
-    def plot(self, *args, **kwargs):
-        axes = self.mplWidget.canvas.ax
-        axes.plot(*args, **kwargs)
-        #zoplot()
-        #xlim = axes.get_xlim()
-        #axes.plot(xlim, [0.0,0.0], color='k')
-        #axes.set_xlim(xlim)
-        axes.grid(True)
-        axes.legend(loc='best') 
-        self.mplWidget.canvas.draw()
-
-    def draw(self):
-        self.mplWidget.canvas.draw()
-
     def zoplot(self, value=0.0, color='k'):
         axes = self.mplWidget.canvas.ax
         xlim = axes.get_xlim()
@@ -348,82 +325,6 @@ class MainWindow(QMainWindow):
         axes.plot([value, value], ylim, color=color)
         axes.set_ylim(ylim)
 
-    def cls(self):
-        self.clearPicture()
-
-    def plotRawSignals(self):
-        self.clearPicture()
-        if self.data is None :
-            return
-        indexes = self.listWidget.selectedIndexes()
-        if len(indexes) <= 0:
-            return
-        axes = self.mplWidget.canvas.ax
-        x,xTitle = self.getX()
-        for i in indexes :
-            row = i.row()
-            y = self.data[row, :].copy()
-            ns = self.readParameter(row, "smooth", self.spinBox.value(), int)
-            smooth(y, ns)
-            z = self.readZero(row) + self.readParameter(row, 'offset')
-            axes.plot(x, y, label='raw '+str(row))
-            axes.plot(x, z, label='zero'+str(row))
-        self.zoplot()
-        axes.grid(True)
-        axes.set_title('Signals with zero line')
-        axes.set_xlabel(xTitle)
-        axes.set_ylabel('Signal Voltage, V')
-        axes.legend(loc='best') 
-        self.mplWidget.canvas.draw()
-
-    def onclick(self, event):
-        self.logger.info('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-              (event.button, event.x, event.y, event.xdata, event.ydata))
-
-    def plotElementaryJets(self, file=None, entry=None):
-        axes = self.mplWidget.canvas.ax
-        self.clearPicture()
-        # draw chart
-        indexes = self.listWidget.selectedIndexes()
-        for i in indexes :
-            row = i.row()
-            x,y,index = self.readSignal(row)
-            xx = x[index]*1000.0 # convert to milliRadians
-            yy = -1.0e6*y[index] # convert to microAmpers
-            axes.plot(xx, yy, label='jet '+str(row))
-        axes.plot(axes.get_xlim(), [0.0,0.0], color='k')
-        # decorate the plot
-        axes.grid(True)
-        axes.set_title('Elementary jet profile')
-        axes.set_xlabel('X\', milliRadians')
-        axes.set_ylabel('Signal, mkA')
-        axes.legend(loc='best') 
-        self.mplWidget.canvas.draw()
-
-    def pushPlotButton(self):
-        if self.data is None :
-            return
-        nx = len(self.fileNames) 
-        if nx <= 0 :
-            return
-        
-        if int(self.comboBox.currentIndex()) == 0:
-            self.plotRawSignals()
-            return
-        if int(self.comboBox.currentIndex()) == 1:
-            self.plotProcessedSignals()
-            return
-        if int(self.comboBox.currentIndex()) == 2:
-            self.plotElementaryJets()
-            return
-        if int(self.comboBox.currentIndex()) == 3:
-            self.calculateProfiles()
-            return
-        if int(self.comboBox.currentIndex()) == 4:
-            self.calculateProfiles()
-            return
-        self.calculateEmittance()
-    
     def saveSettings(self, folder='', fileName=settingsFile) :
         try:
             fullName = os.path.join(str(folder), fileName)
@@ -544,7 +445,7 @@ class LogTable():
 
 class Signal():
     def __init__(self, n):
-        self.x = np.empty(n, float)
+        self.x = np.empty()
         self.y = self.x.copy()
         
     def read(self, fileName, signalName, folder=''):
@@ -589,6 +490,9 @@ class Signal():
             for k in self.params:
                 if k.start("mark"):
                     print(k)
+
+class ZipFileSignals():
+    pass
 
                         
 if __name__ == '__main__':
