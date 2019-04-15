@@ -208,36 +208,6 @@
            <number>0</number>
           </property>
           <item>
-           <widget class="QListWidget" name="listWidget">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>1</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="font">
-             <font>
-              <pointsize>12</pointsize>
-             </font>
-            </property>
-            <property name="midLineWidth">
-             <number>0</number>
-            </property>
-            <property name="editTriggers">
-             <set>QAbstractItemView::NoEditTriggers</set>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>false</bool>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::MultiSelection</enum>
-            </property>
-            <property name="horizontalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QStackedWidget" name="stackedWidget">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -439,8 +409,8 @@
                 <property name="frameShadow">
                  <enum>QFrame::Raised</enum>
                 </property>
-                <layout class="QGridLayout" name="gridLayout">
-                 <item row="0" column="0">
+                <layout class="QVBoxLayout" name="verticalLayout">
+                 <item>
                   <widget class="QSplitter" name="splitter_2">
                    <property name="orientation">
                     <enum>Qt::Vertical</enum>
@@ -449,7 +419,7 @@
                     <property name="sizePolicy">
                      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                       <horstretch>0</horstretch>
-                      <verstretch>4</verstretch>
+                      <verstretch>0</verstretch>
                      </sizepolicy>
                     </property>
                     <property name="verticalScrollBarPolicy">
@@ -463,8 +433,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>739</width>
-                       <height>123</height>
+                       <width>1063</width>
+                       <height>108</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -480,7 +450,7 @@
                     <property name="sizePolicy">
                      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                       <horstretch>0</horstretch>
-                      <verstretch>1</verstretch>
+                      <verstretch>0</verstretch>
                      </sizepolicy>
                     </property>
                     <property name="widgetResizable">
@@ -491,8 +461,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>765</width>
-                       <height>178</height>
+                       <width>1080</width>
+                       <height>289</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -796,7 +766,7 @@
      <x>0</x>
      <y>0</y>
      <width>1156</width>
-     <height>34</height>
+     <height>23</height>
     </rect>
    </property>
    <property name="font">

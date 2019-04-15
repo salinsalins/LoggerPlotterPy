@@ -317,16 +317,6 @@ class MainWindow(QMainWindow):
                 i += 1
             self.tableWidget_2.selectRow(self.tableWidget_2.rowCount()-1)
             self.tableWidget_2.scrollToBottom()
-            #self.scrollArea_2.scrollToBottom()
-    
-            folder = os.path.dirname(self.logFileName)
-            self.logger.info('Parsing %s'%folder)
-            self.dirlist = os.listdir(folder)
-            # fill listWidget with file zipFiles
-            self.listWidget.clear()
-            # make zip file zipFiles list
-            self.zipFiles = [f for f in self.dirlist if f.endswith(".zip")]
-            self.listWidget.addItems(self.zipFiles)
         except :
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.printExceptionInfo()
