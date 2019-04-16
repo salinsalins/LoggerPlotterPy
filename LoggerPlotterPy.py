@@ -60,8 +60,8 @@ class MainWindow(QMainWindow):
         #self.pushButton_4.clicked.connect(self.processFolder)
         #self.pushButton_6.clicked.connect(self.pushPlotButton)
         #self.pushButton_7.clicked.connect(self.erasePicture)
-        #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
-        self.tableWidget_3.itemSelectionChanged.connect(self.selectionChanged)
+        self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+        self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
         # menu actions connection
         self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionQuit.triggered.connect(qApp.quit)
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.insertItem(-1, lfn)
                 self.comboBox_2.setCurrentIndex(0)
     
-    def selectionChanged(self):
+    def tableSelectionChanged(self):
         i = self.tableWidget_3.selectedRanges()[0].topRow()
         self.logger.log(logging.DEBUG, 'Selection changed to row %s'%str(i))
         if i < 0:
@@ -245,6 +245,19 @@ class MainWindow(QMainWindow):
         if self.logFileName != newFileName:
             self.clearPicture()
             self.logFileName = newFileName
+            self.parseFolder()
+ 
+    def selectionChanged(self, i):
+        self.logger.debug('Selection changed to %s'%str(i))
+        if i < 0:
+            return
+        newLogFile = str(self.comboBox_2.currentText())
+        if not os.path.exists(newLogFile):
+            self.logger.warning('File %s is not found'%newLogFile)
+            self.comboBox_2.removeItem(i)
+            return
+        if self.logFileName != newLogFile:
+            self.logFileName = newLogFile
             self.parseFolder()
  
     def onQuit(self) :
@@ -376,10 +389,12 @@ class MainWindow(QMainWindow):
                 #self.comboBox.setCurrentIndex(int(self.conf['result']))
             # read items from history  
             if 'history' in self.conf:
-                #self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+                self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
                 self.comboBox_2.clear()
                 self.comboBox_2.addItems(self.conf['history'])
-                #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+                self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+            if 'history_index' in self.conf:
+                self.comboBox_2.setCurrentIndex(self.conf['history_index'])
 
             # print OK message and exit    
             self.logger.info('Configuration restored from %s'%fullName)
@@ -404,9 +419,9 @@ class MainWindow(QMainWindow):
             # result
             #self.comboBox.setCurrentIndex(0)
             # items in history  
-            #self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+            #self.comboBox_2.currentIndexChanged.disconnect(self.tableSelectionChanged)
             #self.comboBox_2.clear()
-            #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+            #self.comboBox_2.currentIndexChanged.connect(self.tableSelectionChanged)
             
             self.conf = {}
             
