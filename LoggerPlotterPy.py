@@ -510,7 +510,7 @@ class DataFile():
     def readSignal(self, signalName):
         signal = None
         if signalName not in self.signals:
-            self.logger.log(logging.INFO, "Signal %s is not found"%signalName)
+            self.logger.log(logging.INFO, "No signal %s in the file"%signalName)
             return signal
         with zipfile.ZipFile(self.fileName, 'r') as zipobj:
             buf = zipobj.read(signalName)
@@ -541,10 +541,17 @@ class DataFile():
             ms = int(signal.params['mark_start'])
             ml = int(signal.params['mark_length'])
             mv = signal.y[ms:ms+ml].mean()
-            signal.mark.append((ms, ml, mv))
+            signal.mark = (ms, ml, mv)
+            signal.marks = []
             for k in signal.params:
                 if k.endswith("_start"):
+                    ms = int(signal.params[k])
+                    ml = int(signal.params[k.replace("_start", '_length')])
+                    mv = signal.y[ms:ms+ml].mean()
+                    signal.marks.append((ms, ml, mv))
                     print(k)
+        
+        return signal
 
                         
 if __name__ == '__main__':
