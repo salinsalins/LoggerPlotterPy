@@ -110,8 +110,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>1016</width>
-                       <height>467</height>
+                       <width>991</width>
+                       <height>435</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -138,8 +138,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>1033</width>
-                       <height>210</height>
+                       <width>1017</width>
+                       <height>218</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -164,7 +164,7 @@
                          <number>0</number>
                         </property>
                         <attribute name="horizontalHeaderVisible">
-                         <bool>false</bool>
+                         <bool>true</bool>
                         </attribute>
                         <attribute name="horizontalHeaderDefaultSectionSize">
                          <number>70</number>

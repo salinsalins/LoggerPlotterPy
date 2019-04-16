@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
             self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
             #
             self.conf['folder'] = self.logFileName
-            self.conf['smooth'] = int(self.spinBox.value())
+            #self.conf['smooth'] = int(self.spinBox.value())
             #self.conf['scan'] = int(self.spinBox_2.value())
             #self.conf['result'] = int(self.comboBox.currentIndex())
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
@@ -360,25 +360,25 @@ class MainWindow(QMainWindow):
             fullName = os.path.join(str(folder), fileName)
             with open(fullName, 'r', encoding='utf-8') as configfile:
                 s = configfile.read()
-                self.conf = json.loads(s)
+            self.conf = json.loads(s)
             # restore window size and position
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
-            #
+            # last folder
             if 'folder' in self.conf:
                 self.logFileName = self.conf['folder']
-            if 'smooth' in self.conf:
-                self.spinBox.setValue(int(self.conf['smooth']))
+            #if 'smooth' in self.conf:
+                #self.spinBox.setValue(int(self.conf['smooth']))
             #if 'scan' in self.conf:
                 #self.spinBox_2.setValue(int(self.conf['scan']))
             #if 'result' in self.conf:
                 #self.comboBox.setCurrentIndex(int(self.conf['result']))
             # read items from history  
-            #if 'history' in self.conf:
+            if 'history' in self.conf:
                 #self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
-                #self.comboBox_2.clear()
-                #self.comboBox_2.addItems(self.conf['history'])
+                self.comboBox_2.clear()
+                self.comboBox_2.addItems(self.conf['history'])
                 #self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
 
             # print OK message and exit    
@@ -398,7 +398,7 @@ class MainWindow(QMainWindow):
             # log file name
             self.logFileName = None
             # smooth
-            self.spinBox.setValue(100)
+            #self.spinBox.setValue(100)
             # scan
             #self.spinBox_2.setValue(0)
             # result
