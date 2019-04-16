@@ -417,6 +417,7 @@ class MainWindow(QMainWindow):
             return False
 
     def printExceptionInfo(self, level=logging.INFO):
+        #excInfo = sys.exc_info()
         (tp, value) = sys.exc_info()[:2]
         self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
 
