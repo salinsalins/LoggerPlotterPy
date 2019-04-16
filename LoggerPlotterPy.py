@@ -228,8 +228,11 @@ class MainWindow(QMainWindow):
 
                     jj += 1
 
+
                     #print(x[0])
-                    pass
+            pass
+        df = DataFile(os.path.join(folder, zipFileName))
+        pass
                        
         
         return        
@@ -422,25 +425,65 @@ class MainWindow(QMainWindow):
         self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
 
 class LogTable():
-    wdgt = None
-    headers = []
-    data = []
-    
-    def __init__(self, wdgt=None):
+    def __init__(self, fileName, folder = "", wdgt=None):
         self.data = []
         self.headers = []
+        self.FileName = os.path.join(folder, fileName)
         self.wdgt = wdgt
+        self.rows = 0
+        self.columns = 0
+        
+        if not os.path.exists(self.FileName) :
+            return  
+        with open(self.FileName, "r") as stream:
+            self.buf = stream.read()
+        if len(self.buf) <= 0 :
+            self.logger.info('Nothing to process in %s'%self.FileName)
+            return
+        # split buf to lines
+        lns = self.buf.split('\n')
+        # loop for lines
+        for ln in lns:
+            # split line to fields
+            flds =ln.split("; ")
+            if len(flds[0]) < 19:
+                continue
+
+            # first field is date time
+            time = flds[0].split(" ")[1].strip()
+            # add row to table
+            self.addColumn("Time")
+            self.addRow()
+            j = self.headers.index("Time")
+            self.data[j, self.rows-1] = time
+            
+            for fld in flds[1:]:
+                kv = fld.split("=")
+                key = kv[0].strip()
+                val = kv[1].strip()
+                j = self.headers.index(key)
+                if j < 0:
+                    self.addColumn(key)
+                    self.data[self.columns-1, self.rows-1] = val
+                else:
+                    self.data[j, self.rows-1] = val
+        
         
     def addRow(self):
         for item in self.data :
             item.append("")
+        self.rows += 1
     
-    def addColumn(self, columnName=None):
+    def addColumn(self, columnName):
         if columnName is None:
             return
+        # skip if column exists
+        if columnName is self.headers:
+            return
         self.headers.append(columnName)
-        newColumn = ["" for i in range(len(self.data[0]))]
-        self.data.append(newColumn) 
+        newColumn = ["" for ii in range(self.columns)]
+        self.data.append(newColumn)
+        self.columns += 1 
         
     def findColumn(self, columnName):
         return self.headers.index(columnName)
@@ -495,7 +538,6 @@ class Signal():
                     print(k)
 
 class DataFile():
-    
     def __init__(self, fileName, folder=""):
         self.fileName = None
         self.files = []
@@ -538,20 +580,20 @@ class DataFile():
             signal.title = ""
             signal.title = self.params[b"label"].decode('ascii')
             # find marks
-            signal.marks = []
-            ms = int(signal.params['mark_start'])
-            ml = int(signal.params['mark_length'])
-            mv = signal.y[ms:ms+ml].mean()
-            signal.mark = (ms, ml, mv)
-            signal.marks = []
+            signal.marks = {}
             for k in signal.params:
                 if k.endswith("_start"):
                     ms = int(signal.params[k])
                     ml = int(signal.params[k.replace("_start", '_length')])
                     mv = signal.y[ms:ms+ml].mean()
-                    signal.marks.append((ms, ml, mv))
+                    signal.marks[k.replace("_start", '')] = (ms, ml, mv)
                     print(k)
-        
+            signal.value = 0.0
+            if 'zero' in signal.marks:
+                zero = signal["zero"][2]
+            else:
+                zero = 0
+            signal.value = signal["mark"][2] - zero  
         return signal
 
                         
