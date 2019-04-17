@@ -241,12 +241,21 @@ class MainWindow(QMainWindow):
             if self.logTable.fileName is None:
                 return
             self.logFileName = self.logTable.fileName
-
-            #for col in self.logTable:
-            #    self.tableWidget_3.insertRow(i)
-            #    self.tableWidget_3.insertColumn(j)
-            #    self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem(key))
-        
+            self.included = self.plainTextEdit_2.toPlainText().split('\n')
+            self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
+            columns = []
+            for t in self.included:
+                if t in self.logTable.headers:
+                    columns.append(t)
+            for t in self.logTable.headers:
+                if t not in self.excluded and t not in columns:
+                    columns.append(t)
+            k = 0
+            for c in columns:
+                self.tableWidget_3.insertColumn(k)
+                self.tableWidget_3.setHorizontalHeaderItem (k, QTableWidgetItem(c))
+                k += 1
+                
 
             
             stream = open(fn, "r")
@@ -256,11 +265,6 @@ class MainWindow(QMainWindow):
                 self.logger.info('Nothing to process in %s'%fn)
                 return
             self.logFileName = fn
-            
-            self.included = self.plainTextEdit_2.toPlainText().split('\n')
-            self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
-            for t in self.included:
-                pass
             
             self.table = {}
             self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
