@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
         self.paramsManual = {}
         
         # configure logging
-        self.logger = logging.getLogger(progName+progVersion)
+        self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
         #self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
         self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%H:%M:%S')
@@ -169,9 +169,7 @@ class MainWindow(QMainWindow):
         folder = os.path.dirname(self.logFileName)
         self.logger.log(logging.DEBUG, 'Folder %s'%folder)
         
-        self.dataFile = ""
         self.dataFile = DataFile(zipFileName, folder = folder)
-        self.signalsList = []
         self.signalsList = self.dataFile.readAllSignals()
         layout = self.scrollAreaWidgetContents_3.layout()
         jj = 0
@@ -189,17 +187,17 @@ class MainWindow(QMainWindow):
                 if col > 1:
                     col = 0
                     row += 1
-                axes = mplw.canvas.ax
-                axes.clear()
-                axes.plot(s.x, s.y, label='plot '+str(jj))
-                # decorate the plot
-                axes.grid(True)
-                axes.set_title(s.title)
-                axes.set_xlabel('Time, s')
-                axes.set_ylabel('Signal, V')
-                axes.legend(loc='best') 
-                mplw.canvas.draw()
-                jj += 1
+            axes = mplw.canvas.ax
+            axes.clear()
+            axes.plot(s.x, s.y, label='plot '+str(jj))
+            # decorate the plot
+            axes.grid(True)
+            axes.set_title(s.title + ' = ' + str(s.value))
+            axes.set_xlabel('Time, s')
+            axes.set_ylabel('Signal, V')
+            axes.legend(loc='best') 
+            mplw.canvas.draw()
+            jj += 1
         return        
  
     def selectionChanged(self, i):
@@ -218,8 +216,8 @@ class MainWindow(QMainWindow):
     def logLevelIndexChanged(self, i):
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
         self.logger.debug('Log selection changed to %s'%str(i))
-        i = int(self.comboBox_1.currentIndex())
-        #self.logger.setLevel(levels[i])
+        #i = int(self.comboBox_1.currentIndex())
+        self.logger.setLevel(levels[i])
 
  
     def onQuit(self) :
@@ -234,7 +232,7 @@ class MainWindow(QMainWindow):
         self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
         # read log file content
         
-        #self.logTable = LogTable(fn)
+        self.logTable = LogTable(fn)
         #self.tableWidget_3.clear()
         #for col in self.logTable:
         #    self.tableWidget_3.insertRow(i)
@@ -411,6 +409,8 @@ class MainWindow(QMainWindow):
 
 class LogTable():
     def __init__(self, fileName, folder = "", wdgt=None):
+        self.logger = logging.getLogger()
+        
         self.data = [[],]
         self.headers = []
         self.FileName = None
@@ -463,7 +463,7 @@ class LogTable():
         if columnName is None:
             return
         # skip if column exists
-        if columnName is self.headers:
+        if columnName in self.headers:
             return
         self.headers.append(columnName)
         newColumn = ["" for ii in range(self.columns)]
@@ -471,7 +471,10 @@ class LogTable():
         self.columns += 1 
         
     def find(self, columnName):
-        return self.headers.index(columnName)
+        try:
+            return self.headers.index(columnName)
+        except:
+            return -1
 
     def __contains__(self, item):
         return item in self.headers
@@ -482,6 +485,7 @@ class LogTable():
 class Signal():
     
     def __init__(self):
+        self.logger = logging.getLogger()
         self.x = np.zeros(1)
         self.y = self.x.copy()
         self.title = ''
@@ -532,6 +536,7 @@ class Signal():
 
 class DataFile():
     def __init__(self, fileName, folder=""):
+        self.logger = logging.getLogger()
         self.fileName = None
         self.files = []
         self.signals = []

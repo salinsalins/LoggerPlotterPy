@@ -74,7 +74,7 @@
              <enum>Qt::NoFocus</enum>
             </property>
             <property name="currentIndex">
-             <number>2</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="stackedWidgetPage1">
              <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -110,8 +110,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>991</width>
-                       <height>415</height>
+                       <width>1016</width>
+                       <height>467</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -138,8 +138,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>1017</width>
-                       <height>218</height>
+                       <width>1033</width>
+                       <height>210</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -164,7 +164,7 @@
                          <number>0</number>
                         </property>
                         <attribute name="horizontalHeaderVisible">
-                         <bool>false</bool>
+                         <bool>true</bool>
                         </attribute>
                         <attribute name="horizontalHeaderDefaultSectionSize">
                          <number>70</number>
@@ -402,27 +402,15 @@
                         <height>0</height>
                        </size>
                       </property>
+                      <property name="editable">
+                       <bool>false</bool>
+                      </property>
                       <property name="currentIndex">
-                       <number>4</number>
+                       <number>1</number>
                       </property>
                       <item>
                        <property name="text">
-                        <string notr="true">CRITICAL</string>
-                       </property>
-                      </item>
-                      <item>
-                       <property name="text">
-                        <string notr="true">ERROR</string>
-                       </property>
-                      </item>
-                      <item>
-                       <property name="text">
-                        <string notr="true">WARNING</string>
-                       </property>
-                      </item>
-                      <item>
-                       <property name="text">
-                        <string notr="true">DEBUG</string>
+                        <string notr="true">NOTSET</string>
                        </property>
                       </item>
                       <item>
@@ -432,7 +420,22 @@
                       </item>
                       <item>
                        <property name="text">
-                        <string notr="true">NOTSET</string>
+                        <string notr="true">DEBUG</string>
+                       </property>
+                      </item>
+                      <item>
+                       <property name="text">
+                        <string notr="true">WARNING</string>
+                       </property>
+                      </item>
+                      <item>
+                       <property name="text">
+                        <string notr="true">ERROR</string>
+                       </property>
+                      </item>
+                      <item>
+                       <property name="text">
+                        <string notr="true">CRITICAL</string>
                        </property>
                       </item>
                      </widget>
@@ -606,7 +609,7 @@
      <x>0</x>
      <y>0</y>
      <width>1073</width>
-     <height>34</height>
+     <height>23</height>
     </rect>
    </property>
    <property name="font">
