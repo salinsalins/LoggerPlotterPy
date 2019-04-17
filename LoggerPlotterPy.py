@@ -223,8 +223,18 @@ class MainWindow(QMainWindow):
             fn = self.logFileName
         if fn is None:
             return
-        self.logger.log(logging.DEBUG, 'Reading %s'%fn)
+        self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
         # read log file content
+        
+        self.logTable = LogTable(fn)
+        #self.tableWidget_3.clear()
+        #for col in self.logTable:
+        #    self.tableWidget_3.insertRow(i)
+        #    self.tableWidget_3.insertColumn(j)
+        #    self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem(key))
+            
+        
+        
         try:
             stream = open(fn, "r")
             self.buf = stream.read()
@@ -395,20 +405,22 @@ class MainWindow(QMainWindow):
 
 class LogTable():
     def __init__(self, fileName, folder = "", wdgt=None):
-        self.data = []
+        self.data = [[],]
         self.headers = []
-        self.FileName = os.path.join(folder, fileName)
+        self.FileName = None
         self.wdgt = wdgt
         self.rows = 0
         self.columns = 0
         
-        if not os.path.exists(self.FileName) :
+        fn = os.path.join(folder, fileName)
+        if not os.path.exists(fn) :
             return  
-        with open(self.FileName, "r") as stream:
+        with open(fn, "r") as stream:
             self.buf = stream.read()
         if len(self.buf) <= 0 :
             self.logger.info('Nothing to process in %s'%self.FileName)
             return
+        self.FileName = fn
         # split buf to lines
         lns = self.buf.split('\n')
         # loop for lines
@@ -417,26 +429,24 @@ class LogTable():
             flds =ln.split("; ")
             if len(flds[0]) < 19:
                 continue
-
             # first field is date time
             time = flds[0].split(" ")[1].strip()
             # add row to table
             self.addColumn("Time")
             self.addRow()
             j = self.headers.index("Time")
-            self.data[j, self.rows-1] = time
+            self.data[j][self.rows-1] = time
             
             for fld in flds[1:]:
                 kv = fld.split("=")
                 key = kv[0].strip()
                 val = kv[1].strip()
-                j = self.headers.index(key)
-                if j < 0:
-                    self.addColumn(key)
-                    self.data[self.columns-1, self.rows-1] = val
+                if key in self.headers:
+                    j = self.headers.index(key)
+                    self.data[j][self.rows-1] = val
                 else:
-                    self.data[j, self.rows-1] = val
-        
+                    self.addColumn(key)
+                    self.data[self.columns-1][self.rows-1] = val
         
     def addRow(self):
         for item in self.data :
@@ -454,9 +464,15 @@ class LogTable():
         self.data.append(newColumn)
         self.columns += 1 
         
-    def findColumn(self, columnName):
+    def find(self, columnName):
         return self.headers.index(columnName)
 
+    def __contains__(self, item):
+        return item in self.headers
+
+    def __len__(self):
+        return len(self.headers)
+    
 class Signal():
     
     def __init__(self):
@@ -470,11 +486,11 @@ class Signal():
             self.logger.log(logging.INFO, "Wrong Signal Name %s"%signalName)
             return
         fn = os.path.join(folder, fileName)
-        self.logger.log(logging.DEBUG, 'File %s'%fn)
+        #self.logger.log(logging.DEBUG, 'File %s'%fn)
         with zipfile.ZipFile(os.path.join(folder, fn), 'r') as zipobj:
             files = zipobj.namelist()
             if signalName not in files :
-                self.logger.log(logging.INFO, "Signal %s not in file"%signalName)
+                self.logger.log(logging.INFO, "No such signal")
                 return
             buf = zipobj.read(signalName)
             lines = buf.split(b"\r\n")
