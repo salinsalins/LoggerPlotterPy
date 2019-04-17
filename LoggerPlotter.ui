@@ -74,7 +74,7 @@
              <enum>Qt::NoFocus</enum>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="stackedWidgetPage1">
              <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -111,7 +111,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>991</width>
-                       <height>435</height>
+                       <height>415</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -164,7 +164,7 @@
                          <number>0</number>
                         </property>
                         <attribute name="horizontalHeaderVisible">
-                         <bool>true</bool>
+                         <bool>false</bool>
                         </attribute>
                         <attribute name="horizontalHeaderDefaultSectionSize">
                          <number>70</number>
@@ -350,7 +350,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QCheckBox" name="checkBox">
+                     <widget class="QCheckBox" name="checkBox_1">
                       <property name="text">
                        <string>CheckBox</string>
                       </property>
@@ -371,6 +371,12 @@
                     </item>
                     <item>
                      <widget class="QLabel" name="label">
+                      <property name="minimumSize">
+                       <size>
+                        <width>0</width>
+                        <height>0</height>
+                       </size>
+                      </property>
                       <property name="locale">
                        <locale language="English" country="UnitedStates"/>
                       </property>
@@ -383,7 +389,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QComboBox" name="comboBox">
+                     <widget class="QComboBox" name="comboBox_1">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                         <horstretch>0</horstretch>
@@ -600,7 +606,7 @@
      <x>0</x>
      <y>0</y>
      <width>1073</width>
-     <height>23</height>
+     <height>34</height>
     </rect>
    </property>
    <property name="font">

@@ -236,16 +236,6 @@ class MainWindow(QMainWindow):
                        
         
         return        
-        newFileName = str(self.comboBox_2.currentText())
-        self.logger.log(logging.DEBUG, 'Selected %s'%newFileName)
-        if not os.path.isfile(newFileName):
-            self.logger.warning('%s is not a file'%newFileName)
-            self.comboBox_2.removeItem(i)
-            return
-        if self.logFileName != newFileName:
-            self.clearPicture()
-            self.logFileName = newFileName
-            self.parseFolder()
  
     def selectionChanged(self, i):
         self.logger.debug('Selection changed to %s'%str(i))
@@ -611,6 +601,11 @@ class DataFile():
             signal.value = signal["mark"][2] - zero  
         return signal
 
+    def readAllSignals(self):
+        signalsList = []
+        for s in self.signals:
+            signalsList.append(self.readSignal(s))
+        return signalsList    
                         
 if __name__ == '__main__':
     # create the GUI application
