@@ -180,7 +180,7 @@ class MainWindow(QMainWindow):
                 mplw = layout.itemAt(jj).widget()
             else:
                 mplw = MplWidget()
-                mplw.setMinimumHeight(320)
+                mplw.setMinimumHeight(340)
                 mplw.setMinimumWidth(320)
                 layout.addWidget(mplw, row, col)
                 col += 1
@@ -189,13 +189,14 @@ class MainWindow(QMainWindow):
                     row += 1
             axes = mplw.canvas.ax
             axes.clear()
-            axes.plot(s.x, s.y, label='plot '+str(jj))
+            #axes.plot(s.x, s.y, label='plot '+str(jj))
+            axes.plot(s.x, s.y)
             # decorate the plot
             axes.grid(True)
-            axes.set_title(s.title + ' = ' + str(s.value) + s.unit)
+            axes.set_title(s.title + ' = ' + str(s.value) + ' ' + s.unit)
             axes.set_xlabel('Time, ms')
-            axes.set_ylabel('Signal, ' + s.unit)
-            axes.legend(loc='best') 
+            axes.set_ylabel('Signal, ' + ' ' + s.unit)
+            #axes.legend(loc='best') 
             mplw.canvas.draw()
             jj += 1
         return        
@@ -218,28 +219,32 @@ class MainWindow(QMainWindow):
         self.logger.debug('Log selection changed to %s'%str(i))
         #i = int(self.comboBox_1.currentIndex())
         self.logger.setLevel(levels[i])
-
  
     def onQuit(self) :
         # save global settings
         self.saveSettings()
 
     def parseFolder(self, fn=None):
-        if fn is None:
-            fn = self.logFileName
-        if fn is None:
-            return
-        self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
-        # read log file content
-        
-        self.logTable = LogTable(fn)
-        #self.tableWidget_3.clear()
-        #for col in self.logTable:
-        #    self.tableWidget_3.insertRow(i)
-        #    self.tableWidget_3.insertColumn(j)
-        #    self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem(key))
-        
         try:
+            if fn is None:
+                fn = self.logFileName
+            if fn is None:
+                return
+            self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
+            # read log file content
+            
+            self.logTable = LogTable(fn)
+            if self.logTable.fileName is None:
+                return
+            self.logFileName = self.logTable.fileName
+            #self.tableWidget_3.clear()
+            #for col in self.logTable:
+            #    self.tableWidget_3.insertRow(i)
+            #    self.tableWidget_3.insertColumn(j)
+            #    self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem(key))
+        
+
+            
             stream = open(fn, "r")
             self.buf = stream.read()
             stream.close()
@@ -413,7 +418,7 @@ class LogTable():
         
         self.data = [[],]
         self.headers = []
-        self.FileName = None
+        self.fileName = None
         self.wdgt = wdgt
         self.rows = 0
         self.columns = 0
@@ -424,9 +429,9 @@ class LogTable():
         with open(fn, "r") as stream:
             self.buf = stream.read()
         if len(self.buf) <= 0 :
-            self.logger.info('Nothing to process in %s'%self.FileName)
+            self.logger.info('Nothing to process in %s'%self.fileName)
             return
-        self.FileName = fn
+        self.fileName = fn
         # split buf to lines
         lns = self.buf.split('\n')
         # loop for lines
@@ -578,7 +583,8 @@ class DataFile():
             if len(kv) == 2:
                 signal.params[kv[0].strip()] = kv[1].strip()
         # scale to units
-        signal.y *= float(signal.params[b'display_unit'])
+        if b'display_unit' in signal.params:
+            signal.y *= float(signal.params[b'display_unit'])
         # title of the signal
         signal.title = ""
         signal.title = signal.params[b"label"].decode('ascii')
@@ -598,7 +604,7 @@ class DataFile():
             zero = signal.marks["zero"][2]
         else:
             zero = 0.0
-        if b'unit' in signal.marks:
+        if b'unit' in signal.params:
             signal.unit = signal.params[b'unit'].decode('ascii')
         else:
             signal.unit = ''
