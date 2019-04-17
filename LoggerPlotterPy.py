@@ -168,76 +168,37 @@ class MainWindow(QMainWindow):
         folder = os.path.dirname(self.logFileName)
         self.logger.log(logging.DEBUG, 'Folder %s'%folder)
         
-        dataFile = DataFile(zipFileName, folder = folder)
-        
-        
-        with zipfile.ZipFile(os.path.join(folder, zipFileName), 'r') as zipobj:
-            files = zipobj.namelist()
-            layout = self.scrollAreaWidgetContents_3.layout()
-            jj = 0
-            col = 0
-            row = 0
-            for f in files :
-                if f.find("chan") >= 0 and f.find("param") < 0:
-                    self.logger.log(logging.DEBUG, "Signal %s"%f)
-                    buf = zipobj.read(f)
-                    lines = buf.split(b"\r\n")
-                    n = len(lines)
-                    x = np.empty(n)
-                    y = np.empty(n)
-                    ii = 0
-                    for ln in lines:
-                        xy = ln.split(b'; ')
-                        x[ii] = float(xy[0].replace(b',', b'.'))
-                        y[ii] = float(xy[1].replace(b',', b'.'))
-                        ii += 1
-                    
-                    if jj < layout.count() :    
-                        mplw = layout.itemAt(jj).widget()
-                    else:
-                        mplw = MplWidget()
-                        mplw.setMinimumHeight(320)
-                        mplw.setMinimumWidth(320)
-                        layout.addWidget(mplw, row, col)
-                        col += 1
-                        if col > 1:
-                            col = 0
-                            row += 1
-                    axes = mplw.canvas.ax
-                    axes.clear()
-                    axes.plot(x, y, label='plot '+str(jj))
-
-                    pf = f.replace('chan', 'paramchan')
-                    buf = zipobj.read(pf)
-                    lines = buf.split(b"\r\n")
-                    keys = []
-                    vals = []
-                    for ln in lines:
-                        kv = ln.split(b'=')
-                        if len(kv) == 2:
-                            keys.append(kv[0].strip())
-                            vals.append(kv[1].strip())
-                    title = f
-                    if b"label" in keys:
-                        row = keys.index(b"label")
-                        title = vals[row].decode('ascii')
-                        
-                    # decorate the plot
-                    axes.grid(True)
-                    axes.set_title(title)
-                    axes.set_xlabel('Time, s')
-                    axes.set_ylabel('Signal, V')
-                    axes.legend(loc='best') 
-                    mplw.canvas.draw()
-
-                    jj += 1
-
-
-                    #print(x[0])
-            pass
-        pass
-                       
-        
+        self.dataFile = ""
+        self.dataFile = DataFile(zipFileName, folder = folder)
+        self.signalsList = []
+        self.signalsList = self.dataFile.readAllSignals()
+        layout = self.scrollAreaWidgetContents_3.layout()
+        jj = 0
+        col = 0
+        row = 0
+        for s in self.signalsList:
+            if jj < layout.count() :    
+                mplw = layout.itemAt(jj).widget()
+            else:
+                mplw = MplWidget()
+                mplw.setMinimumHeight(320)
+                mplw.setMinimumWidth(320)
+                layout.addWidget(mplw, row, col)
+                col += 1
+                if col > 1:
+                    col = 0
+                    row += 1
+                axes = mplw.canvas.ax
+                axes.clear()
+                axes.plot(s.x, s.y, label='plot '+str(jj))
+                # decorate the plot
+                axes.grid(True)
+                axes.set_title(s.title)
+                axes.set_xlabel('Time, s')
+                axes.set_ylabel('Signal, V')
+                axes.legend(loc='best') 
+                mplw.canvas.draw()
+                jj += 1
         return        
  
     def selectionChanged(self, i):
@@ -499,8 +460,10 @@ class LogTable():
 class Signal():
     
     def __init__(self):
-        self.x = np.empty()
+        self.x = np.zeros(1)
         self.y = self.x.copy()
+        self.title = ''
+        self.params = {}
         
     def read(self, fileName, signalName, folder=''):
         if signalName.find("chan") < 0 or signalName.find("param") >= 0:
@@ -553,55 +516,58 @@ class DataFile():
         fn = os.path.join(folder, fileName)
         with zipfile.ZipFile(fn, 'r') as zipobj:
             self.files = zipobj.namelist()
+        
         self.fileName = fn
         for f in self.files:
             if f.find("chan") >= 0 and f.find("param") < 0:
                 self.signals.append(f)
         
     def readSignal(self, signalName):
-        signal = None
+        signal = Signal()
         if signalName not in self.signals:
             self.logger.log(logging.INFO, "No signal %s in the file"%signalName)
             return signal
         with zipfile.ZipFile(self.fileName, 'r') as zipobj:
             buf = zipobj.read(signalName)
-            lines = buf.split(b"\r\n")
-            n = len(lines)
-            signal.x = np.empty(n)
-            signal.y = np.empty(n)
-            ii = 0
-            for ln in lines:
-                xy = ln.split(b'; ')
-                signal.x[ii] = float(xy[0].replace(b',', b'.'))
-                signal.y[ii] = float(xy[1].replace(b',', b'.'))
-                ii += 1
-            # read parameters        
-            signal.params = {}
             pf = signalName.replace('chan', 'paramchan')
-            buf = zipobj.read(pf)
-            lines = buf.split(b"\r\n")
-            for ln in lines:
-                kv = ln.split(b'=')
-                if len(kv) == 2:
-                    signal.params[kv[0].strip()] = kv[1].strip()
-            # title of the signal
-            signal.title = ""
-            signal.title = self.params[b"label"].decode('ascii')
-            # find marks
-            signal.marks = {}
-            for k in signal.params:
-                if k.endswith("_start"):
-                    ms = int(signal.params[k])
-                    ml = int(signal.params[k.replace("_start", '_length')])
+            pbuf = zipobj.read(pf)
+        lines = buf.split(b"\r\n")
+        n = len(lines)
+        signal.x = np.empty(n)
+        signal.y = np.empty(n)
+        ii = 0
+        for ln in lines:
+            xy = ln.split(b'; ')
+            signal.x[ii] = float(xy[0].replace(b',', b'.'))
+            signal.y[ii] = float(xy[1].replace(b',', b'.'))
+            ii += 1
+        # read parameters        
+        signal.params = {}
+        lines = pbuf.split(b"\r\n")
+        for ln in lines:
+            kv = ln.split(b'=')
+            if len(kv) == 2:
+                signal.params[kv[0].strip()] = kv[1].strip()
+        # title of the signal
+        signal.title = ""
+        signal.title = signal.params[b"label"].decode('ascii')
+        # find marks
+        signal.marks = {}
+        for k in signal.params:
+            if k.endswith(b"_start"):
+                ms = int(signal.params[k])
+                ml = int(signal.params[k.replace(b"_start", b'_length')])
+                if ms+ml < n:
                     mv = signal.y[ms:ms+ml].mean()
-                    signal.marks[k.replace("_start", '')] = (ms, ml, mv)
-                    print(k)
-            signal.value = 0.0
-            if 'zero' in signal.marks:
-                zero = signal["zero"][2]
-            else:
-                zero = 0
-            signal.value = signal["mark"][2] - zero  
+                else:
+                    mv = 0.0
+                signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
+        signal.value = 0.0
+        if b'zero' in signal.marks:
+            zero = signal.marks["zero"][2]
+        else:
+            zero = 0.0
+        signal.value = signal.marks["mark"][2] - zero  
         return signal
 
     def readAllSignals(self):
