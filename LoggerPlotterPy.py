@@ -192,9 +192,9 @@ class MainWindow(QMainWindow):
             axes.plot(s.x, s.y, label='plot '+str(jj))
             # decorate the plot
             axes.grid(True)
-            axes.set_title(s.title + ' = ' + str(s.value))
-            axes.set_xlabel('Time, s')
-            axes.set_ylabel('Signal, V')
+            axes.set_title(s.title + ' = ' + str(s.value) + s.unit)
+            axes.set_xlabel('Time, ms')
+            axes.set_ylabel('Signal, ' + s.unit)
             axes.legend(loc='best') 
             mplw.canvas.draw()
             jj += 1
@@ -522,6 +522,8 @@ class Signal():
                 kv = ln.split(b'=')
                 if len(kv) == 2:
                     self.params[kv[0].strip()] = kv[1].strip()
+            # scale to units
+            self.y *= float(self.params[b'display_unit'])
             # title of the signal
             self.title = ""
             self.title = self.params[b"label"].decode('ascii')
@@ -575,6 +577,8 @@ class DataFile():
             kv = ln.split(b'=')
             if len(kv) == 2:
                 signal.params[kv[0].strip()] = kv[1].strip()
+        # scale to units
+        signal.y *= float(signal.params[b'display_unit'])
         # title of the signal
         signal.title = ""
         signal.title = signal.params[b"label"].decode('ascii')
@@ -594,6 +598,10 @@ class DataFile():
             zero = signal.marks["zero"][2]
         else:
             zero = 0.0
+        if b'unit' in signal.marks:
+            signal.unit = signal.params[b'unit'].decode('ascii')
+        else:
+            signal.unit = ''
         signal.value = signal.marks["mark"][2] - zero  
         return signal
 
