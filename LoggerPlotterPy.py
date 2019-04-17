@@ -62,6 +62,7 @@ class MainWindow(QMainWindow):
         #self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
+        self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
         # menu actions connection
         self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionQuit.triggered.connect(qApp.quit)
@@ -213,6 +214,13 @@ class MainWindow(QMainWindow):
         if self.logFileName != newLogFile:
             self.logFileName = newLogFile
             self.parseFolder()
+
+    def logLevelIndexChanged(self, i):
+        levels = [logging.NOTSET, logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
+        self.logger.debug('Log selection changed to %s'%str(i))
+        i = int(self.comboBox_1.currentIndex())
+        #self.logger.setLevel(levels[i])
+
  
     def onQuit(self) :
         # save global settings
@@ -226,14 +234,12 @@ class MainWindow(QMainWindow):
         self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
         # read log file content
         
-        self.logTable = LogTable(fn)
+        #self.logTable = LogTable(fn)
         #self.tableWidget_3.clear()
         #for col in self.logTable:
         #    self.tableWidget_3.insertRow(i)
         #    self.tableWidget_3.insertColumn(j)
         #    self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem(key))
-            
-        
         
         try:
             stream = open(fn, "r")
