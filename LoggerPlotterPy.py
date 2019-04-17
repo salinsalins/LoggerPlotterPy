@@ -144,22 +144,24 @@ class MainWindow(QMainWindow):
             d = "./"
         else:
             d = os.path.dirname(self.logFileName)
-        fileOpenDialog = QFileDialog(caption='Select log file', directory=d)
-        # select lfn, not file
-        lfn = fileOpenDialog.getOpenFileName()[0]
-        # if a lfn is selected
-        if lfn:
-            if self.logFileName == lfn:
+        fileOpenDialog = QFileDialog(caption='Select log file', directory = d)
+        # select fn, not file
+        fn = fileOpenDialog.getOpenFileName()[0]
+        # if a fn is selected
+        if fn:
+            if self.logFileName == fn:
                 return
-            i = self.comboBox_2.findText(lfn)
+            i = self.comboBox_2.findText(fn)
             if i >= 0:
                 self.comboBox_2.setCurrentIndex(i)
             else:
                 # add item to history  
-                self.comboBox_2.insertItem(-1, lfn)
+                self.comboBox_2.insertItem(-1, fn)
                 self.comboBox_2.setCurrentIndex(0)
     
     def tableSelectionChanged(self):
+        if len(self.tableWidget_3.selectedRanges()) < 1:
+            return
         row = self.tableWidget_3.selectedRanges()[0].topRow()
         self.logger.log(logging.DEBUG, 'Selection changed to row %s'%str(row))
         if row < 0:
@@ -168,10 +170,12 @@ class MainWindow(QMainWindow):
         self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
         folder = os.path.dirname(self.logFileName)
         self.logger.log(logging.DEBUG, 'Folder %s'%folder)
-        
         self.dataFile = DataFile(zipFileName, folder = folder)
         self.signalsList = self.dataFile.readAllSignals()
         layout = self.scrollAreaWidgetContents_3.layout()
+        for k in range(layout.count()):
+            layout.itemAt(k).widget().canvas.ax.clear()
+            layout.itemAt(k).widget().canvas.draw()
         jj = 0
         col = 0
         row = 0
@@ -180,7 +184,7 @@ class MainWindow(QMainWindow):
                 mplw = layout.itemAt(jj).widget()
             else:
                 mplw = MplWidget()
-                mplw.setMinimumHeight(340)
+                mplw.setMinimumHeight(320)
                 mplw.setMinimumWidth(320)
                 layout.addWidget(mplw, row, col)
                 col += 1
@@ -195,7 +199,7 @@ class MainWindow(QMainWindow):
             axes.grid(True)
             axes.set_title(s.title + ' = ' + str(s.value) + ' ' + s.unit)
             axes.set_xlabel('Time, ms')
-            axes.set_ylabel('Signal, ' + ' ' + s.unit)
+            axes.set_ylabel(s.title + ' ' + s.unit)
             #axes.legend(loc='best') 
             mplw.canvas.draw()
             jj += 1
@@ -237,7 +241,7 @@ class MainWindow(QMainWindow):
             if self.logTable.fileName is None:
                 return
             self.logFileName = self.logTable.fileName
-            #self.tableWidget_3.clear()
+
             #for col in self.logTable:
             #    self.tableWidget_3.insertRow(i)
             #    self.tableWidget_3.insertColumn(j)
@@ -253,7 +257,12 @@ class MainWindow(QMainWindow):
                 return
             self.logFileName = fn
             
+            self.included = self.plainTextEdit_2.document()
+            
             self.table = {}
+            self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
+            self.tableWidget_3.setRowCount(0)
+            self.tableWidget_3.setColumnCount(0)
             # split buf to lines
             lns = self.buf.split('\n')
             # loop for lines
@@ -269,9 +278,9 @@ class MainWindow(QMainWindow):
                 # add row to table
                 self.tableWidget_3.insertRow(i)
                 if "Time" not in self.table:
-                    self.table["Time"] = ['' for j in range(i)]
+                    self.table["Time"] = ['' for jj in range(i)]
                     self.tableWidget_3.insertColumn(j)
-                    self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem("Time"))
+                    self.tableWidget_3.setHorizontalHeaderItem(j, QTableWidgetItem("Time"))
                 self.table["Time"].append(time)
                 self.tableWidget_3.setItem(i, j, QTableWidgetItem(time))
                 j += 1
@@ -283,19 +292,20 @@ class MainWindow(QMainWindow):
                     val = kv[1].strip()
                     #print(kv)
                     if key not in self.table:
-                        self.table[key] = ['' for j in range(i)]
+                        self.table[key] = ['' for jj in range(i)]
                         j = self.tableWidget_3.columnCount()
                         self.tableWidget_3.insertColumn(j)
-                        self.tableWidget_3.setHorizontalHeaderItem (j, QTableWidgetItem(key))
+                        self.tableWidget_3.setHorizontalHeaderItem(j, QTableWidgetItem(key))
                     else:
                         j = list(self.table.keys()).index(key)
-                        
                     self.tableWidget_3.setItem(i, j, QTableWidgetItem(val))
                     self.table[key].append(val)
+                    j += 1
                 for t in self.table :
                     if len(self.table[t]) < len(self.table["Time"]) :
                         self.table[t].append("")
                 i += 1
+            self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             self.tableWidget_3.scrollToBottom()
         except :

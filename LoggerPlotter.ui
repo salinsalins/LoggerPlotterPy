@@ -111,7 +111,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>1016</width>
-                       <height>467</height>
+                       <height>440</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -164,7 +164,7 @@
                          <number>0</number>
                         </property>
                         <attribute name="horizontalHeaderVisible">
-                         <bool>true</bool>
+                         <bool>false</bool>
                         </attribute>
                         <attribute name="horizontalHeaderDefaultSectionSize">
                          <number>70</number>
@@ -452,12 +452,6 @@
                     <enum>QFrame::Raised</enum>
                    </property>
                    <layout class="QGridLayout" name="gridLayout">
-                    <item row="1" column="1">
-                     <widget class="QListWidget" name="listWidget_2"/>
-                    </item>
-                    <item row="1" column="0">
-                     <widget class="QListWidget" name="listWidget"/>
-                    </item>
                     <item row="0" column="0">
                      <widget class="QLabel" name="label_3">
                       <property name="text">
@@ -475,6 +469,25 @@
                       </property>
                       <property name="alignment">
                        <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_2">
+                      <property name="plainText">
+                       <string>Time
+bbb
+ccc
+</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_3">
+                      <property name="plainText">
+                       <string>Shot
+eee
+fff</string>
                       </property>
                      </widget>
                     </item>
@@ -609,7 +622,7 @@
      <x>0</x>
      <y>0</y>
      <width>1073</width>
-     <height>23</height>
+     <height>34</height>
     </rect>
    </property>
    <property name="font">
