@@ -159,14 +159,18 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.setCurrentIndex(0)
     
     def tableSelectionChanged(self):
-        i = self.tableWidget_3.selectedRanges()[0].topRow()
-        self.logger.log(logging.DEBUG, 'Selection changed to row %s'%str(i))
-        if i < 0:
+        row = self.tableWidget_3.selectedRanges()[0].topRow()
+        self.logger.log(logging.DEBUG, 'Selection changed to row %s'%str(row))
+        if row < 0:
             return
-        zipFileName = self.table["File"][i]
+        zipFileName = self.table["File"][row]
         self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
         folder = os.path.dirname(self.logFileName)
         self.logger.log(logging.DEBUG, 'Folder %s'%folder)
+        
+        dataFile = DataFile(zipFileName, folder = folder)
+        
+        
         with zipfile.ZipFile(os.path.join(folder, zipFileName), 'r') as zipobj:
             files = zipobj.namelist()
             layout = self.scrollAreaWidgetContents_3.layout()
@@ -215,8 +219,8 @@ class MainWindow(QMainWindow):
                             vals.append(kv[1].strip())
                     title = f
                     if b"label" in keys:
-                        i = keys.index(b"label")
-                        title = vals[i].decode('ascii')
+                        row = keys.index(b"label")
+                        title = vals[row].decode('ascii')
                         
                     # decorate the plot
                     axes.grid(True)
@@ -231,7 +235,6 @@ class MainWindow(QMainWindow):
 
                     #print(x[0])
             pass
-        df = DataFile(os.path.join(folder, zipFileName))
         pass
                        
         
