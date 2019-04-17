@@ -257,7 +257,10 @@ class MainWindow(QMainWindow):
                 return
             self.logFileName = fn
             
-            self.included = self.plainTextEdit_2.document()
+            self.included = self.plainTextEdit_2.toPlainText().split('\n')
+            self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
+            for t in self.included:
+                pass
             
             self.table = {}
             self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
@@ -283,14 +286,14 @@ class MainWindow(QMainWindow):
                     self.tableWidget_3.setHorizontalHeaderItem(j, QTableWidgetItem("Time"))
                 self.table["Time"].append(time)
                 self.tableWidget_3.setItem(i, j, QTableWidgetItem(time))
-                j += 1
                 #print("Time = -", time, "-")
                 for fld in flds[1:]:
                     #print(fld)
                     kv = fld.split("=")
                     key = kv[0].strip()
                     val = kv[1].strip()
-                    #print(kv)
+                    if key in self.excluded:
+                        continue
                     if key not in self.table:
                         self.table[key] = ['' for jj in range(i)]
                         j = self.tableWidget_3.columnCount()
@@ -300,7 +303,6 @@ class MainWindow(QMainWindow):
                         j = list(self.table.keys()).index(key)
                     self.tableWidget_3.setItem(i, j, QTableWidgetItem(val))
                     self.table[key].append(val)
-                    j += 1
                 for t in self.table :
                     if len(self.table[t]) < len(self.table["Time"]) :
                         self.table[t].append("")
