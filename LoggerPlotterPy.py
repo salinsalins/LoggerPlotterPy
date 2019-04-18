@@ -247,12 +247,24 @@ class MainWindow(QMainWindow):
             for t in self.logTable.headers:
                 if t not in self.excluded and t not in columns:
                     columns.append(t)
+            self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
+            self.tableWidget_3.setRowCount(0)
+            self.tableWidget_3.setColumnCount(0)
             k = 0
             for c in columns:
                 self.tableWidget_3.insertColumn(k)
-                self.tableWidget_3.setHorizontalHeaderItem (k, QTableWidgetItem(c))
+                self.tableWidget_3.setHorizontalHeaderItem(k, QTableWidgetItem(c))
                 k += 1
-                
+            for k in range(self.logTable.rows):
+                self.tableWidget_3.insertRow(k)
+                for c in columns:
+                    m = self.logTable.find(c)
+                    self.tableWidget_3.setItem(k, m, QTableWidgetItem(self.logTable.data[m][k]))
+            self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
+            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
+            self.tableWidget_3.scrollToBottom()
+            #return
+
 
             
             stream = open(fn, "r")
