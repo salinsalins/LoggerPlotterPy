@@ -160,50 +160,53 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.setCurrentIndex(0)
     
     def tableSelectionChanged(self):
-        if len(self.tableWidget_3.selectedRanges()) < 1:
-            return
-        row = self.tableWidget_3.selectedRanges()[0].topRow()
-        self.logger.log(logging.DEBUG, 'Selection changed to row %s'%str(row))
-        if row < 0:
-            return
-        zipFileName = self.table["File"][row]
-        self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
-        folder = os.path.dirname(self.logFileName)
-        self.logger.log(logging.DEBUG, 'Folder %s'%folder)
-        self.dataFile = DataFile(zipFileName, folder = folder)
-        self.signalsList = self.dataFile.readAllSignals()
-        layout = self.scrollAreaWidgetContents_3.layout()
-        for k in range(layout.count()):
-            layout.itemAt(k).widget().canvas.ax.clear()
-            layout.itemAt(k).widget().canvas.draw()
-        jj = 0
-        col = 0
-        row = 0
-        for s in self.signalsList:
-            if jj < layout.count() :    
-                mplw = layout.itemAt(jj).widget()
-            else:
-                mplw = MplWidget()
-                mplw.setMinimumHeight(320)
-                mplw.setMinimumWidth(320)
-                layout.addWidget(mplw, row, col)
-                col += 1
-                if col > 1:
-                    col = 0
-                    row += 1
-            axes = mplw.canvas.ax
-            axes.clear()
-            #axes.plot(s.x, s.y, label='plot '+str(jj))
-            axes.plot(s.x, s.y)
-            # decorate the plot
-            axes.grid(True)
-            axes.set_title(s.title + ' = ' + str(s.value) + ' ' + s.unit)
-            axes.set_xlabel('Time, ms')
-            axes.set_ylabel(s.title + ' ' + s.unit)
-            #axes.legend(loc='best') 
-            mplw.canvas.draw()
-            jj += 1
-        return        
+        try:
+            if len(self.tableWidget_3.selectedRanges()) < 1:
+                return
+            row = self.tableWidget_3.selectedRanges()[0].topRow()
+            self.logger.log(logging.DEBUG, 'Table selection changed to row %s'%str(row))
+            if row < 0:
+                return
+            zipFileName = self.table["File"][row]
+            self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
+            folder = os.path.dirname(self.logFileName)
+            self.logger.log(logging.DEBUG, 'Folder %s'%folder)
+            self.dataFile = DataFile(zipFileName, folder = folder)
+            self.signalsList = self.dataFile.readAllSignals()
+            layout = self.scrollAreaWidgetContents_3.layout()
+            for k in range(layout.count()):
+                layout.itemAt(k).widget().canvas.ax.clear()
+                layout.itemAt(k).widget().canvas.draw()
+            jj = 0
+            col = 0
+            row = 0
+            for s in self.signalsList:
+                if jj < layout.count() :    
+                    mplw = layout.itemAt(jj).widget()
+                else:
+                    mplw = MplWidget()
+                    mplw.setMinimumHeight(320)
+                    mplw.setMinimumWidth(320)
+                    layout.addWidget(mplw, row, col)
+                    col += 1
+                    if col > 1:
+                        col = 0
+                        row += 1
+                axes = mplw.canvas.ax
+                axes.clear()
+                #axes.plot(s.x, s.y, label='plot '+str(jj))
+                axes.plot(s.x, s.y)
+                # decorate the plot
+                axes.grid(True)
+                axes.set_title(s.title + ' = ' + str(s.value) + ' ' + s.unit)
+                axes.set_xlabel('Time, ms')
+                axes.set_ylabel(s.title + ' ' + s.unit)
+                #axes.legend(loc='best') 
+                mplw.canvas.draw()
+                jj += 1
+        except:
+            self.printExceptionInfo()
+                    
  
     def selectionChanged(self, i):
         self.logger.debug('Selection changed to %s'%str(i))
@@ -480,6 +483,20 @@ class LogTable():
             item.append("")
         self.rows += 1
     
+    def removeRow(self, row):
+        for item in self.data :
+            del item[row]
+        self.rows -= 1
+
+    def removeColumn(self, col):
+        if isinstance(col, str):
+            if col not in self.headers:
+                return
+            col = self.headers.find(col)
+        del self.data[col]
+        del self.headers[col]
+        self.columns -= 1
+
     def addColumn(self, columnName):
         if columnName is None:
             return
