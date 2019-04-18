@@ -111,7 +111,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>1016</width>
-                       <height>440</height>
+                       <height>467</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -406,7 +406,7 @@
                        <bool>false</bool>
                       </property>
                       <property name="currentIndex">
-                       <number>1</number>
+                       <number>0</number>
                       </property>
                       <item>
                        <property name="text">
@@ -415,12 +415,12 @@
                       </item>
                       <item>
                        <property name="text">
-                        <string notr="true">INFO</string>
+                        <string notr="true">DEBUG</string>
                        </property>
                       </item>
                       <item>
                        <property name="text">
-                        <string notr="true">DEBUG</string>
+                        <string notr="true">INFO</string>
                        </property>
                       </item>
                       <item>
@@ -622,7 +622,7 @@ fff</string>
      <x>0</x>
      <y>0</y>
      <width>1073</width>
-     <height>34</height>
+     <height>23</height>
     </rect>
    </property>
    <property name="font">

@@ -7,7 +7,6 @@ Created on Jul 2, 2017
 # used to parse files more easily
 from __future__ import with_statement
 from __future__ import print_function
-from configparser import ConfigParser
 
 import os.path
 import sys
@@ -28,7 +27,6 @@ from PyQt5.QtCore import QPoint, QSize
 import numpy as np
 from mplwidget import MplWidget
 # my imports
-from smooth import smooth
 
 progName = 'LoggerPlotterPy'
 progVersion = '_1_0'
@@ -53,19 +51,16 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         # initialization of the superclass
         super(MainWindow, self).__init__(parent)
-        # load the GUI 
+        # load the UI 
         uic.loadUi('LoggerPlotter.ui', self)
         # connect the signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
-        #self.pushButton_4.clicked.connect(self.processFolder)
-        #self.pushButton_6.clicked.connect(self.pushPlotButton)
-        #self.pushButton_7.clicked.connect(self.erasePicture)
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
         self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
         # menu actions connection
-        self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionQuit.triggered.connect(qApp.quit)
+        self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionPlot.triggered.connect(self.showPlotPane)
         self.actionLog.triggered.connect(self.showLogPane)
         self.actionParameters.triggered.connect(self.showParametersPane)
@@ -209,7 +204,7 @@ class MainWindow(QMainWindow):
                     
  
     def selectionChanged(self, i):
-        self.logger.debug('Selection changed to %s'%str(i))
+        self.logger.debug('File selection changed to %s'%str(i))
         if i < 0:
             return
         newLogFile = str(self.comboBox_2.currentText())
@@ -221,11 +216,10 @@ class MainWindow(QMainWindow):
             self.logFileName = newLogFile
             self.parseFolder()
 
-    def logLevelIndexChanged(self, i):
+    def logLevelIndexChanged(self, m):
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
-        self.logger.debug('Log selection changed to %s'%str(i))
-        #i = int(self.comboBox_1.currentIndex())
-        self.logger.setLevel(levels[i])
+        self.logger.debug('Log selection changed to %s'%str(m))
+        self.logger.setLevel(levels[m])
  
     def onQuit(self) :
         # save global settings
@@ -434,7 +428,6 @@ class MainWindow(QMainWindow):
 class LogTable():
     def __init__(self, fileName, folder = "", wdgt=None):
         self.logger = logging.getLogger()
-        
         self.data = [[],]
         self.headers = []
         self.fileName = None
