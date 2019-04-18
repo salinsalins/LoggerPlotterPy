@@ -7,16 +7,16 @@ Created on 31 мая 2017 г.
 from matplotlib.figure import Figure
 # Python Qt4 or Qt5 bindings for GUI objects
 try:
-    from PyQt4 import QtGui
-    from matplotlib.backends.backend_qt4agg \
-      import FigureCanvasQTAgg as FigureCanvas
-    from matplotlib.backends.backend_qt4agg \
-      import NavigationToolbar2QT as NavigationToolbar
-except:
     from PyQt5 import QtWidgets as QtGui
     from matplotlib.backends.backend_qt5agg \
       import FigureCanvasQTAgg as FigureCanvas
     from matplotlib.backends.backend_qt5agg \
+      import NavigationToolbar2QT as NavigationToolbar
+except:
+    from PyQt4 import QtGui
+    from matplotlib.backends.backend_qt4agg \
+      import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.backends.backend_qt4agg \
       import NavigationToolbar2QT as NavigationToolbar
 
 

@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.DEBUG, 'Table selection changed to row %s'%str(row))
             if row < 0:
                 return
-            zipFileName = self.table["File"][row]
+            zipFileName = self.logTable.getColumn("File")[row]
             self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
             folder = os.path.dirname(self.logFileName)
             self.logger.log(logging.DEBUG, 'Folder %s'%folder)
@@ -195,7 +195,7 @@ class MainWindow(QMainWindow):
                 axes.grid(True)
                 axes.set_title(s.title + ' = ' + str(s.value) + ' ' + s.unit)
                 axes.set_xlabel('Time, ms')
-                axes.set_ylabel(s.title + ' ' + s.unit)
+                axes.set_ylabel(s.title + ', ' + s.unit)
                 #axes.legend(loc='best') 
                 mplw.canvas.draw()
                 jj += 1
@@ -257,13 +257,15 @@ class MainWindow(QMainWindow):
                 k += 1
             for k in range(self.logTable.rows):
                 self.tableWidget_3.insertRow(k)
+                n = 0
                 for c in columns:
                     m = self.logTable.find(c)
-                    self.tableWidget_3.setItem(k, m, QTableWidgetItem(self.logTable.data[m][k]))
+                    self.tableWidget_3.setItem(k, n, QTableWidgetItem(self.logTable.data[m][k]))
+                    n += 1
             self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             self.tableWidget_3.scrollToBottom()
-            #return
+            return
 
 
             
@@ -497,10 +499,17 @@ class LogTable():
         if isinstance(col, str):
             if col not in self.headers:
                 return
-            col = self.headers.find(col)
+            col = self.headers.index(col)
         del self.data[col]
         del self.headers[col]
         self.columns -= 1
+
+    def getColumn(self, col):
+        if isinstance(col, str):
+            if col not in self.headers:
+                return None
+            col = self.headers.index(col)
+        return self.data[col]
 
     def addColumn(self, columnName):
         if columnName is None:
