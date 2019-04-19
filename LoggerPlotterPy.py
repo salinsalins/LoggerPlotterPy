@@ -26,7 +26,6 @@ from PyQt5.QtCore import QPoint, QSize
 
 import numpy as np
 from mplwidget import MplWidget
-from pip._vendor.pyparsing import columnName
 # my imports
 
 progName = 'LoggerPlotterPy'
@@ -233,39 +232,44 @@ class MainWindow(QMainWindow):
             if fn is None:
                 return
             self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
-            # read log file content
-            
+            # read log file content to logTable
             self.logTable = LogTable(fn)
             if self.logTable.fileName is None:
                 return
             self.logFileName = self.logTable.fileName
+            # create sorted displayed columns list
             self.included = self.plainTextEdit_2.toPlainText().split('\n')
             self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
-            columns = []
+            self.columns = []
             for t in self.included:
                 if t in self.logTable.headers:
-                    columns.append(t)
+                    self.columns.append(t)
             for t in self.logTable.headers:
-                if t not in self.excluded and t not in columns:
-                    columns.append(t)
+                if t not in self.excluded and t not in self.columns:
+                    self.columns.append(t)
+            # clean table widget
             self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
+            # refill table widget
+            # insert columns
             k = 0
-            for c in columns:
+            for c in self.columns:
                 self.tableWidget_3.insertColumn(k)
                 self.tableWidget_3.setHorizontalHeaderItem(k, QTableWidgetItem(c))
                 k += 1
+            # insert and fill rows 
             for k in range(self.logTable.rows):
                 self.tableWidget_3.insertRow(k)
                 n = 0
-                for c in columns:
+                for c in self.columns:
                     m = self.logTable.find(c)
                     self.tableWidget_3.setItem(k, n, QTableWidgetItem(self.logTable.data[m][k]))
                     n += 1
+            # select last row of widget -> selectionChanged will be fired 
             self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
-            self.tableWidget_3.scrollToBottom()
+            ##self.tableWidget_3.scrollToBottom()
             return
 
 
