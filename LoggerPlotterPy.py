@@ -26,6 +26,7 @@ from PyQt5.QtCore import QPoint, QSize
 
 import numpy as np
 from mplwidget import MplWidget
+from pip._vendor.pyparsing import columnName
 # my imports
 
 progName = 'LoggerPlotterPy'
@@ -162,7 +163,7 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.DEBUG, 'Table selection changed to row %s'%str(row))
             if row < 0:
                 return
-            zipFileName = self.logTable.getColumn("File")[row]
+            zipFileName = self.logTable.column("File")[row]
             self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
             folder = os.path.dirname(self.logFileName)
             self.logger.log(logging.DEBUG, 'Folder %s'%folder)
@@ -445,6 +446,7 @@ class LogTable():
         self.data = [[],]
         self.headers = []
         self.fileName = None
+        self.buf = None
         self.rows = 0
         self.columns = 0
         
@@ -503,23 +505,45 @@ class LogTable():
         del self.headers[col]
         self.columns -= 1
 
-    def getColumn(self, col):
+    def item(self, row, col):
+        if isinstance(col, str):
+            if col not in self.headers:
+                return None
+            col = self.headers.index(col)
+        return self.data[col][row]
+
+    def getItem(self, row, col):
+        return self.item(self, row, col)
+
+    def setItem(self, row, col, val):
+        if isinstance(col, str):
+            if col not in self.headers:
+                return False
+            col = self.headers.index(col)
+        self.data[col][row] = val
+        return True
+
+    def column(self, col):
         if isinstance(col, str):
             if col not in self.headers:
                 return None
             col = self.headers.index(col)
         return self.data[col]
 
+    def row(self, row):
+        return [self.data[n][row] for n in range(len(self.headers))]
+
     def addColumn(self, columnName):
         if columnName is None:
-            return
+            return -1
         # skip if column exists
         if columnName in self.headers:
-            return
+            return self.headers.index(columnName)
         self.headers.append(columnName)
         newColumn = ["" for ii in range(self.columns)]
         self.data.append(newColumn)
         self.columns += 1 
+        return self.headers.index(columnName)
         
     def find(self, columnName):
         try:
@@ -532,6 +556,9 @@ class LogTable():
 
     def __len__(self):
         return len(self.headers)
+
+    def __getitem__(self, item):
+        return self.data[self.headers.index(item)]
     
 class Signal():
     
