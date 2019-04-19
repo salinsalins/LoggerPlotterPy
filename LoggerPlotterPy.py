@@ -166,42 +166,64 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
             folder = os.path.dirname(self.logFileName)
             self.logger.log(logging.DEBUG, 'Folder %s'%folder)
+            # read zip file dir
             self.dataFile = DataFile(zipFileName, folder = folder)
+            # read signals from zip file
             self.signalsList = self.dataFile.readAllSignals()
+            # clean all signal plots
             layout = self.scrollAreaWidgetContents_3.layout()
             for k in range(layout.count()):
                 layout.itemAt(k).widget().canvas.ax.clear()
                 layout.itemAt(k).widget().canvas.draw()
+            # reorder according to columns order in the table
+            self.signals = []
+            for c in self.columns:
+                for s in self.signalsList:
+                    if s.name == c :
+                        self.signals.append(self.signalsList.index(s))
+            # plot signals to existing plots or add new
             jj = 0
             col = 0
             row = 0
-            for s in self.signalsList:
-                if jj < layout.count() :    
+            for c in self.signals:
+                s = self.signalsList[c]
+                if jj < layout.count():    
+                    # use existing plot
                     mplw = layout.itemAt(jj).widget()
                 else:
+                    # create new signal plot
                     mplw = MplWidget()
                     mplw.setMinimumHeight(320)
                     mplw.setMinimumWidth(320)
+                    # add plots in colCount columns
                     layout.addWidget(mplw, row, col)
+                    colCount = 3
                     col += 1
-                    if col > 1:
+                    if col >= colCount:
                         col = 0
                         row += 1
                 axes = mplw.canvas.ax
                 axes.clear()
-                #axes.plot(s.x, s.y, label='plot '+str(jj))
                 axes.plot(s.x, s.y)
                 # decorate the plot
                 axes.grid(True)
-                axes.set_title(s.title + ' = ' + str(s.value) + ' ' + s.unit)
+                axes.set_title(s.name + ' = ' + str(s.value) + ' ' + s.unit)
                 axes.set_xlabel('Time, ms')
-                axes.set_ylabel(s.title + ', ' + s.unit)
+                axes.set_ylabel(s.name + ', ' + s.unit)
                 #axes.legend(loc='best') 
                 mplw.canvas.draw()
                 jj += 1
+            # remove unused plots
+            while jj < layout.count() :    
+                item = layout.takeAt(layout.count()-1)
+                if not item:
+                    continue
+                w = item.widget()
+                if w:
+                    w.deleteLater()
+
         except:
             self.printExceptionInfo()
-                    
  
     def selectionChanged(self, i):
         self.logger.debug('File selection changed to %s'%str(i))
@@ -271,65 +293,6 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             ##self.tableWidget_3.scrollToBottom()
             return
-
-
-            
-            stream = open(fn, "r")
-            self.buf = stream.read()
-            stream.close()
-            if len(self.buf) <= 0 :
-                self.logger.info('Nothing to process in %s'%fn)
-                return
-            self.logFileName = fn
-            
-            self.table = {}
-            self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
-            self.tableWidget_3.setRowCount(0)
-            self.tableWidget_3.setColumnCount(0)
-            # split buf to lines
-            lns = self.buf.split('\n')
-            # loop for lines
-            i = 0
-            for ln in lns:
-                j = 0
-                # split line to fields
-                flds =ln.split("; ")
-                if len(flds[0]) < 19:
-                    continue
-                # first field is date time
-                time = flds[0].split(" ")[1].strip()
-                # add row to table
-                self.tableWidget_3.insertRow(i)
-                if "Time" not in self.table:
-                    self.table["Time"] = ['' for jj in range(i)]
-                    self.tableWidget_3.insertColumn(j)
-                    self.tableWidget_3.setHorizontalHeaderItem(j, QTableWidgetItem("Time"))
-                self.table["Time"].append(time)
-                self.tableWidget_3.setItem(i, j, QTableWidgetItem(time))
-                #print("Time = -", time, "-")
-                for fld in flds[1:]:
-                    #print(fld)
-                    kv = fld.split("=")
-                    key = kv[0].strip()
-                    val = kv[1].strip()
-                    if key in self.excluded:
-                        continue
-                    if key not in self.table:
-                        self.table[key] = ['' for jj in range(i)]
-                        j = self.tableWidget_3.columnCount()
-                        self.tableWidget_3.insertColumn(j)
-                        self.tableWidget_3.setHorizontalHeaderItem(j, QTableWidgetItem(key))
-                    else:
-                        j = list(self.table.keys()).index(key)
-                    self.tableWidget_3.setItem(i, j, QTableWidgetItem(val))
-                    self.table[key].append(val)
-                for t in self.table :
-                    if len(self.table[t]) < len(self.table["Time"]) :
-                        self.table[t].append("")
-                i += 1
-            self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
-            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
-            self.tableWidget_3.scrollToBottom()
         except :
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.printExceptionInfo()
@@ -570,54 +533,13 @@ class Signal():
         self.logger = logging.getLogger()
         self.x = np.zeros(1)
         self.y = self.x.copy()
-        self.title = ''
         self.params = {}
+        self.name = ''
+        self.unit = ''
+        self.scale = 1.0
+        self.value = 0.0
+        self.marks = {}
         
-    def read(self, fileName, signalName, folder=''):
-        if signalName.find("chan") < 0 or signalName.find("param") >= 0:
-            self.logger.log(logging.INFO, "Wrong Signal Name %s"%signalName)
-            return
-        fn = os.path.join(folder, fileName)
-        #self.logger.log(logging.DEBUG, 'File %s'%fn)
-        with zipfile.ZipFile(os.path.join(folder, fn), 'r') as zipobj:
-            files = zipobj.namelist()
-            if signalName not in files :
-                self.logger.log(logging.INFO, "No such signal")
-                return
-            buf = zipobj.read(signalName)
-            lines = buf.split(b"\r\n")
-            n = len(lines)
-            self.x = np.empty(n)
-            self.y = np.empty(n)
-            ii = 0
-            for ln in lines:
-                xy = ln.split(b'; ')
-                self.x[ii] = float(xy[0].replace(b',', b'.'))
-                self.y[ii] = float(xy[1].replace(b',', b'.'))
-                ii += 1
-            # read parameters        
-            self.params = {}
-            pf = signalName.replace('chan', 'paramchan')
-            buf = zipobj.read(pf)
-            lines = buf.split(b"\r\n")
-            for ln in lines:
-                kv = ln.split(b'=')
-                if len(kv) == 2:
-                    self.params[kv[0].strip()] = kv[1].strip()
-            # scale to units
-            self.y *= float(self.params[b'display_unit'])
-            # title of the signal
-            self.title = ""
-            self.title = self.params[b"label"].decode('ascii')
-            # find marks
-            self.marks = []
-            ms = int(self.params['mark_start'])
-            ml = int(self.params['mark_length'])
-            self.mark.append((ms, ml))
-            for k in self.params:
-                if k.start("mark"):
-                    print(k)
-
 class DataFile():
     def __init__(self, fileName, folder=""):
         self.logger = logging.getLogger()
@@ -661,12 +583,14 @@ class DataFile():
                 signal.params[kv[0].strip()] = kv[1].strip()
         # scale to units
         if b'display_unit' in signal.params:
-            signal.y *= float(signal.params[b'display_unit'])
-        # title of the signal
-        signal.title = ""
-        signal.title = signal.params[b"label"].decode('ascii')
+            signal.scale = float(signal.params[b'display_unit'])
+            signal.y *= signal.scale
+        # name of the signal
+        if b"label" in signal.params:
+            signal.name = signal.params[b"label"].decode('ascii')
+        else:
+            signal.name = signalName
         # find marks
-        signal.marks = {}
         for k in signal.params:
             if k.endswith(b"_start"):
                 ms = int(signal.params[k])
@@ -676,7 +600,6 @@ class DataFile():
                 else:
                     mv = 0.0
                 signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
-        signal.value = 0.0
         if b'zero' in signal.marks:
             zero = signal.marks["zero"][2]
         else:
