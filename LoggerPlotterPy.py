@@ -440,12 +440,11 @@ class MainWindow(QMainWindow):
         self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
 
 class LogTable():
-    def __init__(self, fileName, folder = "", wdgt=None):
+    def __init__(self, fileName, folder = ""):
         self.logger = logging.getLogger()
         self.data = [[],]
         self.headers = []
         self.fileName = None
-        self.wdgt = wdgt
         self.rows = 0
         self.columns = 0
         
