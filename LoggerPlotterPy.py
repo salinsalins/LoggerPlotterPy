@@ -29,7 +29,7 @@ from mplwidget import MplWidget
 # my imports
 
 progName = 'LoggerPlotterPy'
-progVersion = '_1_0'
+progVersion = '_2_0'
 settingsFile = progName + '.json'
 logFile =  progName + '.log'
 
@@ -205,6 +205,14 @@ class MainWindow(QMainWindow):
                 axes = mplw.canvas.ax
                 axes.clear()
                 axes.plot(s.x, s.y)
+                if 'mark' in s.marks:
+                    m1 = s.marks['mark'][0]
+                    m2 = m1 + s.marks['mark'][1]
+                    axes.plot(s.x[m1:m2], s.y[m1:m2])
+                if 'zero' in s.marks:
+                    m1 = s.marks['zero'][0]
+                    m2 = m1 + s.marks['zero'][1]
+                    axes.plot(s.x[m1:m2], s.y[m1:m2])
                 # decorate the plot
                 axes.grid(True)
                 axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
