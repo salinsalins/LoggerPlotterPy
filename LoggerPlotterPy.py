@@ -197,17 +197,17 @@ class MainWindow(QMainWindow):
                     mplw.setMinimumWidth(320)
                     # add plots in colCount columns
                     layout.addWidget(mplw, row, col)
-                    colCount = 3
-                    col += 1
-                    if col >= colCount:
-                        col = 0
-                        row += 1
+                colCount = 3
+                col += 1
+                if col >= colCount:
+                    col = 0
+                    row += 1
                 axes = mplw.canvas.ax
                 axes.clear()
                 axes.plot(s.x, s.y)
                 # decorate the plot
                 axes.grid(True)
-                axes.set_title(s.name + ' = ' + str(s.value) + ' ' + s.unit)
+                axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
                 axes.set_xlabel('Time, ms')
                 axes.set_ylabel(s.name + ', ' + s.unit)
                 #axes.legend(loc='best') 
@@ -246,6 +246,19 @@ class MainWindow(QMainWindow):
     def onQuit(self) :
         # save global settings
         self.saveSettings()
+        
+    def sortedColumns(self):
+        # create sorted displayed columns list
+        included = self.plainTextEdit_2.toPlainText().split('\n')
+        excluded = self.plainTextEdit_3.toPlainText().split('\n')
+        columns = []
+        for t in included:
+            if t in self.logTable.headers:
+                columns.append(self.logTable.headers.index(t))
+        for t in self.logTable.headers:
+            if t not in excluded and t not in columns:
+                columns.append(self.logTable.headers.index(t))
+        return columns
 
     def parseFolder(self, fn=None):
         try:
@@ -298,18 +311,6 @@ class MainWindow(QMainWindow):
             self.printExceptionInfo()
             return
     
-    def zoplot(self, value=0.0, color='k'):
-        axes = self.mplWidget.canvas.ax
-        xlim = axes.get_xlim()
-        axes.plot(xlim, [value, value], color=color)
-        axes.set_xlim(xlim)
-
-    def voplot(self, value=0.0, color='k'):
-        axes = self.mplWidget.canvas.ax
-        ylim = axes.get_ylim()
-        axes.plot([value, value], ylim, color=color)
-        axes.set_ylim(ylim)
-
     def saveSettings(self, folder='', fileName=settingsFile) :
         try:
             fullName = os.path.join(str(folder), fileName)
@@ -319,9 +320,6 @@ class MainWindow(QMainWindow):
             self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
             #
             self.conf['folder'] = self.logFileName
-            #self.conf['smooth'] = int(self.spinBox.value())
-            #self.conf['scan'] = int(self.spinBox_2.value())
-            #self.conf['result'] = int(self.comboBox.currentIndex())
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
             self.conf['log_level'] = logging.DEBUG
@@ -349,13 +347,6 @@ class MainWindow(QMainWindow):
             # last folder
             if 'folder' in self.conf:
                 self.logFileName = self.conf['folder']
-            #if 'smooth' in self.conf:
-                #self.spinBox.setValue(int(self.conf['smooth']))
-            #if 'scan' in self.conf:
-                #self.spinBox_2.setValue(int(self.conf['scan']))
-            #if 'result' in self.conf:
-                #self.comboBox.setCurrentIndex(int(self.conf['result']))
-            # read items from history  
             if 'history' in self.conf:
                 self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
                 self.comboBox_2.clear()
@@ -380,19 +371,7 @@ class MainWindow(QMainWindow):
             self.move(QPoint(0, 0))
             # log file name
             self.logFileName = None
-            # smooth
-            #self.spinBox.setValue(100)
-            # scan
-            #self.spinBox_2.setValue(0)
-            # result
-            #self.comboBox.setCurrentIndex(0)
-            # items in history  
-            #self.comboBox_2.currentIndexChanged.disconnect(self.tableSelectionChanged)
-            #self.comboBox_2.clear()
-            #self.comboBox_2.currentIndexChanged.connect(self.tableSelectionChanged)
-            
             self.conf = {}
-            
             # print OK message and exit    
             self.logger.log(logging.DEBUG, 'Default configuration set.')
             return True
@@ -416,6 +395,7 @@ class LogTable():
         self.buf = None
         self.rows = 0
         self.columns = 0
+        self.order = []
         
         fn = os.path.join(folder, fileName)
         if not os.path.exists(fn) :
@@ -528,7 +508,6 @@ class LogTable():
         return self.data[self.headers.index(item)]
     
 class Signal():
-    
     def __init__(self):
         self.logger = logging.getLogger()
         self.x = np.zeros(1)
@@ -579,7 +558,7 @@ class DataFile():
         lines = pbuf.split(b"\r\n")
         for ln in lines:
             kv = ln.split(b'=')
-            if len(kv) == 2:
+            if len(kv) >= 2:
                 signal.params[kv[0].strip()] = kv[1].strip()
         # scale to units
         if b'display_unit' in signal.params:
@@ -590,25 +569,30 @@ class DataFile():
             signal.name = signal.params[b"label"].decode('ascii')
         else:
             signal.name = signalName
+        if b'unit' in signal.params:
+            signal.unit = signal.params[b'unit'].decode('ascii')
+        else:
+            signal.unit = ''
         # find marks
+        x0 = signal.x[0]
+        dx = signal.x[1] - signal.x[0]
         for k in signal.params:
             if k.endswith(b"_start"):
-                ms = int(signal.params[k])
-                ml = int(signal.params[k.replace(b"_start", b'_length')])
+                ms = int((float(signal.params[k]) - x0) / dx)
+                ml = int(float(signal.params[k.replace(b"_start", b'_length')]) / dx)
                 if ms+ml < n:
                     mv = signal.y[ms:ms+ml].mean()
                 else:
                     mv = 0.0
                 signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
-        if b'zero' in signal.marks:
+        if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
         else:
             zero = 0.0
-        if b'unit' in signal.params:
-            signal.unit = signal.params[b'unit'].decode('ascii')
+        if 'mark' in signal.marks:
+            signal.value = signal.marks["mark"][2] - zero
         else:
-            signal.unit = ''
-        signal.value = signal.marks["mark"][2] - zero  
+            signal.value = 0.0    
         return signal
 
     def readAllSignals(self):
