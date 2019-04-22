@@ -23,9 +23,11 @@ from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5 import uic
 from PyQt5.QtCore import QPoint, QSize
+from PyQt5.QtCore import Qt, QTimer
 
 import numpy as np
 from mplwidget import MplWidget
+from matplotlib.ticker import OldScalarFormatter
 # my imports
 
 progName = 'LoggerPlotterPy'
@@ -70,6 +72,7 @@ class MainWindow(QMainWindow):
         self.plainTextEdit.setLineWrapMode(0)
 
         # class member variables definition
+        self.my_counter = 0
         self.logFileName = ''
         self.fleNames = []
         self.nx = 0
@@ -394,12 +397,27 @@ class MainWindow(QMainWindow):
         (tp, value) = sys.exc_info()[:2]
         self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
 
+    def timerHandler(self):
+        #self.label_5.setText("Timer" + " %d tick" % self.my_counter)
+        self.my_counter += 1
+        # check if lock file exists
+        folder = os.path.dirname(self.logFileName)
+        file = os.path.join(folder, "lock.lock")
+        if os.path.exists(file):
+            return
+        oldSize = self.logTable.fileSize
+        newSize = os.path.getsize(self.logFileName)
+        if newSize <= oldSize:
+            return
+        self.parseFolder()
+
 class LogTable():
     def __init__(self, fileName, folder = ""):
         self.logger = logging.getLogger()
         self.data = [[],]
         self.headers = []
         self.fileName = None
+        self.fileSize = 0
         self.buf = None
         self.rows = 0
         self.columns = 0
@@ -414,6 +432,7 @@ class LogTable():
             self.logger.info('Nothing to process in %s'%self.fileName)
             return
         self.fileName = fn
+        self.fileSize = os.path.getsize(fn)
         # split buf to lines
         lns = self.buf.split('\n')
         # loop for lines
@@ -617,6 +636,10 @@ if __name__ == '__main__':
     app.aboutToQuit.connect(dmw.onQuit)
     # show it
     dmw.show()
+    # defile and start timer task
+    timer = QTimer()
+    timer.timeout.connect(dmw.timerHandler)
+    timer.start(1000)
     # start the Qt main loop execution, exiting from this script
     # with the same return code of Qt application
     sys.exit(app.exec_())
