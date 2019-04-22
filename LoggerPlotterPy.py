@@ -60,6 +60,8 @@ class MainWindow(QMainWindow):
         self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
         self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
         self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
+        #self.plainTextEdit_2.textChanged.connect(self.parseFolder)
+        #self.plainTextEdit_3.textChanged.connect(self.parseFolder)
         # menu actions connection
         self.actionQuit.triggered.connect(qApp.quit)
         self.actionOpen.triggered.connect(self.selectLogFile)
@@ -293,8 +295,9 @@ class MainWindow(QMainWindow):
             for t in self.logTable.headers:
                 if t not in self.excluded and t not in self.columns:
                     self.columns.append(t)
-            # clean table widget
+            # disable table update events
             self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
+            # clear table
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
             # refill table widget
@@ -312,8 +315,9 @@ class MainWindow(QMainWindow):
                     m = self.logTable.find(c)
                     self.tableWidget_3.setItem(k, n, QTableWidgetItem(self.logTable.data[m][k]))
                     n += 1
-            # select last row of widget -> selectionChanged will be fired 
+            # enable table update events
             self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
+            # select last row of widget -> selectionChanged will be fired 
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             ##self.tableWidget_3.scrollToBottom()
             return
@@ -335,6 +339,8 @@ class MainWindow(QMainWindow):
             self.conf['history_index'] = self.comboBox_2.currentIndex()
             self.conf['log_level'] = logging.DEBUG
             self.conf['parameters'] = self.paramsManual
+            self.conf['included'] = self.plainTextEdit_2.toPlainText()
+            self.conf['excluded'] = self.plainTextEdit_3.toPlainText()
             with open(fullName, 'w', encoding='utf-8') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s'%fullName)
@@ -367,6 +373,12 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
 
             # print OK message and exit    
+            if 'included' in self.conf:
+                self.plainTextEdit_2.setPlainText(self.conf['included'])
+            if 'excluded' in self.conf:
+                self.plainTextEdit_3.setPlainText(self.conf['excluded'])
+
+            # print OK message and exit    
             self.logger.info('Configuration restored from %s'%fullName)
             return True
         except :
@@ -394,13 +406,16 @@ class MainWindow(QMainWindow):
 
     def printExceptionInfo(self, level=logging.INFO):
         #excInfo = sys.exc_info()
-        (tp, value) = sys.exc_info()[:2]
-        self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
+        #(tp, value) = sys.exc_info()[:2]
+        #self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
+        self.logger.error("Exception ", exc_info=True)
 
     def timerHandler(self):
         #self.label_5.setText("Timer" + " %d tick" % self.my_counter)
         self.my_counter += 1
         # check if lock file exists
+        if self.logFileName is None:
+            return
         folder = os.path.dirname(self.logFileName)
         file = os.path.join(folder, "lock.lock")
         if os.path.exists(file):

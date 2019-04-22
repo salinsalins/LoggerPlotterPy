@@ -478,10 +478,7 @@
                     <item row="1" column="0">
                      <widget class="QPlainTextEdit" name="plainTextEdit_2">
                       <property name="plainText">
-                       <string>Time
-bbb
-ccc
-</string>
+                       <string>Time</string>
                       </property>
                      </widget>
                     </item>
@@ -489,19 +486,11 @@ ccc
                      <widget class="QPlainTextEdit" name="plainTextEdit_3">
                       <property name="plainText">
                        <string>Shot
-eee
-fff</string>
+File</string>
                       </property>
                      </widget>
                     </item>
                    </layout>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_5">
-                   <property name="text">
-                    <string>TextLabel</string>
-                   </property>
                   </widget>
                  </item>
                  <item>
