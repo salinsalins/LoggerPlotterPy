@@ -347,7 +347,7 @@ class MainWindow(QMainWindow):
             self.conf['folder'] = self.logFileName
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
-            self.conf['log_level'] = logging.DEBUG
+            #self.conf['log_level'] = logging.DEBUG
             self.conf['included'] = self.plainTextEdit_2.toPlainText()
             self.conf['excluded'] = self.plainTextEdit_3.toPlainText()
             self.conf['cb_1'] = self.checkBox_1.isChecked()
