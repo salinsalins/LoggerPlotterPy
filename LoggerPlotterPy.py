@@ -449,7 +449,6 @@ class MainWindow(QMainWindow):
         #a = event.canvas.getParent()
         #ntb = NavigationToolbar(event.canvas, a)
         #a.addWidget(ntb)
-        
 
 class LogTable():
     def __init__(self, fileName, folder = ""):
