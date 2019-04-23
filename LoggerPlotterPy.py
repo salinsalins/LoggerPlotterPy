@@ -49,10 +49,10 @@ class TextEditHandler(logging.Handler):
             self.widget.appendPlainText(log_entry)
 
 class MainWindow(QMainWindow):
-    """Customization for Qt Designer created window"""
     def __init__(self, parent=None):
         # initialization of the superclass
         super(MainWindow, self).__init__(parent)
+        self.tableWidget_3 = QTableWidget()
         # load the UI 
         uic.loadUi('LoggerPlotter.ui', self)
         # connect the signals with the slots
@@ -72,19 +72,9 @@ class MainWindow(QMainWindow):
         # additional configuration
         # disable text wrapping in log window
         self.plainTextEdit.setLineWrapMode(0)
-
-        # class member variables definition
-        self.my_counter = 0
-        self.logFileName = ''
-        self.fleNames = []
-        self.nx = 0
-        self.data = None
-        self.scanVoltage = None
-        self.paramsAuto = None
-        self.paramsManual = {}
         
         # configure logging
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
         #self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
         self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%H:%M:%S')
@@ -99,10 +89,13 @@ class MainWindow(QMainWindow):
         self.text_edit_handler.setFormatter(self.log_formatter)
         self.logger.addHandler(self.text_edit_handler)
         
+        # class member variables definition
+        self.setDefaultSettings()
+
         # welcome message
         self.logger.info(progName + progVersion + ' started')
         
-        # restore global settings from default location
+        # restore settings from default config file
         self.restoreSettings()
         
         # additional decorations
@@ -217,7 +210,7 @@ class MainWindow(QMainWindow):
                 if 'zero' in s.marks:
                     m1 = s.marks['zero'][0]
                     m2 = m1 + s.marks['zero'][1]
-                    axes.plot(s.x[m1:m2], s.y[m1:m2])
+                    axes.plot(s.x[m1:m2], s.y[m1:m2], 'r')
                 # decorate the plot
                 axes.grid(True)
                 axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
@@ -333,12 +326,10 @@ class MainWindow(QMainWindow):
             p = self.pos()
             s = self.size()
             self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
-            #
             self.conf['folder'] = self.logFileName
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
             self.conf['log_level'] = logging.DEBUG
-            self.conf['parameters'] = self.paramsManual
             self.conf['included'] = self.plainTextEdit_2.toPlainText()
             self.conf['excluded'] = self.plainTextEdit_3.toPlainText()
             with open(fullName, 'w', encoding='utf-8') as configfile:
@@ -351,7 +342,6 @@ class MainWindow(QMainWindow):
             return False
         
     def restoreSettings(self, folder='', fileName=settingsFile) :
-        self.setDefaultSettings()
         try :
             fullName = os.path.join(str(folder), fileName)
             with open(fullName, 'r', encoding='utf-8') as configfile:
@@ -389,13 +379,15 @@ class MainWindow(QMainWindow):
 
     def setDefaultSettings(self) :
         try :
+            # some class variables
+            self.my_counter = 0
             # window size and position
             self.resize(QSize(640, 480))
             self.move(QPoint(0, 0))
             # log file name
             self.logFileName = None
             self.conf = {}
-            # print OK message and exit    
+            #self.conf["plot_trace_color"] = 0
             self.logger.log(logging.DEBUG, 'Default configuration set.')
             return True
         except :
@@ -425,10 +417,55 @@ class MainWindow(QMainWindow):
         if newSize <= oldSize:
             return
         self.parseFolder()
+        
+    def reorderColumns(self):
+            # create sorted displayed columns list
+            self.included = self.plainTextEdit_2.toPlainText().split('\n')
+            self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
+            columns = []
+            for t in self.included:
+                if t in self.logTable.headers:
+                    columns.append(t)
+            for t in self.logTable.headers:
+                if t not in self.excluded and t not in columns:
+                    columns.append(t)
+            if len(self.columns) == len(columns):
+                result = True
+                for n in range(len(self.columns)):
+                    if self.columns[n] != columns[n]:
+                        result = False
+                        break
+                if result:
+                    return
+            self.columns = columns
+            # disable table update events
+            self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
+            # clear table
+            self.tableWidget_3.setRowCount(0)
+            self.tableWidget_3.setColumnCount(0)
+            # refill table widget
+            # insert columns
+            k = 0
+            for c in self.columns:
+                self.tableWidget_3.insertColumn(k)
+                self.tableWidget_3.setHorizontalHeaderItem(k, QTableWidgetItem(c))
+                k += 1
+            # insert and fill rows 
+            for k in range(self.logTable.rows):
+                self.tableWidget_3.insertRow(k)
+                n = 0
+                for c in self.columns:
+                    m = self.logTable.find(c)
+                    self.tableWidget_3.setItem(k, n, QTableWidgetItem(self.logTable.data[m][k]))
+                    n += 1
+            # enable table update events
+            self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
+            # select last row of widget -> selectionChanged will be fired 
+            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
 
 class LogTable():
     def __init__(self, fileName, folder = ""):
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger(__name__)
         self.data = [[],]
         self.headers = []
         self.fileName = None
@@ -551,7 +588,7 @@ class LogTable():
     
 class Signal():
     def __init__(self):
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger(__name__)
         self.x = np.zeros(1)
         self.y = self.x.copy()
         self.params = {}
@@ -563,7 +600,7 @@ class Signal():
         
 class DataFile():
     def __init__(self, fileName, folder=""):
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger(__name__)
         self.fileName = None
         self.files = []
         self.signals = []
