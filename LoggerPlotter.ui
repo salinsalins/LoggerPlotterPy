@@ -151,11 +151,25 @@
                      <layout class="QGridLayout" name="gridLayout_5">
                       <item row="0" column="0">
                        <widget class="QTableWidget" name="tableWidget_3">
+                        <property name="font">
+                         <font>
+                          <pointsize>14</pointsize>
+                         </font>
+                        </property>
+                        <property name="locale">
+                         <locale language="English" country="UnitedStates"/>
+                        </property>
+                        <property name="alternatingRowColors">
+                         <bool>true</bool>
+                        </property>
                         <property name="selectionMode">
                          <enum>QAbstractItemView::SingleSelection</enum>
                         </property>
                         <property name="selectionBehavior">
                          <enum>QAbstractItemView::SelectRows</enum>
+                        </property>
+                        <property name="wordWrap">
+                         <bool>false</bool>
                         </property>
                         <property name="rowCount">
                          <number>0</number>
@@ -167,7 +181,7 @@
                          <bool>true</bool>
                         </attribute>
                         <attribute name="horizontalHeaderDefaultSectionSize">
-                         <number>70</number>
+                         <number>100</number>
                         </attribute>
                         <attribute name="horizontalHeaderMinimumSectionSize">
                          <number>30</number>
@@ -348,14 +362,14 @@
                     <item>
                      <widget class="QCheckBox" name="checkBox_2">
                       <property name="text">
-                       <string>CheckBox</string>
+                       <string>Show Previous Shot</string>
                       </property>
                      </widget>
                     </item>
                     <item>
                      <widget class="QCheckBox" name="checkBox_1">
                       <property name="text">
-                       <string>CheckBox</string>
+                       <string>Plot Toolbar</string>
                       </property>
                      </widget>
                     </item>

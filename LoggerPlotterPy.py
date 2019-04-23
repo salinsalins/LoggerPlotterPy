@@ -120,6 +120,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(True)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
+        self.tableSelectionChanged()
     
     def showLogPane(self):
         self.stackedWidget.setCurrentIndex(1)
@@ -171,11 +172,11 @@ class MainWindow(QMainWindow):
             self.dataFile = DataFile(zipFileName, folder = folder)
             # read signals from zip file
             self.signalsList = self.dataFile.readAllSignals()
-            # clean all signal plots
             layout = self.scrollAreaWidgetContents_3.layout()
-            for k in range(layout.count()):
-                layout.itemAt(k).widget().canvas.ax.clear()
-                layout.itemAt(k).widget().canvas.draw()
+            # clean all signal plots
+            #for k in range(layout.count()):
+            #    layout.itemAt(k).widget().canvas.ax.clear()
+            #    layout.itemAt(k).widget().canvas.draw()
             # reorder according to columns order in the table
             self.signals = []
             for c in self.columns:
@@ -204,8 +205,20 @@ class MainWindow(QMainWindow):
                 if col >= colCount:
                     col = 0
                     row += 1
+                if self.checkBox_1.isChecked():
+                    mplw.ntb.show()
+                else:
+                    mplw.ntb.hide()
                 axes = mplw.canvas.ax
+                prevLines = axes.get_lines()
                 axes.clear()
+                # plot previous line
+                if len(prevLines) > 0 and self.checkBox_2.isChecked():
+                    k = 0
+                    if len(prevLines) == 4:
+                        k = 1
+                    axes.plot(prevLines[k].get_xdata(), prevLines[k].get_ydata(), "y-")
+                #plot main line
                 axes.plot(s.x, s.y)
                 if 'mark' in s.marks:
                     m1 = s.marks['mark'][0]
@@ -315,6 +328,7 @@ class MainWindow(QMainWindow):
             # enable table update events
             self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
             # select last row of widget -> selectionChanged will be fired 
+            self.tableWidget_3.resizeColumnsToContents()
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             ##self.tableWidget_3.scrollToBottom()
             return
@@ -336,6 +350,8 @@ class MainWindow(QMainWindow):
             self.conf['log_level'] = logging.DEBUG
             self.conf['included'] = self.plainTextEdit_2.toPlainText()
             self.conf['excluded'] = self.plainTextEdit_3.toPlainText()
+            self.conf['cb_1'] = self.checkBox_1.isChecked()
+            self.conf['cb_2'] = self.checkBox_2.isChecked()
             with open(fullName, 'w', encoding='utf-8') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s'%fullName)
@@ -371,6 +387,10 @@ class MainWindow(QMainWindow):
                 self.plainTextEdit_2.setPlainText(self.conf['included'])
             if 'excluded' in self.conf:
                 self.plainTextEdit_3.setPlainText(self.conf['excluded'])
+            if 'cb_1' in self.conf:
+                self.checkBox_1.setChecked(self.conf['cb_1'])
+            if 'cb_2' in self.conf:
+                self.checkBox_2.setChecked(self.conf['cb_2'])
 
             # print OK message and exit    
             self.logger.info('Configuration restored from %s'%fullName)
@@ -422,51 +442,6 @@ class MainWindow(QMainWindow):
             return
         self.parseFolder()
         
-    def reorderColumns(self):
-            # create sorted displayed columns list
-            self.included = self.plainTextEdit_2.toPlainText().split('\n')
-            self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
-            columns = []
-            for t in self.included:
-                if t in self.logTable.headers:
-                    columns.append(t)
-            for t in self.logTable.headers:
-                if t not in self.excluded and t not in columns:
-                    columns.append(t)
-            if len(self.columns) == len(columns):
-                result = True
-                for n in range(len(self.columns)):
-                    if self.columns[n] != columns[n]:
-                        result = False
-                        break
-                if result:
-                    return
-            self.columns = columns
-            # disable table update events
-            self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
-            # clear table
-            self.tableWidget_3.setRowCount(0)
-            self.tableWidget_3.setColumnCount(0)
-            # refill table widget
-            # insert columns
-            k = 0
-            for c in self.columns:
-                self.tableWidget_3.insertColumn(k)
-                self.tableWidget_3.setHorizontalHeaderItem(k, QTableWidgetItem(c))
-                k += 1
-            # insert and fill rows 
-            for k in range(self.logTable.rows):
-                self.tableWidget_3.insertRow(k)
-                n = 0
-                for c in self.columns:
-                    m = self.logTable.find(c)
-                    self.tableWidget_3.setItem(k, n, QTableWidgetItem(self.logTable.data[m][k]))
-                    n += 1
-            # enable table update events
-            self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
-            # select last row of widget -> selectionChanged will be fired 
-            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
-            
     def onClick(self, event):
         print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               ('double' if event.dblclick else 'single', event.button,
