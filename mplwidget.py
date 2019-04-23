@@ -52,6 +52,7 @@ class MplWidget(QtGui.QWidget):
         # create a vertical box layout
         self.vbl = QtGui.QVBoxLayout()
         
+        self.ntb = None
         #self.ntb = NavigationToolbar(self.canvas, parent)
         #self.vbl.addWidget(self.ntb)
         

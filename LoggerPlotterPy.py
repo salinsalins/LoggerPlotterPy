@@ -30,6 +30,9 @@ from mplwidget import MplWidget
 from matplotlib.ticker import OldScalarFormatter
 # my imports
 
+from matplotlib.backends.backend_qt5agg \
+    import NavigationToolbar2QT as NavigationToolbar
+
 progName = 'LoggerPlotterPy'
 progVersion = '_2_0'
 settingsFile = progName + '.json'
@@ -193,6 +196,7 @@ class MainWindow(QMainWindow):
                     mplw = MplWidget()
                     mplw.setMinimumHeight(320)
                     mplw.setMinimumWidth(320)
+                    #mplw.canvas.mpl_connect('button_press_event', self.onClick)
                     # add plots in colCount columns
                     layout.addWidget(mplw, row, col)
                 colCount = 3
@@ -462,6 +466,15 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
             # select last row of widget -> selectionChanged will be fired 
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
+            
+    def onClick(self, event):
+        print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+              ('double' if event.dblclick else 'single', event.button,
+               event.x, event.y, event.xdata, event.ydata))
+        #a = event.canvas.getParent()
+        #ntb = NavigationToolbar(event.canvas, a)
+        #a.addWidget(ntb)
+        
 
 class LogTable():
     def __init__(self, fileName, folder = ""):
