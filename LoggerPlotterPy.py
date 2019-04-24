@@ -359,7 +359,7 @@ class MainWindow(QMainWindow):
     def restoreSettings(self, folder='', fileName=settingsFile) :
         try :
             fullName = os.path.join(str(folder), fileName)
-            with open(fullName, 'r', encoding='utf-8') as configfile:
+            with open(fullName, 'r') as configfile:
                 s = configfile.read()
             self.conf = json.loads(s)
             # restore window size and position
