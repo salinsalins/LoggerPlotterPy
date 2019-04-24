@@ -5,8 +5,8 @@ Created on Jul 2, 2017
 @author: sanin
 ''' 
 # used to parse files more easily
-from __future__ import with_statement
-from __future__ import print_function
+#from __future__ import with_statement
+#from __future__ import print_function
 
 import os.path
 import sys
@@ -23,18 +23,13 @@ from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5 import uic
 from PyQt5.QtCore import QPoint, QSize
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QTimer
 
 import numpy as np
 from mplwidget import MplWidget
-from matplotlib.ticker import OldScalarFormatter
-# my imports
-
-from matplotlib.backends.backend_qt5agg \
-    import NavigationToolbar2QT as NavigationToolbar
 
 progName = 'LoggerPlotterPy'
-progVersion = '_2_0'
+progVersion = '_4_0'
 settingsFile = progName + '.json'
 logFile =  progName + '.log'
 
@@ -262,8 +257,8 @@ class MainWindow(QMainWindow):
             self.parseFolder()
 
     def logLevelIndexChanged(self, m):
+        #self.logger.debug('Selection changed to %s'%str(m))
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
-        self.logger.debug('Log selection changed to %s'%str(m))
         self.logger.setLevel(levels[m])
  
     def onQuit(self) :
@@ -420,7 +415,7 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.WARNING, 'Default configuration set error.')
             return False
 
-    def printExceptionInfo(self, level=logging.INFO):
+    def printExceptionInfo(self):
         #excInfo = sys.exc_info()
         #(tp, value) = sys.exc_info()[:2]
         #self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
