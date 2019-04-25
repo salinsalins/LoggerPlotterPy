@@ -565,7 +565,7 @@ class LogTable():
         if columnName in self.headers:
             return self.headers.index(columnName)
         self.headers.append(columnName)
-        newColumn = ["" for ii in range(self.columns)]
+        newColumn = [""] * self.columns
         self.data.append(newColumn)
         self.columns += 1 
         return self.headers.index(columnName)

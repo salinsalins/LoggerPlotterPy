@@ -13,11 +13,11 @@ try:
     from matplotlib.backends.backend_qt5agg \
       import NavigationToolbar2QT as NavigationToolbar
 except:
-    from PyQt4 import QtGui
+    from PyQt4 import QtGui # @UnresolvedImport @UnusedImport @Reimport
     from matplotlib.backends.backend_qt4agg \
-      import FigureCanvasQTAgg as FigureCanvas
+      import FigureCanvasQTAgg as FigureCanvas # @UnresolvedImport @UnusedImport @Reimport
     from matplotlib.backends.backend_qt4agg \
-      import NavigationToolbar2QT as NavigationToolbar
+      import NavigationToolbar2QT as NavigationToolbar # @UnresolvedImport @UnusedImport @Reimport
 
 
 # import the Qt4Agg FigureCanvas object, that binds Figure to
