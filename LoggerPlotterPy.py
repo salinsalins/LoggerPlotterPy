@@ -29,7 +29,7 @@ import numpy as np
 from mplwidget import MplWidget
 
 progName = 'LoggerPlotterPy'
-progVersion = '_4_0'
+progVersion = '_4_1'
 settingsFile = progName + '.json'
 logFile =  progName + '.log'
 
@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
         uic.loadUi('LoggerPlotter.ui', self)
         # connect the signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
-        self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+        self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
         self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
         self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
         #self.plainTextEdit_2.textChanged.connect(self.parseFolder)
@@ -168,11 +168,7 @@ class MainWindow(QMainWindow):
             # read signals from zip file
             self.signalsList = self.dataFile.readAllSignals()
             layout = self.scrollAreaWidgetContents_3.layout()
-            # clean all signal plots
-            #for k in range(layout.count()):
-            #    layout.itemAt(k).widget().canvas.ax.clear()
-            #    layout.itemAt(k).widget().canvas.draw()
-            # reorder according to columns order in the table
+            # reorder plots according to columns order in the table
             self.signals = []
             for c in self.columns:
                 for s in self.signalsList:
@@ -182,6 +178,7 @@ class MainWindow(QMainWindow):
             jj = 0
             col = 0
             row = 0
+            colCount = 3
             for c in self.signals:
                 s = self.signalsList[c]
                 if jj < layout.count():    
@@ -195,17 +192,20 @@ class MainWindow(QMainWindow):
                     #mplw.canvas.mpl_connect('button_press_event', self.onClick)
                     # add plots in colCount columns
                     layout.addWidget(mplw, row, col)
-                colCount = 3
                 col += 1
                 if col >= colCount:
                     col = 0
                     row += 1
+                # show toolbar
                 if self.checkBox_1.isChecked():
                     mplw.ntb.show()
                 else:
                     mplw.ntb.hide()
+                # get axes
                 axes = mplw.canvas.ax
+                # previous traces list
                 prevLines = axes.get_lines()
+                # clear plot
                 axes.clear()
                 # plot previous line
                 if len(prevLines) > 0 and self.checkBox_2.isChecked():
@@ -215,10 +215,12 @@ class MainWindow(QMainWindow):
                     axes.plot(prevLines[k].get_xdata(), prevLines[k].get_ydata(), "y-")
                 #plot main line
                 axes.plot(s.x, s.y)
+                # add mark highlight
                 if 'mark' in s.marks:
                     m1 = s.marks['mark'][0]
                     m2 = m1 + s.marks['mark'][1]
                     axes.plot(s.x[m1:m2], s.y[m1:m2])
+                # add zero highlight
                 if 'zero' in s.marks:
                     m1 = s.marks['zero'][0]
                     m2 = m1 + s.marks['zero'][1]
@@ -229,6 +231,7 @@ class MainWindow(QMainWindow):
                 axes.set_xlabel('Time, ms')
                 axes.set_ylabel(s.name + ', ' + s.unit)
                 #axes.legend(loc='best') 
+                # show plot
                 mplw.canvas.draw()
                 jj += 1
             # remove unused plots
@@ -239,11 +242,10 @@ class MainWindow(QMainWindow):
                 w = item.widget()
                 if w:
                     w.deleteLater()
-
         except:
             self.printExceptionInfo()
  
-    def selectionChanged(self, i):
+    def fileSelectionChanged(self, i):
         self.logger.debug('File selection changed to %s'%str(i))
         if i < 0:
             return
@@ -322,7 +324,7 @@ class MainWindow(QMainWindow):
                     n += 1
             # enable table update events
             self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
-            # select last row of widget -> selectionChanged will be fired 
+            # select last row of widget -> fileSelectionChanged will be fired 
             self.tableWidget_3.resizeColumnsToContents()
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             ##self.tableWidget_3.scrollToBottom()
@@ -370,10 +372,10 @@ class MainWindow(QMainWindow):
             if 'folder' in self.conf:
                 self.logFileName = self.conf['folder']
             if 'history' in self.conf:
-                self.comboBox_2.currentIndexChanged.disconnect(self.selectionChanged)
+                self.comboBox_2.currentIndexChanged.disconnect(self.fileSelectionChanged)
                 self.comboBox_2.clear()
                 self.comboBox_2.addItems(self.conf['history'])
-                self.comboBox_2.currentIndexChanged.connect(self.selectionChanged)
+                self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
             if 'history_index' in self.conf:
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
 
@@ -579,6 +581,40 @@ class Signal():
         self.scale = 1.0
         self.value = 0.0
         self.marks = {}
+
+    def plot(self, widget = None):
+        if widget is None:
+            # create new signal plot
+            widget = MplWidget()
+            widget.setMinimumHeight(320)
+            widget.setMinimumWidth(320)
+        axes = widget.canvas.ax
+        prevLines = axes.get_lines()
+        axes.clear()
+        # plot previous line
+        if len(prevLines) > 0:
+            k = 0
+            if len(prevLines) == 4:
+                k = 1
+            axes.plot(prevLines[k].get_xdata(), prevLines[k].get_ydata(), "y-")
+        #plot main line
+        axes.plot(self.x, self.y)
+        if 'mark' in self.marks:
+            m1 = self.marks['mark'][0]
+            m2 = m1 + self.marks['mark'][1]
+            axes.plot(self.x[m1:m2], self.y[m1:m2])
+        if 'zero' in self.marks:
+            m1 = self.marks['zero'][0]
+            m2 = m1 + self.marks['zero'][1]
+            axes.plot(self.x[m1:m2], self.y[m1:m2], 'r')
+        # decorate the plot
+        axes.grid(True)
+        axes.set_title('{0} = {1:5.2f} {2}'.format(self.name, self.value, self.unit))
+        axes.set_xlabel('Time, ms')
+        axes.set_ylabel(self.name + ', ' + self.unit)
+        #axes.legend(loc='best')
+        return widget 
+        
         
 class DataFile():
     def __init__(self, fileName, folder=""):
