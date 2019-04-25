@@ -14,22 +14,37 @@ import json
 import logging
 import zipfile
 
-from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import qApp
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtWidgets import QTableWidgetItem
-from PyQt5.QtWidgets import QTableWidget
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5 import uic
-from PyQt5.QtCore import QPoint, QSize
-from PyQt5.QtCore import QTimer
+try:
+    from PyQt5 import QtWidgets as QtGui # @UnusedImport
+    from PyQt5.QtWidgets import QMainWindow
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtWidgets import qApp
+    from PyQt5.QtWidgets import QFileDialog
+    from PyQt5.QtWidgets import QTableWidgetItem
+    from PyQt5.QtWidgets import QTableWidget
+    from PyQt5.QtWidgets import QMessageBox
+    from PyQt5 import uic
+    from PyQt5.QtCore import QPoint, QSize
+    from PyQt5.QtCore import QTimer
+except:
+    from PyQt4 import QtGui  # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtWidgets import QMainWindow # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtWidgets import QApplication # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtWidgets import qApp # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtWidgets import QFileDialog # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtWidgets import QTableWidgetItem # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtWidgets import QTableWidget # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtWidgets import QMessageBox # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4 import uic # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtCore import QPoint, QSize # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtCore import QTimer # @UnresolvedImport @UnusedImport @Reimport
+
 
 import numpy as np
 from mplwidget import MplWidget
 
 progName = 'LoggerPlotterPy'
-progVersion = '_4_1'
+progVersion = '_4_2'
 settingsFile = progName + '.json'
 logFile =  progName + '.log'
 
@@ -138,7 +153,7 @@ class MainWindow(QMainWindow):
             d = os.path.dirname(self.logFileName)
         fileOpenDialog = QFileDialog(caption='Select log file', directory = d)
         # select fn, not file
-        fn = fileOpenDialog.getOpenFileName()[0]
+        fn,_ = fileOpenDialog.getOpenFileName()
         # if a fn is selected
         if fn:
             if self.logFileName == fn:
