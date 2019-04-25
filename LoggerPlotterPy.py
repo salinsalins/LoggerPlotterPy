@@ -157,9 +157,7 @@ class MainWindow(QMainWindow):
         fn = fileOpenDialog.getOpenFileName()
         # if a fn is selected
         if fn:
-            if isinstance(fn, six.string_types):
-                pass
-            else:
+            if len(fn[0]) > 1:
                 fn = fn[0]
             if self.logFileName == fn:
                 return
@@ -286,6 +284,7 @@ class MainWindow(QMainWindow):
     def onQuit(self) :
         # save global settings
         self.saveSettings()
+        timer.stop()
         
     def sortedColumns(self):
         # create sorted displayed columns list
@@ -365,12 +364,12 @@ class MainWindow(QMainWindow):
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
             #self.conf['log_level'] = logging.DEBUG
-            self.conf['included'] = self.plainTextEdit_2.toPlainText()
-            self.conf['excluded'] = self.plainTextEdit_3.toPlainText()
+            self.conf['included'] = str(self.plainTextEdit_2.toPlainText())
+            self.conf['excluded'] = str(self.plainTextEdit_3.toPlainText())
             self.conf['cb_1'] = self.checkBox_1.isChecked()
             self.conf['cb_2'] = self.checkBox_2.isChecked()
             with open(fullName, 'w') as configfile:
-                configfile.write(json.dumps(self.conf, indent=4))
+                            configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s'%fullName)
             return True
         except :
