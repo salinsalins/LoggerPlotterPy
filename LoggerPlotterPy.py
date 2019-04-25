@@ -28,13 +28,13 @@ try:
     from PyQt5.QtCore import QTimer
 except:
     from PyQt4 import QtGui  # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtWidgets import QMainWindow # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtWidgets import QApplication # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtWidgets import qApp # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtWidgets import QFileDialog # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtWidgets import QTableWidgetItem # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtWidgets import QTableWidget # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtWidgets import QMessageBox # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtGui import QMainWindow # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtGui import QApplication # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtGui import qApp # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtGui import QFileDialog # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtGui import QTableWidgetItem # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtGui import QTableWidget # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4.QtGui import QMessageBox # @UnresolvedImport @UnusedImport @Reimport
     from PyQt4 import uic # @UnresolvedImport @UnusedImport @Reimport
     from PyQt4.QtCore import QPoint, QSize # @UnresolvedImport @UnusedImport @Reimport
     from PyQt4.QtCore import QTimer # @UnresolvedImport @UnusedImport @Reimport
@@ -44,7 +44,7 @@ import numpy as np
 from mplwidget import MplWidget
 
 progName = 'LoggerPlotterPy'
-progVersion = '_4_2'
+progVersion = '_4_3'
 settingsFile = progName + '.json'
 logFile =  progName + '.log'
 
