@@ -42,6 +42,7 @@ except:
 
 import numpy as np
 from mplwidget import MplWidget
+import six
 
 progName = 'LoggerPlotterPy'
 progVersion = '_4_3'
@@ -153,9 +154,13 @@ class MainWindow(QMainWindow):
             d = os.path.dirname(self.logFileName)
         fileOpenDialog = QFileDialog(caption='Select log file', directory = d)
         # select fn, not file
-        fn,_ = fileOpenDialog.getOpenFileName()
+        fn = fileOpenDialog.getOpenFileName()
         # if a fn is selected
         if fn:
+            if isinstance(fn, six.string_types):
+                pass
+            else:
+                fn = fn[0]
             if self.logFileName == fn:
                 return
             i = self.comboBox_2.findText(fn)
@@ -364,7 +369,7 @@ class MainWindow(QMainWindow):
             self.conf['excluded'] = self.plainTextEdit_3.toPlainText()
             self.conf['cb_1'] = self.checkBox_1.isChecked()
             self.conf['cb_2'] = self.checkBox_2.isChecked()
-            with open(fullName, 'w', encoding='utf-8') as configfile:
+            with open(fullName, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s'%fullName)
             return True
