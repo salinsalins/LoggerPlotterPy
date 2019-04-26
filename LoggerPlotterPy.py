@@ -46,7 +46,8 @@ from mplwidget import MplWidget
 progName = 'LoggerPlotterPy'
 progVersion = '_4_3'
 settingsFile = progName + '.json'
-logFile =  progName + '.log'
+logFile = progName + '.log'
+
 
 # logging to the text panel
 class TextEditHandler(logging.Handler):
@@ -60,6 +61,7 @@ class TextEditHandler(logging.Handler):
         log_entry = self.format(record)
         if self.widget is not None:
             self.widget.appendPlainText(log_entry)
+
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -467,7 +469,7 @@ class MainWindow(QMainWindow):
 
 
 class LogTable():
-    def __init__(self, fileName, folder = ""):
+    def __init__(self, fileName, folder=""):
         self.logger = logging.getLogger(__name__)
         self.data = [[],]
         self.headers = []
@@ -516,12 +518,12 @@ class LogTable():
                     self.data[self.columns-1][self.rows-1] = val
         
     def addRow(self):
-        for item in self.data :
+        for item in self.data:
             item.append("")
         self.rows += 1
     
     def removeRow(self, row):
-        for item in self.data :
+        for item in self.data:
             del item[row]
         self.rows -= 1
 
@@ -542,7 +544,7 @@ class LogTable():
         return self.data[col][row]
 
     def getItem(self, row, col):
-        return self.item(self, row, col)
+        return self.item(row, col)
 
     def setItem(self, row, col, val):
         if isinstance(col, str):
@@ -590,7 +592,7 @@ class LogTable():
         return self.data[self.headers.index(item)]
     
 
-class Signal():
+class Signal:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.x = np.zeros(1)
@@ -636,7 +638,7 @@ class Signal():
         return widget 
 
 
-class DataFile():
+class DataFile:
     def __init__(self, fileName, folder=""):
         self.logger = logging.getLogger(__name__)
         self.fileName = None
