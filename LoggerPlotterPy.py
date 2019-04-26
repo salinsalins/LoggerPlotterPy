@@ -465,6 +465,7 @@ class MainWindow(QMainWindow):
         #ntb = NavigationToolbar(event.canvas, a)
         #a.addWidget(ntb)
 
+
 class LogTable():
     def __init__(self, fileName, folder = ""):
         self.logger = logging.getLogger(__name__)
@@ -588,6 +589,7 @@ class LogTable():
     def __getitem__(self, item):
         return self.data[self.headers.index(item)]
     
+
 class Signal():
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -632,6 +634,7 @@ class Signal():
         axes.set_ylabel(self.name + ', ' + self.unit)
         #axes.legend(loc='best')
         return widget 
+
 
 class DataFile():
     def __init__(self, fileName, folder=""):
@@ -715,6 +718,7 @@ class DataFile():
             signalsList.append(self.readSignal(s))
         return signalsList    
                         
+
 if __name__ == '__main__':
     # create the GUI application
     app = QApplication(sys.argv)
