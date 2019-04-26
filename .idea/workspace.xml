@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c214ce8f-5c87-4f05-8f15-e579823bf019" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/LoggerPlotterPy.py" beforeDir="false" afterPath="$PROJECT_DIR$/LoggerPlotterPy.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -12,11 +12,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/LoggerPlotterPy.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="128">
-              <caret line="44" selection-start-line="44" selection-end-line="44" />
+            <state relative-caret-position="181">
+              <caret line="145" column="60" selection-start-line="145" selection-start-column="60" selection-end-line="145" selection-end-column="60" />
               <folding>
                 <element signature="e#255#720#0" />
                 <element signature="e#733#1626#0" />
@@ -29,6 +29,11 @@
           </provider>
         </entry>
       </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/.gitignore">
+          <provider selected="true" editor-type-id="text-editor" />
+        </entry>
+      </file>
     </leaf>
   </component>
   <component name="Git.Settings">
@@ -38,16 +43,6 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/LoggerPlotterPy.py" />
-      </list>
-    </option>
-  </component>
-  <component name="ProjectConfigurationFiles">
-    <option name="files">
-      <list>
-        <option value="$PROJECT_DIR$/.idea/LoggerPlotterPy.iml" />
-        <option value="$PROJECT_DIR$/.idea/misc.xml" />
-        <option value="$PROJECT_DIR$/.idea/modules.xml" />
-        <option value="$PROJECT_DIR$/.idea/vcs.xml" />
       </list>
     </option>
   </component>
@@ -104,16 +99,23 @@
       <option name="presentableId" value="Default" />
       <updated>1556245559674</updated>
     </task>
+    <task id="LOCAL-00001" summary="commit">
+      <created>1556246305334</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1556246305334</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info id="Favorites" side_tool="true" />
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.11304807" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info anchor="bottom" id="Version Control" />
+      <window_info anchor="bottom" id="Version Control" visible="true" weight="0.27081022" />
       <window_info anchor="bottom" id="Python Console" />
       <window_info anchor="bottom" id="Terminal" />
       <window_info anchor="bottom" id="Event Log" side_tool="true" />
@@ -129,11 +131,15 @@
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
     </layout>
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="commit" />
+  </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/LoggerPlotterPy.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="128">
-          <caret line="44" selection-start-line="44" selection-end-line="44" />
+        <state relative-caret-position="181">
+          <caret line="145" column="60" selection-start-line="145" selection-start-column="60" selection-end-line="145" selection-end-column="60" />
           <folding>
             <element signature="e#255#720#0" />
             <element signature="e#733#1626#0" />
@@ -144,6 +150,9 @@
           </folding>
         </state>
       </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor" />
     </entry>
   </component>
 </project>
