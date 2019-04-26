@@ -18,3 +18,4 @@ build/*
 *.pyc
 *.log
 *.bak
+.idea/
