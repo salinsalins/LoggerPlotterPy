@@ -42,7 +42,6 @@ except:
 
 import numpy as np
 from mplwidget import MplWidget
-import six
 
 progName = 'LoggerPlotterPy'
 progVersion = '_4_3'
@@ -633,8 +632,7 @@ class Signal():
         axes.set_ylabel(self.name + ', ' + self.unit)
         #axes.legend(loc='best')
         return widget 
-        
-        
+
 class DataFile():
     def __init__(self, fileName, folder=""):
         self.logger = logging.getLogger(__name__)
