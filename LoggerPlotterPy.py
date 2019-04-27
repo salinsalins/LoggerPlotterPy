@@ -49,20 +49,6 @@ settingsFile = progName + '.json'
 logFile = progName + '.log'
 
 
-# logging to the text panel
-class TextEditHandler(logging.Handler):
-    widget = None
-    
-    def __init__(self, wdgt=None):
-        logging.Handler.__init__(self)
-        self.widget = wdgt
-
-    def emit(self, record):
-        log_entry = self.format(record)
-        if self.widget is not None:
-            self.widget.appendPlainText(log_entry)
-
-
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         # initialization of the superclass
@@ -149,26 +135,29 @@ class MainWindow(QMainWindow):
 
     def selectLogFile(self):
         """Opens a file select dialog"""
+        # define current dir
         if self.logFileName is None:
             d = "./"
         else:
             d = os.path.dirname(self.logFileName)
         fileOpenDialog = QFileDialog(caption='Select log file', directory = d)
-        # select fn, not file
+        # open file selection dialog
         fn = fileOpenDialog.getOpenFileName()
-        # if a fn is selected
+        # if a fn is not empty
         if fn:
+            # Qt4 and Qt5 compatibility workaround
             if len(fn[0]) > 1:
                 fn = fn[0]
+            # different file selected
             if self.logFileName == fn:
                 return
             i = self.comboBox_2.findText(fn)
-            if i >= 0:
-                self.comboBox_2.setCurrentIndex(i)
-            else:
-                # add item to history  
+            if i < 0:
+                # add item to history
                 self.comboBox_2.insertItem(-1, fn)
-                self.comboBox_2.setCurrentIndex(0)
+                i = 0
+            # change selection abd fire callback
+            self.comboBox_2.setCurrentIndex(i)
     
     def tableSelectionChanged(self):
         try:
@@ -182,7 +171,7 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
             folder = os.path.dirname(self.logFileName)
             self.logger.log(logging.DEBUG, 'Folder %s'%folder)
-            # read zip file dir
+            # read zip file listing
             self.dataFile = DataFile(zipFileName, folder = folder)
             # read signals from zip file
             self.signalsList = self.dataFile.readAllSignals()
@@ -718,8 +707,22 @@ class DataFile:
         signalsList = []
         for s in self.signals:
             signalsList.append(self.readSignal(s))
-        return signalsList    
-                        
+        return signalsList
+
+
+# logging to the text panel
+class TextEditHandler(logging.Handler):
+    widget = None
+
+    def __init__(self, wdgt=None):
+        logging.Handler.__init__(self)
+        self.widget = wdgt
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        if self.widget is not None:
+            self.widget.appendPlainText(log_entry)
+
 
 if __name__ == '__main__':
     # create the GUI application
