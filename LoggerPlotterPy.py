@@ -54,7 +54,8 @@ class MainWindow(QMainWindow):
         # initialization of the superclass
         super(MainWindow, self).__init__(parent)
         self.tableWidget_3 = QTableWidget()
-        # load the UI 
+
+        # load the UI
         uic.loadUi('LoggerPlotter.ui', self)
         # connect the signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
@@ -111,7 +112,7 @@ class MainWindow(QMainWindow):
 
     def showAbout(self):
         QMessageBox.information(self, 'About', progName + ' Version ' + progVersion + 
-                                '\nPlot Logger traces.', QMessageBox.Ok)    
+                                '\nPlot Logger traces and save shot logs.', QMessageBox.Ok)
 
     def showPlotPane(self):
         self.stackedWidget.setCurrentIndex(0)
@@ -156,7 +157,7 @@ class MainWindow(QMainWindow):
                 # add item to history
                 self.comboBox_2.insertItem(-1, fn)
                 i = 0
-            # change selection abd fire callback
+            # change selection and fire callback
             self.comboBox_2.setCurrentIndex(i)
     
     def tableSelectionChanged(self):
