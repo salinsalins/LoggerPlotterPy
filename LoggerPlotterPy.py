@@ -424,7 +424,7 @@ class MainWindow(QMainWindow):
         except :
             # print error info    
             self.printExceptionInfo(level=logging.DEBUG)
-            self.logger.log(logging.WARNING, 'Default configuration set error.')
+            self.logger.log(logging.WARNING, 'Default configuration error.')
             return False
 
     def printExceptionInfo(self):
@@ -490,25 +490,23 @@ class LogTable():
             if len(flds[0]) < 19:
                 # wrong line format, skip to next line
                 continue
-            time = flds[0].split(" ")[1].strip()
-            self.addColumn("Time")
+            tm = flds[0].split(" ")[1].strip()
+            self.add_column("Time")
             # add row to table
-            self.addRow()
+            self.add_row()
             j = self.headers.index("Time")
-            self.data[j][self.rows-1] = time
+            self.data[j][self.rows-1] = tm
             
             for fld in flds[1:]:
                 kv = fld.split("=")
                 key = kv[0].strip()
                 val = kv[1].strip()
-                if key in self.headers:
-                    j = self.headers.index(key)
-                    self.data[j][self.rows-1] = val
-                else:
-                    self.addColumn(key)
-                    self.data[self.columns-1][self.rows-1] = val
-        
-    def addRow(self):
+                if key not in self.headers:
+                    self.add_column(key)
+                j = self.headers.index(key)
+                self.data[j][self.rows-1] = val
+
+    def add_row(self):
         for item in self.data:
             item.append("")
         self.rows += 1
@@ -518,59 +516,54 @@ class LogTable():
             del item[row]
         self.rows -= 1
 
-    def removeColumn(self, col):
+    def col_number(self, col):
         if isinstance(col, str):
             if col not in self.headers:
-                return
+                return None
             col = self.headers.index(col)
+        return col
+
+    def remove_column(self, col):
+        col = self.col_number(col)
         del self.data[col]
         del self.headers[col]
         self.columns -= 1
 
     def item(self, row, col):
-        if isinstance(col, str):
-            if col not in self.headers:
-                return None
-            col = self.headers.index(col)
+        col = self.col_number(col)
         return self.data[col][row]
 
-    def getItem(self, row, col):
+    def get_item(self, row, col):
         return self.item(row, col)
 
-    def setItem(self, row, col, val):
-        if isinstance(col, str):
-            if col not in self.headers:
-                return False
-            col = self.headers.index(col)
+    def set_item(self, row, col, val):
+        col = self.col_number(col)
         self.data[col][row] = val
         return True
 
     def column(self, col):
-        if isinstance(col, str):
-            if col not in self.headers:
-                return None
-            col = self.headers.index(col)
+        col = self.col_number(col)
         return self.data[col]
 
     def row(self, row):
         return [self.data[n][row] for n in range(len(self.headers))]
 
-    def addColumn(self, columnName):
-        if columnName is None:
+    def add_column(self, col_name):
+        if col_name is None:
             return -1
         # skip if column exists
-        if columnName in self.headers:
-            return self.headers.index(columnName)
-        self.headers.append(columnName)
-        newColumn = [""] * self.columns
-        self.data.append(newColumn)
+        if col_name in self.headers:
+            return self.headers.index(col_name)
+        self.headers.append(col_name)
+        new_col = [""] * self.rows
+        self.data.append(new_col)
         self.columns += 1 
-        return self.headers.index(columnName)
+        return self.headers.index(col_name)
         
-    def find(self, columnName):
-        try:
-            return self.headers.index(columnName)
-        except:
+    def find(self, col_name):
+        if col_name in self.headers:
+            return self.headers.index(col_name)
+        else:
             return -1
 
     def __contains__(self, item):
@@ -584,7 +577,7 @@ class LogTable():
     
 
 class Signal:
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.x = np.zeros(1)
         self.y = self.x.copy()
@@ -644,7 +637,7 @@ class DataFile:
             if f.find("chan") >= 0 and f.find("param") < 0:
                 self.signals.append(f)
         
-    def read_signal(self, signal_name):
+    def read_signal(self, signal_name: str) -> Signal:
         signal = Signal()
         if signal_name not in self.signals:
             self.logger.log(logging.INFO, "No signal %s in the file %s" % (signal_name, self.file_name))
