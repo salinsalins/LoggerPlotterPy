@@ -485,13 +485,14 @@ class LogTable():
         # loop for lines
         for ln in lns:
             # split line to fields
-            flds =ln.split("; ")
+            flds = ln.split("; ")
+            # First field should be "date time" longer than 18 symbols
             if len(flds[0]) < 19:
+                # wrong line format, skip to next line
                 continue
-            # first field is date time
             time = flds[0].split(" ")[1].strip()
-            # add row to table
             self.addColumn("Time")
+            # add row to table
             self.addRow()
             j = self.headers.index("Time")
             self.data[j][self.rows-1] = time
@@ -631,26 +632,26 @@ class Signal:
 class DataFile:
     def __init__(self, fileName, folder=""):
         self.logger = logging.getLogger(__name__)
-        self.fileName = None
+        self.file_name = None
         self.files = []
         self.signals = []
         fn = os.path.join(folder, fileName)
         with zipfile.ZipFile(fn, 'r') as zipobj:
             self.files = zipobj.namelist()
         
-        self.fileName = fn
+        self.file_name = fn
         for f in self.files:
             if f.find("chan") >= 0 and f.find("param") < 0:
                 self.signals.append(f)
         
-    def readSignal(self, signalName):
+    def read_signal(self, signal_name):
         signal = Signal()
-        if signalName not in self.signals:
-            self.logger.log(logging.INFO, "No signal %s in the file"%signalName)
+        if signal_name not in self.signals:
+            self.logger.log(logging.INFO, "No signal %s in the file %s" % (signal_name, self.file_name))
             return signal
-        with zipfile.ZipFile(self.fileName, 'r') as zipobj:
-            buf = zipobj.read(signalName)
-            pf = signalName.replace('chan', 'paramchan')
+        with zipfile.ZipFile(self.file_name, 'r') as zipobj:
+            buf = zipobj.read(signal_name)
+            pf = signal_name.replace('chan', 'paramchan')
             pbuf = zipobj.read(pf)
         lines = buf.split(b"\r\n")
         n = len(lines)
@@ -677,7 +678,7 @@ class DataFile:
         if b"label" in signal.params:
             signal.name = signal.params[b"label"].decode('ascii')
         else:
-            signal.name = signalName
+            signal.name = signal_name
         if b'unit' in signal.params:
             signal.unit = signal.params[b'unit'].decode('ascii')
         else:
@@ -687,11 +688,12 @@ class DataFile:
         dx = signal.x[1] - signal.x[0]
         for k in signal.params:
             if k.endswith(b"_start"):
-                ms = int((float(signal.params[k]) - x0) / dx)
-                ml = int(float(signal.params[k.replace(b"_start", b'_length')]) / dx)
-                if ms+ml < n:
+                try:
+                    ms = int((float(signal.params[k]) - x0) / dx)
+                    ml = int(float(signal.params[k.replace(b"_start", b'_length')]) / dx)
                     mv = signal.y[ms:ms+ml].mean()
-                else:
+                except:
+                    self.logger.log(logging.WARNING, 'Mark %s value can not be computed for %s' % (k, signal_name))
                     mv = 0.0
                 signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
         if 'zero' in signal.marks:
@@ -707,7 +709,7 @@ class DataFile:
     def readAllSignals(self):
         signalsList = []
         for s in self.signals:
-            signalsList.append(self.readSignal(s))
+            signalsList.append(self.read_signal(s))
         return signalsList
 
 
