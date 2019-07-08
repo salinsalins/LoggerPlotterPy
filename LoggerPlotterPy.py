@@ -65,13 +65,6 @@ class MainWindow(QMainWindow):
         uic.loadUi('LoggerPlotter.ui', self)
 
         # Configure logging
-        #self.logger = logging.getLogger(__name__)
-        #self.logger.setLevel(logging.DEBUG)
-        #self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-        #S                                       datefmt='%H:%M:%S')
-        #self.console_handler = logging.StreamHandler()
-        #self.console_handler.setFormatter(self.log_formatter)
-        #self.logger.addHandler(self.console_handler)
         self.logger = logger
         self.text_edit_handler = TextEditHandler(self.plainTextEdit)
         self.text_edit_handler.setFormatter(log_formatter)
@@ -301,8 +294,9 @@ class MainWindow(QMainWindow):
             if fn is None:
                 return
             self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
+            self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             # read log file content to logTable
-            self.logTable = LogTable(fn)
+            self.logTable = LogTable(fn, extra_cols=self.extra_cols)
             if self.logTable.file_name is None:
                 return
             self.logFileName = self.logTable.file_name
@@ -316,6 +310,7 @@ class MainWindow(QMainWindow):
             for t in self.logTable.headers:
                 if t not in self.excluded and t not in self.columns:
                     self.columns.append(t)
+
             # disable table update events
             self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
             # clear table
@@ -333,19 +328,19 @@ class MainWindow(QMainWindow):
                 self.tableWidget_3.insertRow(k)
                 n = 0
                 for c in self.columns:
-                    m = self.logTable.find(c)
+                    m = self.logTable.find_col(c)
                     self.tableWidget_3.setItem(k, n, QTableWidgetItem(self.logTable.data[m][k]))
                     n += 1
             # enable table update events
             self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
-            # select last row of widget -> fileSelectionChanged will be fired 
             self.tableWidget_3.resizeColumnsToContents()
+            # select last row of widget -> tableSelectionChanged will be fired
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             ##self.tableWidget_3.scrollToBottom()
             return
         except :
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
-            self.printExceptionInfo()
+            self.printExceptionInfo(level=logging.DEBUG)
             return
     
     def saveSettings(self, folder='', fileName=settingsFile) :
@@ -363,13 +358,15 @@ class MainWindow(QMainWindow):
             self.conf['excluded'] = str(self.plainTextEdit_3.toPlainText())
             self.conf['cb_1'] = self.checkBox_1.isChecked()
             self.conf['cb_2'] = self.checkBox_2.isChecked()
+            self.conf['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
+            self.conf['extra_col'] = str(self.plainTextEdit_5.toPlainText())
             with open(fullName, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s'%fullName)
             return True
         except :
-            self.printExceptionInfo(level=logging.DEBUG)
             self.logger.log(logging.WARNING, 'Configuration save error to %s'%fullName)
+            self.printExceptionInfo(level=logging.DEBUG)
             return False
         
     def restoreSettings(self, folder='', fileName=settingsFile) :
@@ -399,6 +396,10 @@ class MainWindow(QMainWindow):
                 self.plainTextEdit_2.setPlainText(self.conf['included'])
             if 'excluded' in self.conf:
                 self.plainTextEdit_3.setPlainText(self.conf['excluded'])
+            if 'extra_plot' in self.conf:
+                self.plainTextEdit_4.setPlainText(self.conf['extra_plot'])
+            if 'extra_col' in self.conf:
+                self.plainTextEdit_5.setPlainText(self.conf['extra_col'])
             if 'cb_1' in self.conf:
                 self.checkBox_1.setChecked(self.conf['cb_1'])
             if 'cb_2' in self.conf:
@@ -414,8 +415,8 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.INFO, 'Configuration restored from %s'%fullName)
             return True
         except :
-            self.printExceptionInfo(level=logging.DEBUG)
             self.logger.log(logging.WARNING, 'Configuration restore error from %s'%fullName)
+            self.printExceptionInfo(level=logging.DEBUG)
             return False
 
     def setDefaultSettings(self) :
@@ -431,15 +432,15 @@ class MainWindow(QMainWindow):
             return True
         except :
             # print error info    
-            self.printExceptionInfo(level=logging.DEBUG)
             self.logger.log(logging.WARNING, 'Default configuration error.')
+            self.printExceptionInfo(level=logging.DEBUG)
             return False
 
-    def printExceptionInfo(self):
+    def printExceptionInfo(self, level=logging.ERROR):
         #excInfo = sys.exc_info()
         #(tp, value) = sys.exc_info()[:2]
         #self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
-        self.logger.error("Exception ", exc_info=True)
+        self.logger.log(level, "Exception ", exc_info=True)
 
     def timerHandler(self):
         #self.label_5.setText("Timer" + " %d tick" % self.my_counter)
@@ -467,7 +468,7 @@ class MainWindow(QMainWindow):
 
 
 class LogTable():
-    def __init__(self, f_name: str, folder: str = "") -> None:
+    def __init__(self, f_name: str, folder: str = "", extra_cols: str = "") -> None:
         """
 
             Create LogTable object from file f_name
@@ -475,7 +476,9 @@ class LogTable():
         :param f_name: str The name of log file containing table
         :param folder: str Folder to add in front file name
         """
-        self.logger = logging.getLogger(__name__)
+        def value(s):
+            return float(self.item(s).split(' ')[0].replace(',', '.'))
+        self.logger = logger
         self.data = [[],]
         self.headers = []
         self.file_name = None
@@ -517,17 +520,27 @@ class LogTable():
                 kv = fld.split("=")
                 key = kv[0].strip()
                 val = kv[1].strip()
-                if key not in self.headers:
-                    self.add_column(key)
-                j = self.headers.index(key)
+                j = self.add_column(key)
                 self.data[j][self.rows-1] = val
+
+            if extra_cols != '':
+                for c in extra_cols:
+                    if c.strip() != "":
+                        try:
+                            key, val = eval(c)
+                            if key != '':
+                                j = self.add_column(key)
+                                self.data[j][self.rows - 1] = str(val)
+                        except:
+                            self.logger.log(logging.DEBUG, 'eval() error in %s' % c)
+                            pass
 
     def add_row(self):
         for item in self.data:
             item.append("")
         self.rows += 1
     
-    def removeRow(self, row):
+    def remove_row(self, row):
         for item in self.data:
             del item[row]
         self.rows -= 1
@@ -545,7 +558,13 @@ class LogTable():
         del self.headers[col]
         self.columns -= 1
 
-    def item(self, row, col):
+    def item(self, *args):
+        if len(args) >= 2:
+            col = args[1]
+            row = args[0]
+        else:
+            col = args[0]
+            row = -1
         col = self.col_number(col)
         return self.data[col][row]
 
@@ -576,7 +595,7 @@ class LogTable():
         self.columns += 1 
         return self.headers.index(col_name)
         
-    def find(self, col_name):
+    def find_col(self, col_name):
         if col_name in self.headers:
             return self.headers.index(col_name)
         else:
@@ -589,7 +608,7 @@ class LogTable():
         return len(self.headers)
 
     def __getitem__(self, item):
-        return self.data[self.headers.index(item)]
+        return self.column[item]
     
 
 class Signal:
