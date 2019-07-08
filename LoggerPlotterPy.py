@@ -39,74 +39,76 @@ except:
     from PyQt4.QtCore import QPoint, QSize # @UnresolvedImport @UnusedImport @Reimport
     from PyQt4.QtCore import QTimer # @UnresolvedImport @UnusedImport @Reimport
 
-
 import numpy as np
 from mplwidget import MplWidget
 
 progName = 'LoggerPlotterPy'
 progVersion = '_4_3'
 settingsFile = progName + '.json'
-logFile = progName + '.log'
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                                       datefmt='%H:%M:%S')
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+logger.addHandler(console_handler)
 
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
-        # initialization of the superclass
+        # Initialization of the superclass
         super(MainWindow, self).__init__(parent)
-        self.tableWidget_3 = QTableWidget()
 
-        # load the UI
+        # Load the UI
         uic.loadUi('LoggerPlotter.ui', self)
-        # connect the signals with the slots
+
+        # Configure logging
+        #self.logger = logging.getLogger(__name__)
+        #self.logger.setLevel(logging.DEBUG)
+        #self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        #S                                       datefmt='%H:%M:%S')
+        #self.console_handler = logging.StreamHandler()
+        #self.console_handler.setFormatter(self.log_formatter)
+        #self.logger.addHandler(self.console_handler)
+        self.logger = logger
+        self.text_edit_handler = TextEditHandler(self.plainTextEdit)
+        self.text_edit_handler.setFormatter(log_formatter)
+        self.logger.addHandler(self.text_edit_handler)
+
+        # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
         self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
         self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
         self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
         #self.plainTextEdit_2.textChanged.connect(self.parseFolder)
-        #self.plainTextEdit_3.textChanged.connect(self.parseFolder)
-        # menu actions connection
+        # Menu actions connection
         self.actionQuit.triggered.connect(qApp.quit)
         self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionPlot.triggered.connect(self.showPlotPane)
         self.actionLog.triggered.connect(self.showLogPane)
         self.actionParameters.triggered.connect(self.showParametersPane)
         self.actionAbout.triggered.connect(self.showAbout)
-        # additional configuration
-        # disable text wrapping in log window
+
+        # Additional configuration
+        # Disable text wrapping in log window
         self.plainTextEdit.setLineWrapMode(0)
         
-        # configure logging
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
-        #self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-        self.log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%H:%M:%S')
-        self.console_handler = logging.StreamHandler()
-        #self.console_handler.setLevel(logging.WARNING)
-        self.console_handler.setFormatter(self.log_formatter)
-        self.logger.addHandler(self.console_handler)
-        #self.file_handler = logging.FileHandler(logFile)
-        #self.file_handler.setFormatter(self.log_formatter)
-        #self.logger.addHandler(self.file_handler)
-        self.text_edit_handler = TextEditHandler(self.plainTextEdit)
-        self.text_edit_handler.setFormatter(self.log_formatter)
-        self.logger.addHandler(self.text_edit_handler)
-        
-        # class member variables definition
         self.setDefaultSettings()
 
-        # welcome message
-        self.logger.info(progName + progVersion + ' started')
-        
-        # restore settings from default config file
+        print(progName + progVersion + ' started')
+
+        # Restore settings from default config file
         self.restoreSettings()
         
-        # additional decorations
+        # Additional decorations
         #self.tableWidget_3.horizontalHeader().
         
-        # read data files
+        # Read data files
         self.parseFolder()
         
-        # connect mouse button press event
+        # Connect mouse button press event
         #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
         #self.mplWidget.canvas.mpl_disconnect(cid)
 
@@ -269,8 +271,10 @@ class MainWindow(QMainWindow):
 
     def logLevelIndexChanged(self, m):
         #self.logger.debug('Selection changed to %s'%str(m))
-        levels = [logging.NOTSET, logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
-        self.logger.setLevel(levels[m])
+        levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
+                  logging.WARNING, logging.ERROR, logging.CRITICAL]
+        if m >= 0:
+            self.logger.setLevel(levels[m])
  
     def onQuit(self) :
         # save global settings
@@ -299,9 +303,9 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
             # read log file content to logTable
             self.logTable = LogTable(fn)
-            if self.logTable.fileName is None:
+            if self.logTable.file_name is None:
                 return
-            self.logFileName = self.logTable.fileName
+            self.logFileName = self.logTable.file_name
             # create sorted displayed columns list
             self.included = self.plainTextEdit_2.toPlainText().split('\n')
             self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
@@ -354,18 +358,18 @@ class MainWindow(QMainWindow):
             self.conf['folder'] = self.logFileName
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
-            #self.conf['log_level'] = logging.DEBUG
+            self.conf['log_level'] = self.logger.level
             self.conf['included'] = str(self.plainTextEdit_2.toPlainText())
             self.conf['excluded'] = str(self.plainTextEdit_3.toPlainText())
             self.conf['cb_1'] = self.checkBox_1.isChecked()
             self.conf['cb_2'] = self.checkBox_2.isChecked()
             with open(fullName, 'w') as configfile:
-                            configfile.write(json.dumps(self.conf, indent=4))
+                configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s'%fullName)
             return True
         except :
-            self.printExceptionInfo()
-            self.logger.info('Configuration save error to %s'%fullName)
+            self.printExceptionInfo(level=logging.DEBUG)
+            self.logger.log(logging.WARNING, 'Configuration save error to %s'%fullName)
             return False
         
     def restoreSettings(self, folder='', fileName=settingsFile) :
@@ -374,22 +378,23 @@ class MainWindow(QMainWindow):
             with open(fullName, 'r') as configfile:
                 s = configfile.read()
             self.conf = json.loads(s)
-            # restore window size and position
+            # Log level restore
+            if 'log_level' in self.conf:
+                v = self.conf['log_level']
+                self.logger.setLevel(v)
+                levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
+                          logging.WARNING, logging.ERROR, logging.CRITICAL, logging.CRITICAL+10]
+                for m in range(len(levels)):
+                    if v < levels[m]:
+                        break
+                self.comboBox_1.setCurrentIndex(m-1)
+            # Restore window size and position
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
-            # last folder
+            # Last folder
             if 'folder' in self.conf:
                 self.logFileName = self.conf['folder']
-            if 'history' in self.conf:
-                self.comboBox_2.currentIndexChanged.disconnect(self.fileSelectionChanged)
-                self.comboBox_2.clear()
-                self.comboBox_2.addItems(self.conf['history'])
-                self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
-            if 'history_index' in self.conf:
-                self.comboBox_2.setCurrentIndex(self.conf['history_index'])
-
-            # print OK message and exit    
             if 'included' in self.conf:
                 self.plainTextEdit_2.setPlainText(self.conf['included'])
             if 'excluded' in self.conf:
@@ -398,14 +403,19 @@ class MainWindow(QMainWindow):
                 self.checkBox_1.setChecked(self.conf['cb_1'])
             if 'cb_2' in self.conf:
                 self.checkBox_2.setChecked(self.conf['cb_2'])
+            if 'history' in self.conf:
+                self.comboBox_2.currentIndexChanged.disconnect(self.fileSelectionChanged)
+                self.comboBox_2.clear()
+                self.comboBox_2.addItems(self.conf['history'])
+                self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
+            if 'history_index' in self.conf:
+                self.comboBox_2.setCurrentIndex(self.conf['history_index'])
 
-            # print OK message and exit    
-            self.logger.info('Configuration restored from %s'%fullName)
+            self.logger.log(logging.INFO, 'Configuration restored from %s'%fullName)
             return True
         except :
-            # print error info    
-            self.printExceptionInfo()
-            self.logger.info('Configuration restore error from %s'%fullName)
+            self.printExceptionInfo(level=logging.DEBUG)
+            self.logger.log(logging.WARNING, 'Configuration restore error from %s'%fullName)
             return False
 
     def setDefaultSettings(self) :
@@ -415,11 +425,9 @@ class MainWindow(QMainWindow):
             # window size and position
             self.resize(QSize(640, 480))
             self.move(QPoint(0, 0))
-            # log file name
             self.logFileName = None
             self.conf = {}
-            #self.conf["plot_trace_color"] = 0
-            self.logger.log(logging.DEBUG, 'Default configuration set.')
+            #self.logger.log(logging.DEBUG, 'Default configuration set.')
             return True
         except :
             # print error info    
@@ -443,7 +451,7 @@ class MainWindow(QMainWindow):
         file = os.path.join(folder, "lock.lock")
         if os.path.exists(file):
             return
-        oldSize = self.logTable.fileSize
+        oldSize = self.logTable.file_size
         newSize = os.path.getsize(self.logFileName)
         if newSize <= oldSize:
             return
@@ -459,29 +467,38 @@ class MainWindow(QMainWindow):
 
 
 class LogTable():
-    def __init__(self, fileName, folder=""):
+    def __init__(self, f_name: str, folder: str = "") -> None:
+        """
+
+            Create LogTable object from file f_name
+
+        :param f_name: str The name of log file containing table
+        :param folder: str Folder to add in front file name
+        """
         self.logger = logging.getLogger(__name__)
         self.data = [[],]
         self.headers = []
-        self.fileName = None
-        self.fileSize = 0
+        self.file_name = None
+        self.file_size = 0
         self.buf = None
         self.rows = 0
         self.columns = 0
         self.order = []
         
-        fn = os.path.join(folder, fileName)
+        fn = os.path.join(folder, f_name)
         if not os.path.exists(fn) :
-            return  
+            self.logger.info('File %s does not exist' % self.file_name)
+            return
         with open(fn, "r") as stream:
             self.buf = stream.read()
         if len(self.buf) <= 0 :
-            self.logger.info('Nothing to process in %s'%self.fileName)
+            self.logger.info('Nothing to process in %s' % self.file_name)
             return
-        self.fileName = fn
-        self.fileSize = os.path.getsize(fn)
+        self.file_name = fn
+        self.file_size = os.path.getsize(fn)
         # split buf to lines
         lns = self.buf.split('\n')
+        self.logger.debug('%d lines in %s' % (len(lns), self.file_name))
         # loop for lines
         for ln in lns:
             # split line to fields
@@ -489,15 +506,14 @@ class LogTable():
             # First field should be "date time" longer than 18 symbols
             if len(flds[0]) < 19:
                 # wrong line format, skip to next line
+                #self.logger.debug('%d lines in %s' % (len(lns), self.file_name))
                 continue
             tm = flds[0].split(" ")[1].strip()
-            self.add_column("Time")
+            flds[0] = "Time=" + tm
             # add row to table
             self.add_row()
-            j = self.headers.index("Time")
-            self.data[j][self.rows-1] = tm
-            
-            for fld in flds[1:]:
+            # Iterate for key=value pairs
+            for fld in flds:
                 kv = fld.split("=")
                 key = kv[0].strip()
                 val = kv[1].strip()
@@ -706,7 +722,7 @@ class DataFile:
         return signalsList
 
 
-# logging to the text panel
+# Logging to the text panel
 class TextEditHandler(logging.Handler):
     widget = None
 
