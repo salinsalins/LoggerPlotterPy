@@ -192,6 +192,11 @@ class MainWindow(QMainWindow):
             self.comboBox_2.setCurrentIndex(i)
     
     def tableSelectionChanged(self):
+        def sig(name):
+            for s in self.signalsList:
+                if s.name == name:
+                    return s
+            return None
         self.logger.log(logging.DEBUG, 'Table selection changed')
         try:
             if len(self.tableWidget_3.selectedRanges()) < 1:
@@ -228,7 +233,7 @@ class MainWindow(QMainWindow):
                             s.x = x_val
                             s.y = y_val
                             s.name = key
-                            self.signalsList.appenf(s)
+                            self.signalsList.append(s)
                             self.signals.append(self.signalsList.index(s))
                     except:
                         self.logger.log(logging.DEBUG, 'eval() error in %s' % p)
