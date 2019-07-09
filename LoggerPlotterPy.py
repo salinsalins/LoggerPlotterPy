@@ -13,6 +13,7 @@ import sys
 import json
 import logging
 import zipfile
+import time
 
 try:
     from PyQt5 import QtWidgets as QtGui # @UnusedImport
@@ -23,21 +24,23 @@ try:
     from PyQt5.QtWidgets import QTableWidgetItem
     from PyQt5.QtWidgets import QTableWidget
     from PyQt5.QtWidgets import QMessageBox
+    from PyQt5.QtWidgets import QLabel
     from PyQt5 import uic
     from PyQt5.QtCore import QPoint, QSize
     from PyQt5.QtCore import QTimer
 except:
-    from PyQt4 import QtGui  # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtGui import QMainWindow # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtGui import QApplication # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtGui import qApp # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtGui import QFileDialog # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtGui import QTableWidgetItem # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtGui import QTableWidget # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtGui import QMessageBox # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4 import uic # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtCore import QPoint, QSize # @UnresolvedImport @UnusedImport @Reimport
-    from PyQt4.QtCore import QTimer # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4 import QtGui  
+    from PyQt4.QtGui import QMainWindow 
+    from PyQt4.QtGui import QApplication 
+    from PyQt4.QtGui import qApp 
+    from PyQt4.QtGui import QFileDialog 
+    from PyQt4.QtGui import QTableWidgetItem 
+    from PyQt4.QtGui import QTableWidget 
+    from PyQt4.QtGui import QMessageBox 
+    from PyQt4.QtGui import QLabel
+    from PyQt4 import uic 
+    from PyQt4.QtCore import QPoint, QSize 
+    from PyQt4.QtCore import QTimer 
 
 import numpy as np
 from mplwidget import MplWidget
@@ -55,11 +58,20 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(log_formatter)
 logger.addHandler(console_handler)
 
+# Global configuration dictionary
+config = {}
+
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         # Initialization of the superclass
         super(MainWindow, self).__init__(parent)
+
+        # Class members definition
+        self.refresh_flag = False
+        self.last_selection = -1
+        self.signalsList = None
+        self.old_signas = None
 
         # Load the UI
         uic.loadUi('LoggerPlotter.ui', self)
@@ -75,18 +87,25 @@ class MainWindow(QMainWindow):
         self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
         self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
         self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
-        #self.plainTextEdit_2.textChanged.connect(self.parseFolder)
+        self.plainTextEdit_2.textChanged.connect(self.refresh)
+        self.plainTextEdit_3.textChanged.connect(self.refresh)
+        self.plainTextEdit_4.textChanged.connect(self.refresh)
+        self.plainTextEdit_5.textChanged.connect(self.refresh)
         # Menu actions connection
         self.actionQuit.triggered.connect(qApp.quit)
         self.actionOpen.triggered.connect(self.selectLogFile)
         self.actionPlot.triggered.connect(self.showPlotPane)
-        self.actionLog.triggered.connect(self.showLogPane)
-        self.actionParameters.triggered.connect(self.showParametersPane)
+        self.actionLog.triggered.connect(self.show_log_pane)
+        self.actionParameters.triggered.connect(self.show_param_pane)
         self.actionAbout.triggered.connect(self.showAbout)
 
         # Additional configuration
         # Disable text wrapping in log window
         self.plainTextEdit.setLineWrapMode(0)
+        # Clock label at status bar
+        self.clock = QLabel(" ")
+        #self.clock.font().setBold(True)
+        self.statusBar().addPermanentWidget(self.clock)
         
         self.setDefaultSettings()
 
@@ -105,6 +124,9 @@ class MainWindow(QMainWindow):
         #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
         #self.mplWidget.canvas.mpl_disconnect(cid)
 
+    def refresh(self):
+        self.refresh_flag = True
+
     def showAbout(self):
         QMessageBox.information(self, 'About', progName + ' Version ' + progVersion + 
                                 '\nPlot Logger traces and save shot logs.', QMessageBox.Ok)
@@ -115,19 +137,33 @@ class MainWindow(QMainWindow):
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
         self.tableSelectionChanged()
+        if self.refresh_flag:
+            self.refresh_flag = False
+            self.parseFolder()
     
-    def showLogPane(self):
+    def show_log_pane(self):
         self.stackedWidget.setCurrentIndex(1)
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(True)
         self.actionParameters.setChecked(False)
 
-    def showParametersPane(self):
+    def show_param_pane(self):
         self.stackedWidget.setCurrentIndex(2)
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(True)
         self.tableWidget.horizontalHeader().setVisible(True)
+        # Decode global config
+        # clear table
+        self.tableWidget.setRowCount(0)
+        n = 0
+        for key in config:
+            self.tableWidget.insertRow(n)
+            item = QTableWidgetItem(str(key))
+            self.tableWidget.setItem(n, 0, item)
+            item = QTableWidgetItem(str(config[key]))
+            self.tableWidget.setItem(n, 1, item)
+            n += 1
 
     def selectLogFile(self):
         """Opens a file select dialog"""
@@ -156,21 +192,24 @@ class MainWindow(QMainWindow):
             self.comboBox_2.setCurrentIndex(i)
     
     def tableSelectionChanged(self):
+        self.logger.log(logging.DEBUG, 'Table selection changed')
         try:
             if len(self.tableWidget_3.selectedRanges()) < 1:
                 return
             row = self.tableWidget_3.selectedRanges()[0].topRow()
-            self.logger.log(logging.DEBUG, 'Table selection changed to row %s'%str(row))
+            if self.last_selection == row:
+                return
+            self.logger.log(logging.DEBUG, 'Table selection changed to row %i'%row)
             if row < 0:
                 return
-            zipFileName = self.logTable.column("File")[row]
-            self.logger.log(logging.DEBUG, 'ZipFile %s'%zipFileName)
             folder = os.path.dirname(self.logFileName)
-            self.logger.log(logging.DEBUG, 'Folder %s'%folder)
+            #self.logger.log(logging.DEBUG, 'Folder %s'%folder)
+            zipFileName = self.logTable.column("File")[row]
+            self.logger.log(logging.DEBUG, 'Zip File %s'%zipFileName)
             # read zip file listing
             self.dataFile = DataFile(zipFileName, folder = folder)
             # read signals from zip file
-            self.signalsList = self.dataFile.readAllSignals()
+            self.signalsList = self.dataFile.read_all_signals()
             layout = self.scrollAreaWidgetContents_3.layout()
             # reorder plots according to columns order in the table
             self.signals = []
@@ -178,26 +217,37 @@ class MainWindow(QMainWindow):
                 for s in self.signalsList:
                     if s.name == c :
                         self.signals.append(self.signalsList.index(s))
+                        break
+            extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
+            for p in extra_plots:
+                if p.strip() != "":
+                    try:
+                        key, x_val, y_val = eval(p)
+                        if key != '':
+                            s = Signal()
+                            s.x = x_val
+                            s.y = y_val
+                            s.name = key
+                            self.signalsList.appenf(s)
+                            self.signals.append(self.signalsList.index(s))
+                    except:
+                        self.logger.log(logging.DEBUG, 'eval() error in %s' % p)
             # plot signals to existing plots or add new
             jj = 0
             col = 0
             row = 0
-            colCount = 3
+            col_count = 3
             for c in self.signals:
                 s = self.signalsList[c]
-                if jj < layout.count():    
+                if jj < layout.count():
                     # use existing plot
                     mplw = layout.itemAt(jj).widget()
                 else:
-                    # create new signal plot
-                    mplw = MplWidget()
-                    mplw.setMinimumHeight(320)
-                    mplw.setMinimumWidth(320)
-                    #mplw.canvas.mpl_connect('button_press_event', self.onClick)
-                    # add plots in colCount columns
+                    # create new plot
+                    mplw = MplWidget(height=300, width=300)
                     layout.addWidget(mplw, row, col)
                 col += 1
-                if col >= colCount:
+                if col >= col_count:
                     col = 0
                     row += 1
                 # show toolbar
@@ -217,14 +267,14 @@ class MainWindow(QMainWindow):
                     if len(prevLines) == 4:
                         k = 1
                     axes.plot(prevLines[k].get_xdata(), prevLines[k].get_ydata(), "y-")
-                #plot main line
+                # plot main line
                 axes.plot(s.x, s.y)
-                # add mark highlight
+                # plot mark highlight
                 if 'mark' in s.marks:
                     m1 = s.marks['mark'][0]
                     m2 = m1 + s.marks['mark'][1]
-                    axes.plot(s.x[m1:m2], s.y[m1:m2])
-                # add zero highlight
+                    axes.plot(s.x[m1:m2], s.y[m1:m2], 'r')
+                # plot zero highlight
                 if 'zero' in s.marks:
                     m1 = s.marks['zero'][0]
                     m2 = m1 + s.marks['zero'][1]
@@ -239,15 +289,17 @@ class MainWindow(QMainWindow):
                 mplw.canvas.draw()
                 jj += 1
             # remove unused plots
-            while jj < layout.count() :    
+            while jj < layout.count() :
                 item = layout.takeAt(layout.count()-1)
                 if not item:
                     continue
                 w = item.widget()
                 if w:
                     w.deleteLater()
+            self.last_selection = row
         except:
-            self.printExceptionInfo()
+            self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
+            self.printExceptionInfo(level=logging.DEBUG)
  
     def fileSelectionChanged(self, i):
         self.logger.debug('File selection changed to %s'%str(i))
@@ -288,6 +340,7 @@ class MainWindow(QMainWindow):
         return columns
 
     def parseFolder(self, fn=None):
+        self.logger.log(logging.DEBUG, 'parseFolder')
         try:
             if fn is None:
                 fn = self.logFileName
@@ -329,12 +382,18 @@ class MainWindow(QMainWindow):
                 n = 0
                 for c in self.columns:
                     m = self.logTable.find_col(c)
-                    self.tableWidget_3.setItem(k, n, QTableWidgetItem(self.logTable.data[m][k]))
+                    item = QTableWidgetItem(self.logTable.data[m][k])
+                    #val = value(self.logTable.data[m][k])
+                    #font = item.font()
+                    #font.setBold(True)
+                    #item.setFont(font)
+                    self.tableWidget_3.setItem(k, n, item)
                     n += 1
             # enable table update events
             self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
             self.tableWidget_3.resizeColumnsToContents()
             # select last row of widget -> tableSelectionChanged will be fired
+            self.last_selection = -1
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             ##self.tableWidget_3.scrollToBottom()
             return
@@ -375,6 +434,8 @@ class MainWindow(QMainWindow):
             with open(fullName, 'r') as configfile:
                 s = configfile.read()
             self.conf = json.loads(s)
+            global config
+            config = self.conf
             # Log level restore
             if 'log_level' in self.conf:
                 v = self.conf['log_level']
@@ -422,7 +483,6 @@ class MainWindow(QMainWindow):
     def setDefaultSettings(self) :
         try :
             # some class variables
-            self.my_counter = 0
             # window size and position
             self.resize(QSize(640, 480))
             self.move(QPoint(0, 0))
@@ -443,8 +503,8 @@ class MainWindow(QMainWindow):
         self.logger.log(level, "Exception ", exc_info=True)
 
     def timerHandler(self):
-        #self.label_5.setText("Timer" + " %d tick" % self.my_counter)
-        self.my_counter += 1
+        t = time.strftime('%H:%M:%S')
+        self.clock.setText(t)
         # check if lock file exists
         if self.logFileName is None:
             return
@@ -533,7 +593,6 @@ class LogTable():
                                 self.data[j][self.rows - 1] = str(val)
                         except:
                             self.logger.log(logging.DEBUG, 'eval() error in %s' % c)
-                            pass
 
     def add_row(self):
         for item in self.data:
@@ -623,50 +682,17 @@ class Signal:
         self.value = 0.0
         self.marks = {}
 
-    def plot(self, widget = None):
-        if widget is None:
-            # create new signal plot
-            widget = MplWidget()
-            widget.setMinimumHeight(320)
-            widget.setMinimumWidth(320)
-        axes = widget.canvas.ax
-        prevLines = axes.get_lines()
-        axes.clear()
-        # plot previous line
-        if len(prevLines) > 0:
-            k = 0
-            if len(prevLines) == 4:
-                k = 1
-            axes.plot(prevLines[k].get_xdata(), prevLines[k].get_ydata(), "y-")
-        #plot main line
-        axes.plot(self.x, self.y)
-        if 'mark' in self.marks:
-            m1 = self.marks['mark'][0]
-            m2 = m1 + self.marks['mark'][1]
-            axes.plot(self.x[m1:m2], self.y[m1:m2])
-        if 'zero' in self.marks:
-            m1 = self.marks['zero'][0]
-            m2 = m1 + self.marks['zero'][1]
-            axes.plot(self.x[m1:m2], self.y[m1:m2], 'r')
-        # decorate the plot
-        axes.grid(True)
-        axes.set_title('{0} = {1:5.2f} {2}'.format(self.name, self.value, self.unit))
-        axes.set_xlabel('Time, ms')
-        axes.set_ylabel(self.name + ', ' + self.unit)
-        #axes.legend(loc='best')
-        return widget 
-
 
 class DataFile:
     def __init__(self, fileName, folder=""):
-        self.logger = logging.getLogger(__name__)
+        #self.logger = logging.getLogger(__name__)
+        self.logger = logger
         self.file_name = None
         self.files = []
         self.signals = []
         fn = os.path.join(folder, fileName)
         with zipfile.ZipFile(fn, 'r') as zipobj:
             self.files = zipobj.namelist()
-        
         self.file_name = fn
         for f in self.files:
             if f.find("chan") >= 0 and f.find("param") < 0:
@@ -722,6 +748,8 @@ class DataFile:
                     mv = signal.y[ms:ms+ml].mean()
                 except:
                     self.logger.log(logging.WARNING, 'Mark %s value can not be computed for %s' % (k, signal_name))
+                    ms = 0
+                    ml = 0
                     mv = 0.0
                 signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
         if 'zero' in signal.marks:
@@ -734,11 +762,11 @@ class DataFile:
             signal.value = 0.0    
         return signal
 
-    def readAllSignals(self):
-        signalsList = []
+    def read_all_signals(self):
+        signals = []
         for s in self.signals:
-            signalsList.append(self.read_signal(s))
-        return signalsList
+            signals.append(self.read_signal(s))
+        return signals
 
 
 # Logging to the text panel

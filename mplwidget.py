@@ -42,9 +42,10 @@ class MplCanvas(FigureCanvas):
         # notify the system of updated policy
         FigureCanvas.updateGeometry(self)
 
+
 class MplWidget(QtGui.QWidget):
     """Widget defined in Qt Designer"""
-    def __init__(self, parent = None):
+    def __init__(self, parent = None, height=300, width=300):
         # initialization of Qt MainWindow widget
         QtGui.QWidget.__init__(self, parent)
         # set the canvas to the Matplotlib widget
@@ -60,4 +61,6 @@ class MplWidget(QtGui.QWidget):
         self.vbl.addWidget(self.canvas)
         # set the layout to the vertical box
         self.setLayout(self.vbl)
-        
+        self.setMinimumHeight(height)
+        self.setMinimumWidth(width)
+
