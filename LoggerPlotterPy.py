@@ -15,8 +15,11 @@ import logging
 import zipfile
 import time
 
+from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QBrush
+
 try:
-    from PyQt5 import QtWidgets as QtGui # @UnusedImport
+    from PyQt5 import QtWidgets as QtGui
     from PyQt5.QtWidgets import QMainWindow
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtWidgets import qApp
@@ -73,7 +76,7 @@ class MainWindow(QMainWindow):
         self.sig_list = []
         self.old_sig_list = []
         self.signals = []
-#        self.old_signals = []
+        self.extra_cols = []
 
         # Load the UI
         uic.loadUi('LoggerPlotter.ui', self)
@@ -226,6 +229,7 @@ class MainWindow(QMainWindow):
                     if s.name == c:
                         self.signals.append(self.sig_list.index(s))
                         break
+            # Add extra plots from plainTextEdit_4
             extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
             for p in extra_plots:
                 if p.strip() != "":
@@ -240,63 +244,61 @@ class MainWindow(QMainWindow):
                             self.signals.append(self.sig_list.index(s))
                     except:
                         self.logger.log(logging.DEBUG, 'eval() error in %s' % p)
-            # plot signals to existing plots or add new
+            # Plot signals
             jj = 0
             col = 0
             row = 0
             col_count = 3
             for c in self.signals:
                 s = self.sig_list[c]
+                # Use existing plot widgets or add new
                 if jj < layout.count():
-                    # use existing plot
+                    # use existing plot widget
                     mplw = layout.itemAt(jj).widget()
                 else:
-                    # create new plot
+                    # create new plot widget
                     mplw = MplWidget(height=300, width=300)
                     layout.addWidget(mplw, row, col)
                 col += 1
                 if col >= col_count:
                     col = 0
                     row += 1
-                # show toolbar
+                # Show toolbar
                 if self.checkBox_1.isChecked():
                     mplw.ntb.show()
                 else:
                     mplw.ntb.hide()
                 # get axes
                 axes = mplw.canvas.ax
-#                # previous traces list
-#                prevLines = axes.get_lines()
-                # clear plot
                 axes.clear()
-                # plot previous line
+                # Plot previous line
                 if self.checkBox_2.isChecked():
                     for s1 in self.old_sig_list:
                         if s1.name == s.name:
                             axes.plot(s1.x, s1.y, "y-")
                             break
-                # plot main line
+                # Plot main line
                 axes.plot(s.x, s.y)
-                # plot mark highlight
+                # Plot 'mark' highlight
                 if 'mark' in s.marks:
                     m1 = s.marks['mark'][0]
                     m2 = m1 + s.marks['mark'][1]
                     axes.plot(s.x[m1:m2], s.y[m1:m2], 'r')
-                # plot zero highlight
+                # Plot 'zero' highlight
                 if 'zero' in s.marks:
                     m1 = s.marks['zero'][0]
                     m2 = m1 + s.marks['zero'][1]
                     axes.plot(s.x[m1:m2], s.y[m1:m2], 'r')
-                # decorate the plot
+                # Decorate the plot
                 axes.grid(True)
                 axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
                 axes.set_xlabel('Time, ms')
                 axes.set_ylabel(s.name + ', ' + s.unit)
                 #axes.legend(loc='best') 
-                # show plot
+                # Show plot
                 mplw.canvas.draw()
                 jj += 1
-            # remove unused plots
+            # Remove unused plot widgets
             while jj < layout.count() :
                 item = layout.takeAt(layout.count()-1)
                 if not item:
@@ -347,21 +349,21 @@ class MainWindow(QMainWindow):
                 columns.append(self.logTable.headers.index(t))
         return columns
 
-    def parseFolder(self, fn=None):
+    def parseFolder(self, file_name=None):
         self.logger.log(logging.DEBUG, 'parseFolder')
         try:
-            if fn is None:
-                fn = self.logFileName
-            if fn is None:
+            if file_name is None:
+                file_name = self.logFileName
+            if file_name is None:
                 return
-            self.logger.log(logging.DEBUG, 'Reading log file %s'%fn)
+            self.logger.log(logging.DEBUG, 'Reading log file %s' % file_name)
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-            # read log file content to logTable
-            self.logTable = LogTable(fn, extra_cols=self.extra_cols)
+            # Read log file content to logTable
+            self.logTable = LogTable(file_name, extra_cols=self.extra_cols)
             if self.logTable.file_name is None:
                 return
             self.logFileName = self.logTable.file_name
-            # create sorted displayed columns list
+            # Create sorted displayed columns list
             self.included = self.plainTextEdit_2.toPlainText().split('\n')
             self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
             self.columns = []
@@ -371,7 +373,6 @@ class MainWindow(QMainWindow):
             for t in self.logTable.headers:
                 if t not in self.excluded and t not in self.columns:
                     self.columns.append(t)
-
             # disable table update events
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_sel_changed)
             # clear table
@@ -390,11 +391,14 @@ class MainWindow(QMainWindow):
                 n = 0
                 for c in self.columns:
                     m = self.logTable.find_col(c)
+                    v = self.logTable.val[m][k]
                     item = QTableWidgetItem(self.logTable.data[m][k])
-                    #val = value(self.logTable.data[m][k])
-                    #font = item.font()
-                    #font.setBold(True)
-                    #item.setFont(font)
+                    if k > 0:
+                        v1 = self.logTable.val[m][k-1]
+                        if v!=0.0 and abs(v1-v)/v > 0.0:
+                            item.setForeground(QBrush(QColor(255, 0, 0)))
+                        else:
+                            item.setForeground(QBrush(QColor(0, 0, 0)))
                     self.tableWidget_3.setItem(k, n, item)
                     n += 1
             # enable table update events
@@ -510,15 +514,20 @@ class MainWindow(QMainWindow):
         #self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
         self.logger.log(level, "Exception ", exc_info=True)
 
-    def timerHandler(self):
-        t = time.strftime('%H:%M:%S')
-        self.clock.setText(t)
-        # check if lock file exists
+    def is_locked(self):
         if self.logFileName is None:
-            return
+            return True
         folder = os.path.dirname(self.logFileName)
         file = os.path.join(folder, "lock.lock")
         if os.path.exists(file):
+            return True
+        return False
+
+    def timer_handler(self):
+        t = time.strftime('%H:%M:%S')
+        self.clock.setText(t)
+        # check if lock file exists
+        if self.is_locked():
             return
         oldSize = self.logTable.file_size
         newSize = os.path.getsize(self.logFileName)
@@ -536,18 +545,20 @@ class MainWindow(QMainWindow):
 
 
 class LogTable():
-    def __init__(self, f_name: str, folder: str = "", extra_cols: str = "") -> None:
+    def __init__(self, file_name: str, folder: str = "", extra_cols: list = []) -> None:
         """
 
             Create LogTable object from file f_name
 
-        :param f_name: str The name of log file containing table
+        :param file_name: str The name of log file containing table
         :param folder: str Folder to add in front file name
         """
         def value(s):
             return float(self.item(s).split(' ')[0].replace(',', '.'))
         self.logger = logger
         self.data = [[],]
+        self.val = [[],]
+        self.unit = [[],]
         self.headers = []
         self.file_name = None
         self.file_size = 0
@@ -556,18 +567,18 @@ class LogTable():
         self.columns = 0
         self.order = []
         
-        fn = os.path.join(folder, f_name)
+        fn = os.path.join(folder, file_name)
         if not os.path.exists(fn) :
-            self.logger.info('File %s does not exist' % self.file_name)
+            self.logger.info('File %s does not exist' % file_name)
             return
         with open(fn, "r") as stream:
             self.buf = stream.read()
         if len(self.buf) <= 0 :
-            self.logger.info('Nothing to process in %s' % self.file_name)
+            self.logger.info('Nothing to process in %s' % file_name)
             return
         self.file_name = fn
         self.file_size = os.path.getsize(fn)
-        # split buf to lines
+        # Split buf to lines
         lns = self.buf.split('\n')
         self.logger.debug('%d lines in %s' % (len(lns), self.file_name))
         # loop for lines
@@ -580,6 +591,7 @@ class LogTable():
                 #self.logger.debug('%d lines in %s' % (len(lns), self.file_name))
                 continue
             tm = flds[0].split(" ")[1].strip()
+            #tv = time.strftime()
             flds[0] = "Time=" + tm
             # add row to table
             self.add_row()
@@ -590,25 +602,45 @@ class LogTable():
                 val = kv[1].strip()
                 j = self.add_column(key)
                 self.data[j][self.rows-1] = val
+                vu = val.split(" ")
+                try:
+                    v = float(vu[0].strip().replace(',', '.'))
+                except:
+                    v = 0.0
+                self.val[j][self.rows-1] = v
+                try:
+                    u = vu[1].strip()
+                except:
+                    u = ''
+                self.unit[j][self.rows-1] = u
 
-            if extra_cols != '':
-                for c in extra_cols:
-                    if c.strip() != "":
-                        try:
-                            key, val = eval(c)
-                            if key != '':
-                                j = self.add_column(key)
-                                self.data[j][self.rows - 1] = str(val)
-                        except:
-                            self.logger.log(logging.DEBUG, 'eval() error in %s' % c)
+            for c in extra_cols:
+                if c.strip() != "":
+                    try:
+                        key, val = eval(c)
+                        if key != '':
+                            j = self.add_column(key)
+                            self.data[j][self.rows - 1] = str(val)
+                            self.val[j][self.rows - 1] = float(val)
+                            #self.unit[j][self.rows - 1] = ""
+                    except:
+                        self.logger.log(logging.DEBUG, 'eval() error in %s' % c)
 
     def add_row(self):
         for item in self.data:
+            item.append("")
+        for item in self.val:
+            item.append(None)
+        for item in self.unit:
             item.append("")
         self.rows += 1
     
     def remove_row(self, row):
         for item in self.data:
+            del item[row]
+        for item in self.val:
+            del item[row]
+        for item in self.unit:
             del item[row]
         self.rows -= 1
 
@@ -622,6 +654,8 @@ class LogTable():
     def remove_column(self, col):
         col = self.col_number(col)
         del self.data[col]
+        del self.val[col]
+        del self.unit[col]
         del self.headers[col]
         self.columns -= 1
 
@@ -659,7 +693,11 @@ class LogTable():
         self.headers.append(col_name)
         new_col = [""] * self.rows
         self.data.append(new_col)
-        self.columns += 1 
+        new_col = [None] * self.rows
+        self.val.append(new_col)
+        new_col = [""] * self.rows
+        self.unit.append(new_col)
+        self.columns += 1
         return self.headers.index(col_name)
         
     def find_col(self, col_name):
@@ -801,7 +839,7 @@ if __name__ == '__main__':
     dmw.show()
     # defile and start timer task
     timer = QTimer()
-    timer.timeout.connect(dmw.timerHandler)
+    timer.timeout.connect(dmw.timer_handler)
     timer.start(1000)
     # start the Qt main loop execution, exiting from this script
     # with the same return code of Qt application
