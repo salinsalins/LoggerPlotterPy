@@ -393,15 +393,19 @@ class MainWindow(QMainWindow):
                 for c in self.columns:
                     m = self.logTable.find_col(c)
                     v = self.logTable.val[m][k]
-                    item = QTableWidgetItem(self.logTable.data[m][k])
+                    try:
+                        txt = config['format'][self.logTable.headers[m]]%(self.logTable.val[m][k], self.logTable.unit[m][k])
+                    except:
+                        txt = self.logTable.data[m][k]
+                    item = QTableWidgetItem(txt)
                     if k > 0:
                         v1 = self.logTable.val[m][k-1]
-                        if v!=0.0 and abs(v1-v)/abs(v) > 0.05:
+                        if v!=0.0 and abs(v1-v)/abs(v) > 0.03:
                             #item.setForeground(QBrush(QColor(255, 0, 0)))
                             item.setFont(QFont('Open Sans Bold', weight=QFont.Bold))
                         else:
                             #item.setForeground(QBrush(QColor(0, 0, 0)))
-                            item.setFont(QFont('Open Sans Bold', weight=QFont.Normal))
+                            item.setFont(QFont('Open Sans', weight=QFont.Normal))
                     self.tableWidget_3.setItem(k, n, item)
                     n += 1
             # enable table update events
