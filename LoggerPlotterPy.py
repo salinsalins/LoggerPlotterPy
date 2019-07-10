@@ -70,8 +70,10 @@ class MainWindow(QMainWindow):
         # Class members definition
         self.refresh_flag = False
         self.last_selection = -1
-        self.signalsList = None
-        self.old_signas = None
+        self.sig_list = []
+        self.old_sig_list = []
+        self.signals = []
+#        self.old_signals = []
 
         # Load the UI
         uic.loadUi('LoggerPlotter.ui', self)
@@ -85,12 +87,12 @@ class MainWindow(QMainWindow):
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
         self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
-        self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
+        self.tableWidget_3.itemSelectionChanged.connect(self.table_sel_changed)
         self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
-        self.plainTextEdit_2.textChanged.connect(self.refresh)
-        self.plainTextEdit_3.textChanged.connect(self.refresh)
-        self.plainTextEdit_4.textChanged.connect(self.refresh)
-        self.plainTextEdit_5.textChanged.connect(self.refresh)
+        self.plainTextEdit_2.textChanged.connect(self.refresh_on)
+        self.plainTextEdit_3.textChanged.connect(self.refresh_on)
+        self.plainTextEdit_4.textChanged.connect(self.refresh_on)
+        self.plainTextEdit_5.textChanged.connect(self.refresh_on)
         # Menu actions connection
         self.actionQuit.triggered.connect(qApp.quit)
         self.actionOpen.triggered.connect(self.selectLogFile)
@@ -124,7 +126,7 @@ class MainWindow(QMainWindow):
         #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
         #self.mplWidget.canvas.mpl_disconnect(cid)
 
-    def refresh(self):
+    def refresh_on(self):
         self.refresh_flag = True
 
     def showAbout(self):
@@ -136,7 +138,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(True)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
-        self.tableSelectionChanged()
+        self.table_sel_changed()
         if self.refresh_flag:
             self.refresh_flag = False
             self.parseFolder()
@@ -191,9 +193,9 @@ class MainWindow(QMainWindow):
             # change selection and fire callback
             self.comboBox_2.setCurrentIndex(i)
     
-    def tableSelectionChanged(self):
+    def table_sel_changed(self):
         def sig(name):
-            for s in self.signalsList:
+            for s in self.sig_list:
                 if s.name == name:
                     return s
             return None
@@ -214,14 +216,15 @@ class MainWindow(QMainWindow):
             # read zip file listing
             self.dataFile = DataFile(zipFileName, folder = folder)
             # read signals from zip file
-            self.signalsList = self.dataFile.read_all_signals()
+            self.old_sig_list = self.sig_list
+            self.sig_list = self.dataFile.read_all_signals()
             layout = self.scrollAreaWidgetContents_3.layout()
             # reorder plots according to columns order in the table
             self.signals = []
             for c in self.columns:
-                for s in self.signalsList:
-                    if s.name == c :
-                        self.signals.append(self.signalsList.index(s))
+                for s in self.sig_list:
+                    if s.name == c:
+                        self.signals.append(self.sig_list.index(s))
                         break
             extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
             for p in extra_plots:
@@ -233,8 +236,8 @@ class MainWindow(QMainWindow):
                             s.x = x_val
                             s.y = y_val
                             s.name = key
-                            self.signalsList.append(s)
-                            self.signals.append(self.signalsList.index(s))
+                            self.sig_list.append(s)
+                            self.signals.append(self.sig_list.index(s))
                     except:
                         self.logger.log(logging.DEBUG, 'eval() error in %s' % p)
             # plot signals to existing plots or add new
@@ -243,7 +246,7 @@ class MainWindow(QMainWindow):
             row = 0
             col_count = 3
             for c in self.signals:
-                s = self.signalsList[c]
+                s = self.sig_list[c]
                 if jj < layout.count():
                     # use existing plot
                     mplw = layout.itemAt(jj).widget()
@@ -262,16 +265,16 @@ class MainWindow(QMainWindow):
                     mplw.ntb.hide()
                 # get axes
                 axes = mplw.canvas.ax
-                # previous traces list
-                prevLines = axes.get_lines()
+#                # previous traces list
+#                prevLines = axes.get_lines()
                 # clear plot
                 axes.clear()
                 # plot previous line
-                if len(prevLines) > 0 and self.checkBox_2.isChecked():
-                    k = 0
-                    if len(prevLines) == 4:
-                        k = 1
-                    axes.plot(prevLines[k].get_xdata(), prevLines[k].get_ydata(), "y-")
+                if self.checkBox_2.isChecked():
+                    for s1 in self.old_sig_list:
+                        if s1.name == s.name:
+                            axes.plot(s1.x, s1.y, "y-")
+                            break
                 # plot main line
                 axes.plot(s.x, s.y)
                 # plot mark highlight
@@ -370,7 +373,7 @@ class MainWindow(QMainWindow):
                     self.columns.append(t)
 
             # disable table update events
-            self.tableWidget_3.itemSelectionChanged.disconnect(self.tableSelectionChanged)
+            self.tableWidget_3.itemSelectionChanged.disconnect(self.table_sel_changed)
             # clear table
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
@@ -395,7 +398,7 @@ class MainWindow(QMainWindow):
                     self.tableWidget_3.setItem(k, n, item)
                     n += 1
             # enable table update events
-            self.tableWidget_3.itemSelectionChanged.connect(self.tableSelectionChanged)
+            self.tableWidget_3.itemSelectionChanged.connect(self.table_sel_changed)
             self.tableWidget_3.resizeColumnsToContents()
             # select last row of widget -> tableSelectionChanged will be fired
             self.last_selection = -1
@@ -677,9 +680,9 @@ class LogTable():
 
 class Signal:
     def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
+        #self.logger = logging.getLogger(__name__)
         self.x = np.zeros(1)
-        self.y = self.x.copy()
+        self.y = np.zeros(1)
         self.params = {}
         self.name = ''
         self.unit = ''
