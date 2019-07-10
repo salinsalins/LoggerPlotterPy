@@ -17,6 +17,7 @@ import time
 
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QBrush
+from PyQt5.QtGui import QFont
 
 try:
     from PyQt5 import QtWidgets as QtGui
@@ -395,10 +396,12 @@ class MainWindow(QMainWindow):
                     item = QTableWidgetItem(self.logTable.data[m][k])
                     if k > 0:
                         v1 = self.logTable.val[m][k-1]
-                        if v!=0.0 and abs(v1-v)/v > 0.0:
-                            item.setForeground(QBrush(QColor(255, 0, 0)))
+                        if v!=0.0 and abs(v1-v)/abs(v) > 0.05:
+                            #item.setForeground(QBrush(QColor(255, 0, 0)))
+                            item.setFont(QFont('Open Sans Bold', weight=QFont.Bold))
                         else:
-                            item.setForeground(QBrush(QColor(0, 0, 0)))
+                            #item.setForeground(QBrush(QColor(0, 0, 0)))
+                            item.setFont(QFont('Open Sans Bold', weight=QFont.Normal))
                     self.tableWidget_3.setItem(k, n, item)
                     n += 1
             # enable table update events
@@ -408,11 +411,10 @@ class MainWindow(QMainWindow):
             self.last_selection = -1
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
             ##self.tableWidget_3.scrollToBottom()
-            return
-        except :
+        except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.printExceptionInfo(level=logging.DEBUG)
-            return
+        return
     
     def saveSettings(self, folder='', fileName=settingsFile) :
         try:
@@ -613,7 +615,6 @@ class LogTable():
                 except:
                     u = ''
                 self.unit[j][self.rows-1] = u
-
             for c in extra_cols:
                 if c.strip() != "":
                     try:
@@ -693,7 +694,7 @@ class LogTable():
         self.headers.append(col_name)
         new_col = [""] * self.rows
         self.data.append(new_col)
-        new_col = [None] * self.rows
+        new_col = [0.0] * self.rows
         self.val.append(new_col)
         new_col = [""] * self.rows
         self.unit.append(new_col)
