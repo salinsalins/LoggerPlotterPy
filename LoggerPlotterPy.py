@@ -15,36 +15,20 @@ import logging
 import zipfile
 import time
 
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import qApp
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidget
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QLabel
+from PyQt5 import uic
+from PyQt5.QtCore import QPoint, QSize
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QFont
-
-try:
-    from PyQt5 import QtWidgets as QtGui
-    from PyQt5.QtWidgets import QMainWindow
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtWidgets import qApp
-    from PyQt5.QtWidgets import QFileDialog
-    from PyQt5.QtWidgets import QTableWidgetItem
-    from PyQt5.QtWidgets import QTableWidget
-    from PyQt5.QtWidgets import QMessageBox
-    from PyQt5.QtWidgets import QLabel
-    from PyQt5 import uic
-    from PyQt5.QtCore import QPoint, QSize
-    from PyQt5.QtCore import QTimer
-except:
-    from PyQt4 import QtGui  
-    from PyQt4.QtGui import QMainWindow 
-    from PyQt4.QtGui import QApplication 
-    from PyQt4.QtGui import qApp 
-    from PyQt4.QtGui import QFileDialog 
-    from PyQt4.QtGui import QTableWidgetItem 
-    from PyQt4.QtGui import QTableWidget 
-    from PyQt4.QtGui import QMessageBox 
-    from PyQt4.QtGui import QLabel
-    from PyQt4 import uic 
-    from PyQt4.QtCore import QPoint, QSize 
-    from PyQt4.QtCore import QTimer 
 
 import numpy as np
 from mplwidget import MplWidget
@@ -110,7 +94,7 @@ class MainWindow(QMainWindow):
         self.plainTextEdit.setLineWrapMode(0)
         # Clock label at status bar
         self.clock = QLabel(" ")
-        #self.clock.font().setBold(True)
+        self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
         self.statusBar().addPermanentWidget(self.clock)
         
         self.setDefaultSettings()
@@ -832,6 +816,12 @@ class TextEditHandler(logging.Handler):
         log_entry = self.format(record)
         if self.widget is not None:
             self.widget.appendPlainText(log_entry)
+
+class Config:
+    def __init__(self):
+        self.data = {}
+    def __getitem__(self, item):
+        return self.data[item]
 
 
 if __name__ == '__main__':

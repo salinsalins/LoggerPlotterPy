@@ -4,6 +4,12 @@ Created on 31 мая 2017 г.
 
 @author: Sanin
 '''
+#import matplotlib
+#matplotlib.rcParams['path.simplify'] = True
+#matplotlib.rcParams['path.simplify_threshold'] = 1.0
+#import matplotlib.style as mplstyle
+#mplstyle.use('fast')
+
 from matplotlib.figure import Figure
 # Python Qt4 or Qt5 bindings for GUI objects
 try:
@@ -13,17 +19,16 @@ try:
     from matplotlib.backends.backend_qt5agg \
       import NavigationToolbar2QT as NavigationToolbar
 except:
-    from PyQt4 import QtGui # @UnresolvedImport @UnusedImport @Reimport
+    from PyQt4 import QtGui
     from matplotlib.backends.backend_qt4agg \
-      import FigureCanvasQTAgg as FigureCanvas # @UnresolvedImport @UnusedImport @Reimport
+      import FigureCanvasQTAgg as FigureCanvas
     from matplotlib.backends.backend_qt4agg \
-      import NavigationToolbar2QT as NavigationToolbar # @UnresolvedImport @UnusedImport @Reimport
+      import NavigationToolbar2QT as NavigationToolbar
 
-
-# import the Qt4Agg FigureCanvas object, that binds Figure to
-# Qt4Agg backend. It also inherits from QWidget
+# import the Qt4(5)Agg FigureCanvas object, that binds Figure to
+# Qt4(5)Agg backend. It also inherits from QWidget
 # Matplotlib Figure object
-# import the NavigationToolbar Qt4Agg widget
+# import the NavigationToolbar Qt4(5)Agg widget
 
 class MplCanvas(FigureCanvas):
     """Class to represent the FigureCanvas widget"""
