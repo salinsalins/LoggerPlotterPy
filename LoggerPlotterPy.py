@@ -351,6 +351,10 @@ class MainWindow(QMainWindow):
             if self.logTable.file_name is None:
                 return
             self.logFileName = self.logTable.file_name
+            try:
+                thr = config["threshold"]
+            except:
+                thr = 0.03
             # Create sorted displayed columns list
             self.included = self.plainTextEdit_2.toPlainText().split('\n')
             self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
@@ -387,10 +391,6 @@ class MainWindow(QMainWindow):
                     item = QTableWidgetItem(txt)
                     if k > 0:
                         v1 = self.logTable.val[m][k-1]
-                        try:
-                            thr = config["threshold"]
-                        except:
-                            thr = 0.03
                         if v!=0.0 and abs(v1-v)/abs(v) > thr:
                             #item.setForeground(QBrush(QColor(255, 0, 0)))
                             item.setFont(QFont('Open Sans Bold', weight=QFont.Bold))
