@@ -24,7 +24,8 @@ from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QLabel
 from PyQt5 import uic
-from PyQt5.QtCore import QPoint, QSize
+from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QBrush
@@ -243,6 +244,8 @@ class MainWindow(QMainWindow):
                 else:
                     # create new plot widget
                     mplw = MplWidget(height=300, width=300)
+                    mplw.ntb.setIconSize(QSize(18, 18))
+                    mplw.ntb.setFixedSize(300, 24)
                     layout.addWidget(mplw, row, col)
                 col += 1
                 if col >= col_count:
@@ -268,12 +271,12 @@ class MainWindow(QMainWindow):
                 if 'mark' in s.marks:
                     m1 = s.marks['mark'][0]
                     m2 = m1 + s.marks['mark'][1]
-                    axes.plot(s.x[m1:m2], s.y[m1:m2], 'r')
+                    axes.plot(s.x[m1:m2], s.y[m1:m2])
                 # Plot 'zero' highlight
                 if 'zero' in s.marks:
                     m1 = s.marks['zero'][0]
                     m2 = m1 + s.marks['zero'][1]
-                    axes.plot(s.x[m1:m2], s.y[m1:m2], 'r')
+                    axes.plot(s.x[m1:m2], s.y[m1:m2])
                 # Decorate the plot
                 axes.grid(True)
                 axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
