@@ -384,6 +384,8 @@ class MainWindow(QMainWindow):
                 for c in self.columns:
                     m = self.logTable.find_col(c)
                     v = self.logTable.val[m][k]
+                    if v is None:
+                        v = 0.0
                     try:
                         txt = config['format'][self.logTable.headers[m]]%(self.logTable.val[m][k], self.logTable.unit[m][k])
                     except:
@@ -391,6 +393,8 @@ class MainWindow(QMainWindow):
                     item = QTableWidgetItem(txt)
                     if k > 0:
                         v1 = self.logTable.val[m][k-1]
+                        if v1 is None:
+                            v1 = 0.0
                         if v!=0.0 and abs(v1-v)/abs(v) > thr:
                             #item.setForeground(QBrush(QColor(255, 0, 0)))
                             item.setFont(QFont('Open Sans Bold', weight=QFont.Bold))
