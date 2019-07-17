@@ -148,16 +148,16 @@ class MainWindow(QMainWindow):
             # Qt4 and Qt5 compatibility workaround
             if len(fn[0]) > 1:
                 fn = fn[0]
-            # different file selected
-            if self.logFileName == fn:
-                return
-            i = self.comboBox_2.findText(fn)
-            if i < 0:
-                # add item to history
-                self.comboBox_2.insertItem(-1, fn)
-                i = 0
-            # change selection abd fire callback
-            self.comboBox_2.setCurrentIndex(i)
+                # different file selected
+                if self.logFileName == fn:
+                    return
+                i = self.comboBox_2.findText(fn)
+                if i < 0:
+                    # add item to history
+                    self.comboBox_2.insertItem(-1, fn)
+                    i = 0
+                # change selection abd fire callback
+                self.comboBox_2.setCurrentIndex(i)
     
     def tableSelectionChanged(self):
         try:
@@ -675,6 +675,8 @@ class DataFile:
         # name of the signal
         if b"label" in signal.params:
             signal.name = signal.params[b"label"].decode('ascii')
+        elif b"name" in signal.params:
+            signal.name = signal.params[b"name"].decode('ascii')
         else:
             signal.name = signalName
         if b'unit' in signal.params:
