@@ -541,14 +541,6 @@ class MainWindow(QMainWindow):
         if newSize <= oldSize:
             return
         self.parseFolder()
-        
-    def onClick(self, event):
-        print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-              ('double' if event.dblclick else 'single', event.button,
-               event.x, event.y, event.xdata, event.ydata))
-        #a = event.canvas.getParent()
-        #ntb = NavigationToolbar(event.canvas, a)
-        #a.addWidget(ntb)
 
 
 class LogTable():
@@ -622,16 +614,16 @@ class LogTable():
         for row in range(self.rows):
             for ec in extra_cols:
                 if ec.strip() != "":
-                    eci = ec % row
+                    #eci = ec % row
                     try:
-                        key, value, units = eval(eci)
+                        key, value, units = eval(ec)
                         if key != '':
                             j = self.add_column(key)
                             self.data[j][row] = str(value) + ' ' + str(units)
                             self.val[j][row] = float(value)
                             self.unit[j][row] = str(units)
                     except:
-                        self.logger.log(logging.DEBUG, 'eval() error in %s' % eci)
+                        self.logger.log(logging.DEBUG, 'eval() error in %s' % ec)
 
     def add_row(self):
         for item in self.data:
