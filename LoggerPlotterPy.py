@@ -556,6 +556,7 @@ class LogTable():
         """
         def value(s):
             return float(self.item(s).split(' ')[0].replace(',', '.'))
+
         self.logger = logger
         self.data = [[],]
         self.val = [[],]
@@ -829,6 +830,7 @@ class TextEditHandler(logging.Handler):
         log_entry = self.format(record)
         if self.widget is not None:
             self.widget.appendPlainText(log_entry)
+
 
 class Config:
     def __init__(self):
