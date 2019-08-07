@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(True)
-        self.tableWidget.horizontalHeader().setVisible(True)
+        ###self.tableWidget.horizontalHeader().setVisible(True)
         # Decode global config
         # clear table
         self.tableWidget.setRowCount(0)
@@ -560,8 +560,7 @@ class LogTable():
         :param file_name: str The name of log file containing table
         :param folder: str Folder to add in front file name
         """
-        def value(s):
-            return float(self.item(s).split(' ')[0].replace(',', '.'))
+
         self.logger = logger
         self.data = [[],]
         self.val = [[],]
@@ -613,30 +612,32 @@ class LogTable():
                 try:
                     v = float(vu[0].strip().replace(',', '.'))
                 except:
-                    v = 0.0
+                    v = float('nan')
                 self.val[j][self.rows-1] = v
                 try:
                     u = vu[1].strip()
                 except:
                     u = ''
                 self.unit[j][self.rows-1] = u
-            for c in extra_cols:
-                if c.strip() != "":
+        for row in range(self.rows):
+            for ec in extra_cols:
+                if ec.strip() != "":
+                    eci = ec % row
                     try:
-                        key, val = eval(c)
+                        key, value, units = eval(eci)
                         if key != '':
                             j = self.add_column(key)
-                            self.data[j][self.rows - 1] = str(val)
-                            self.val[j][self.rows - 1] = float(val)
-                            #self.unit[j][self.rows - 1] = ""
+                            self.data[j][row] = str(value) + ' ' + str(units)
+                            self.val[j][row] = float(value)
+                            self.unit[j][row] = str(units)
                     except:
-                        self.logger.log(logging.DEBUG, 'eval() error in %s' % c)
+                        self.logger.log(logging.DEBUG, 'eval() error in %s' % eci)
 
     def add_row(self):
         for item in self.data:
             item.append("")
         for item in self.val:
-            item.append(None)
+            item.append(0.0)
         for item in self.unit:
             item.append("")
         self.rows += 1
@@ -651,18 +652,21 @@ class LogTable():
         self.rows -= 1
 
     def col_number(self, col):
+        coln = col
         if isinstance(col, str):
             if col not in self.headers:
                 return None
-            col = self.headers.index(col)
-        return col
+            coln = self.headers.index(col)
+        return coln
 
     def remove_column(self, col):
-        col = self.col_number(col)
-        del self.data[col]
-        del self.val[col]
-        del self.unit[col]
-        del self.headers[col]
+        coln = self.col_number(col)
+        if coln is None:
+            return
+        del self.data[coln]
+        del self.val[coln]
+        del self.unit[coln]
+        del self.headers[coln]
         self.columns -= 1
 
     def item(self, *args):
@@ -672,26 +676,51 @@ class LogTable():
         else:
             col = args[0]
             row = -1
-        col = self.col_number(col)
-        return self.data[col][row]
+        coln = self.col_number(col)
+        if col is None:
+            return ''
+        return self.data[coln][row]
+
+    def value(self, *args):
+        if len(args) >= 2:
+            col = args[1]
+            row = args[0]
+        else:
+            col = args[0]
+            row = -1
+        coln = self.col_number(col)
+        if coln is None or coln >= len(self.val):
+            return 0.0
+        return self.val[coln][row]
 
     def get_item(self, row, col):
         return self.item(row, col)
 
     def set_item(self, row, col, val):
-        col = self.col_number(col)
-        self.data[col][row] = val
+        coln = self.col_number(col)
+        self.data[coln][row] = val
+        vu = val.split(" ")
+        try:
+            v = float(vu[0].strip().replace(',', '.'))
+        except:
+            v = 0.0
+        self.val[coln][row] = v
+        try:
+            u = vu[1].strip()
+        except:
+            u = ''
+        self.unit[coln][row] = u
         return True
 
     def column(self, col):
-        col = self.col_number(col)
-        return self.data[col]
+        coln = self.col_number(col)
+        return self.data[coln]
 
     def row(self, row):
         return [self.data[n][row] for n in range(len(self.headers))]
 
     def add_column(self, col_name):
-        if col_name is None:
+        if col_name is None or col_name == '':
             return -1
         # skip if column exists
         if col_name in self.headers:
@@ -835,6 +864,7 @@ class TextEditHandler(logging.Handler):
         log_entry = self.format(record)
         if self.widget is not None:
             self.widget.appendPlainText(log_entry)
+
 
 class Config:
     def __init__(self):
