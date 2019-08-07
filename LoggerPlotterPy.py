@@ -30,6 +30,7 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QFont
+import PyQt5.QtGui as QtGui
 
 import numpy as np
 from mplwidget import MplWidget
@@ -280,7 +281,12 @@ class MainWindow(QMainWindow):
                 # Decorate the plot
                 axes.grid(True)
                 axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
-                axes.set_xlabel('Time, ms')
+                if b"xlabel" in s.params:
+                    axes.set_xlabel(s.params[b"xlabel"].decode('ascii'))
+                elif "xlabel" in s.params:
+                    axes.set_xlabel(s.params["xlabel"].decode('ascii'))
+                else:
+                    axes.set_xlabel('Time, ms')
                 axes.set_ylabel(s.name + ', ' + s.unit)
                 #axes.legend(loc='best') 
                 # Show plot
@@ -408,8 +414,8 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.resizeColumnsToContents()
             # select last row of widget -> tableSelectionChanged will be fired
             self.last_selection = -1
+            self.tableWidget_3.scrollToBottom()
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
-            ##self.tableWidget_3.scrollToBottom()
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.printExceptionInfo(level=logging.DEBUG)
