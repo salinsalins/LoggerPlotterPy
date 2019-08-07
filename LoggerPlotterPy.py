@@ -143,7 +143,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(True)
-        self.tableWidget.horizontalHeader().setVisible(True)
+        ###self.tableWidget.horizontalHeader().setVisible(True)
         # Decode global config
         # clear table
         self.tableWidget.setRowCount(0)
