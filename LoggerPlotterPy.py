@@ -172,16 +172,16 @@ class MainWindow(QMainWindow):
             # Qt4 and Qt5 compatibility workaround
             if len(fn[0]) > 1:
                 fn = fn[0]
-                # different file selected
-                if self.logFileName == fn:
-                    return
-                i = self.comboBox_2.findText(fn)
-                if i < 0:
-                    # add item to history
-                    self.comboBox_2.insertItem(-1, fn)
-                    i = 0
-                # change selection abd fire callback
-                self.comboBox_2.setCurrentIndex(i)
+        # different file selected
+        if self.logFileName == fn:
+            return
+        i = self.comboBox_2.findText(fn)
+        if i < 0:
+            # add item to history
+            self.comboBox_2.insertItem(-1, fn)
+            i = 0
+        # change selection abd fire callback
+        self.comboBox_2.setCurrentIndex(i)
     
     def table_sel_changed(self):
         def sig(name):
@@ -305,14 +305,14 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
             self.printExceptionInfo(level=logging.DEBUG)
  
-    def fileSelectionChanged(self, i):
-        self.logger.debug('File selection changed to %s'%str(i))
-        if i < 0:
+    def fileSelectionChanged(self, m):
+        self.logger.debug('File selection changed to %s' % str(m))
+        if m < 0:
             return
         newLogFile = str(self.comboBox_2.currentText())
         if not os.path.exists(newLogFile):
             self.logger.warning('File %s is not found'%newLogFile)
-            self.comboBox_2.removeItem(i)
+            self.comboBox_2.removeItem(m)
             return
         if self.logFileName != newLogFile:
             self.logFileName = newLogFile
