@@ -544,15 +544,7 @@ class MainWindow(QMainWindow):
 
 
 class LogTable():
-    def __init__(self, file_name: str, folder: str = "", extra_cols: list = []) -> None:
-        """
-
-            Create LogTable object from file f_name
-
-        :param file_name: str The name of log file containing table
-        :param folder: str Folder to add in front file name
-        """
-
+    def __init__(self, file_name: str, folder: str = "", extra_cols: list = []):
         self.logger = logger
         self.data = [[],]
         self.val = [[],]
