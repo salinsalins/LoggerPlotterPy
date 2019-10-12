@@ -766,14 +766,6 @@ class Signal:
         if 'marks' in kwargs:
             self.marks = kwargs['marks']
 
-    def __add__(self, o):
-        result = Signal()
-        result.y = self.y + o.y
-        for m in self.marks:
-            if m in o.marks:
-                pass
-                #self.marks[m] = self.marks[m] + o.marks[m]
-        return result
 
 class DataFile:
     def __init__(self, fileName, folder=""):
