@@ -14,6 +14,7 @@ import json
 import logging
 import zipfile
 import time
+import copy
 
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QApplication
@@ -736,8 +737,9 @@ class LogTable():
     
 
 class Signal:
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs):
         #self.logger = logging.getLogger(__name__)
+        # Default settings
         self.x = np.zeros(1)
         self.y = np.zeros(1)
         self.params = {}
@@ -746,7 +748,32 @@ class Signal:
         self.scale = 1.0
         self.value = 0.0
         self.marks = {}
+        # From kwargs
+        if 'x' in kwargs:
+            self.x = kwargs['x']
+        if 'y' in kwargs:
+            self.y = kwargs['y']
+        if 'params' in kwargs:
+            self.params = kwargs['params']
+        if 'name' in kwargs:
+            self.name = kwargs['name']
+        if 'unit' in kwargs:
+            self.unit = kwargs['unit']
+        if 'scale' in kwargs:
+            self.scale = kwargs['scale']
+        if 'value' in kwargs:
+            self.value = kwargs['value']
+        if 'marks' in kwargs:
+            self.marks = kwargs['marks']
 
+    def __add__(self, o):
+        result = Signal()
+        result.y = self.y + o.y
+        for m in self.marks:
+            if m in o.marks:
+                pass
+                #self.marks[m] = self.marks[m] + o.marks[m]
+        return result
 
 class DataFile:
     def __init__(self, fileName, folder=""):
