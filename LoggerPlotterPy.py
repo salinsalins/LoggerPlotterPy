@@ -222,14 +222,18 @@ class MainWindow(QMainWindow):
             for p in extra_plots:
                 if p.strip() != "":
                     try:
-                        key, x_val, y_val = eval(p)
-                        if key != '':
-                            s = Signal()
-                            s.x = x_val
-                            s.y = y_val
-                            s.name = key
-                            self.sig_list.append(s)
-                            self.signals.append(self.sig_list.index(s))
+                        result = eval(p)
+                        if isinstance(result, Signal):
+                            s = result
+                        else:
+                            key, x_val, y_val = result
+                            if key != '':
+                                s = Signal()
+                                s.x = x_val
+                                s.y = y_val
+                                s.name = key
+                        self.sig_list.append(s)
+                        self.signals.append(self.sig_list.index(s))
                     except:
                         self.logger.log(logging.DEBUG, 'eval() error in %s' % p)
             # Plot signals
@@ -593,17 +597,20 @@ class LogTable():
                 val = kv[1].strip()
                 j = self.add_column(key)
                 self.data[j][self.rows-1] = val
+                # value units
                 vu = val.split(" ")
                 try:
                     v = float(vu[0].strip().replace(',', '.'))
                 except:
                     v = float('nan')
                 self.val[j][self.rows-1] = v
+                # units
                 try:
                     u = vu[1].strip()
                 except:
                     u = ''
                 self.unit[j][self.rows-1] = u
+        # Add extra columns
         for row in range(self.rows):
             for ec in extra_cols:
                 if ec.strip() != "":
