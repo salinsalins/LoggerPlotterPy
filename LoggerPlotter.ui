@@ -16,7 +16,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>Emittance Plot Processing</string>
+   <string notr="true">Logger Plot Display Utility</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -149,8 +149,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>1046</width>
-                       <height>497</height>
+                       <width>1037</width>
+                       <height>461</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -194,7 +194,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>1063</width>
-                       <height>210</height>
+                       <height>218</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -819,7 +819,7 @@ File</string>
      <x>0</x>
      <y>0</y>
      <width>1073</width>
-     <height>23</height>
+     <height>34</height>
     </rect>
    </property>
    <property name="font">

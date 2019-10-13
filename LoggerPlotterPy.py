@@ -185,11 +185,13 @@ class MainWindow(QMainWindow):
         self.comboBox_2.setCurrentIndex(i)
     
     def table_sel_changed(self):
+
         def sig(name):
             for s in self.sig_list:
                 if s.name == name:
                     return s
             return None
+
         self.logger.log(logging.DEBUG, 'Table selection changed')
         try:
             if len(self.tableWidget_3.selectedRanges()) < 1:
@@ -235,7 +237,7 @@ class MainWindow(QMainWindow):
                         self.sig_list.append(s)
                         self.signals.append(self.sig_list.index(s))
                     except:
-                        self.logger.log(logging.DEBUG, 'eval() error in %s' % p)
+                        self.logger.log(logging.DEBUG, 'Plot eval() error in %s' % p)
             # Plot signals
             jj = 0
             col = 0
@@ -623,7 +625,7 @@ class LogTable():
                             self.val[j][row] = float(value)
                             self.unit[j][row] = str(units)
                     except:
-                        self.logger.log(logging.DEBUG, 'eval() error in %s' % ec)
+                        self.logger.log(logging.DEBUG, 'Column eval() error in %s' % ec)
 
     def add_row(self):
         for item in self.data:
@@ -681,8 +683,8 @@ class LogTable():
             col = args[0]
             row = -1
         coln = self.col_number(col)
-        if coln is None or coln >= len(self.val):
-            return 0.0
+        #if coln is None or coln >= len(self.val):
+        #    return 0.0
         return self.val[coln][row]
 
     def get_item(self, row, col):
