@@ -564,12 +564,14 @@ class LogTable():
         self.columns = 0
         self.order = []
         
+        # Full file name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn) :
             self.logger.info('File %s does not exist' % file_name)
             return
         with open(fn, "r") as stream:
             self.buf = stream.read()
+        # Read file to buf
         if len(self.buf) <= 0 :
             self.logger.info('Nothing to process in %s' % file_name)
             return
@@ -578,19 +580,20 @@ class LogTable():
         # Split buf to lines
         lns = self.buf.split('\n')
         self.logger.debug('%d lines in %s' % (len(lns), self.file_name))
-        # loop for lines
+        # Loop for lines
         for ln in lns:
-            # split line to fields
+            # Split line to fields
             flds = ln.split("; ")
-            # First field should be "date time" longer than 18 symbols
+            # First field "date time" should be longer than 18 symbols
             if len(flds[0]) < 19:
-                # wrong line format, skip to next line
+                # Wrong line format, skip to next line
                 #self.logger.debug('%d lines in %s' % (len(lns), self.file_name))
                 continue
+            # Split time and date
             tm = flds[0].split(" ")[1].strip()
             #tv = time.strftime()
             flds[0] = "Time=" + tm
-            # add row to table
+            # Add row to table
             self.add_row()
             # Iterate for key=value pairs
             for fld in flds:
@@ -599,7 +602,7 @@ class LogTable():
                 val = kv[1].strip()
                 j = self.add_column(key)
                 self.data[j][self.rows-1] = val
-                # value units
+                # Split vlue and units
                 vu = val.split(" ")
                 try:
                     v = float(vu[0].strip().replace(',', '.'))
@@ -619,7 +622,7 @@ class LogTable():
                     #eci = ec % row
                     try:
                         key, value, units = eval(ec)
-                        if key != '':
+                        if (key is not None) and (key != ''):
                             j = self.add_column(key)
                             self.data[j][row] = str(value) + ' ' + str(units)
                             self.val[j][row] = float(value)
