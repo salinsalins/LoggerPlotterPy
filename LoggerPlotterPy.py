@@ -805,13 +805,22 @@ class DataFile:
             pbuf = zipobj.read(pf)
         lines = buf.split(b"\r\n")
         n = len(lines)
+        if n < 2:
+            self.logger.log(logging.ERROR, "No data for signal %s" % signal_name)
+            return signal
         signal.x = np.empty(n)
         signal.y = np.empty(n)
         ii = 0
         for ln in lines:
             xy = ln.split(b'; ')
-            signal.x[ii] = float(xy[0].replace(b',', b'.'))
-            signal.y[ii] = float(xy[1].replace(b',', b'.'))
+            try:
+                signal.x[ii] = float(xy[0].replace(b',', b'.'))
+                signal.y[ii] = float(xy[1].replace(b',', b'.'))
+            except:
+                self.logger.log(logging.ERROR, "Wrong data for signal %s" % signal_name)
+                #return signal
+                signal.x[ii] = 0.0
+                signal.y[ii] = 0.0
             ii += 1
         # read parameters        
         signal.params = {}
