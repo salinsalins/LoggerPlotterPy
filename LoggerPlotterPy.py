@@ -859,6 +859,7 @@ class DataFile:
                     ml = 0
                     mv = 0.0
                 signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
+        # zero mark
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
         else:
