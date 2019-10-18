@@ -93,7 +93,7 @@ class MainWindow(QMainWindow):
         self.actionAbout.triggered.connect(self.showAbout)
 
         # Additional configuration
-        header = self.tableWidget.horizontalHeader()
+        header = self.tableWidget_3.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch) #QHeaderView.Stretch QHeaderView.ResizeToContents
 
         # Disable text wrapping in log window
@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
 
     def showAbout(self):
         QMessageBox.information(self, 'About', progName + ' Version ' + progVersion + 
-                                '\nPlot Logger traces and save shot logs.', QMessageBox.Ok)
+                                '\nPlot Logger saved shot logs and traces.', QMessageBox.Ok)
 
     def showPlotPane(self):
         self.stackedWidget.setCurrentIndex(0)

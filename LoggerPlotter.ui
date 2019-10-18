@@ -18,6 +18,13 @@
   <property name="windowTitle">
    <string notr="true">Logger Plot Display Utility</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>icons8-физика-50.png</normaloff>icons8-физика-50.png</iconset>
+  </property>
+  <property name="animated">
+   <bool>false</bool>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_4">
     <property name="spacing">
