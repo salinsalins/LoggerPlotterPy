@@ -93,6 +93,9 @@ class MainWindow(QMainWindow):
         self.actionAbout.triggered.connect(self.showAbout)
 
         # Additional configuration
+        #header = table.horizontalHeader()
+        #header.setResizeMode(QHeaderView.ResizeToContents) QHeaderView.Stretch
+
         # Disable text wrapping in log window
         self.plainTextEdit.setLineWrapMode(0)
         # Clock label at status bar
