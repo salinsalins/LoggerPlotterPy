@@ -16,7 +16,7 @@ import zipfile
 import time
 import copy
 
-from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QMainWindow, QHeaderView
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import qApp
 from PyQt5.QtWidgets import QFileDialog
@@ -93,8 +93,8 @@ class MainWindow(QMainWindow):
         self.actionAbout.triggered.connect(self.showAbout)
 
         # Additional configuration
-        #header = table.horizontalHeader()
-        #header.setResizeMode(QHeaderView.ResizeToContents) QHeaderView.Stretch
+        header = self.tableWidget.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch) #QHeaderView.Stretch QHeaderView.ResizeToContents
 
         # Disable text wrapping in log window
         self.plainTextEdit.setLineWrapMode(0)
