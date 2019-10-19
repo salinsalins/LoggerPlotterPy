@@ -95,7 +95,15 @@ class MainWindow(QMainWindow):
         # Additional configuration
         header = self.tableWidget_3.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch) #QHeaderView.Stretch QHeaderView.ResizeToContents
-
+        self.tableWidget_3.setStyleSheet("""
+                QTableView {
+                    gridline-color: black;
+                    alternate-background-color: #d0d0d0;
+                }
+                QHeaderView::section {
+                    background-color: #646464;
+                }
+            """)
         # Disable text wrapping in log window
         self.plainTextEdit.setLineWrapMode(0)
         # Clock label at status bar
