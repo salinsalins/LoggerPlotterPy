@@ -112,22 +112,12 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.clock)
 
         self.setDefaultSettings()
-
         print(progName + progVersion + ' started')
-
-        # Restore settings from default config file
         self.restoreSettings()
-        
-        # Additional decorations
-        #self.tableWidget_3.horizontalHeader().
         
         # Read data files
         self.parseFolder()
         
-        # Connect mouse button press event
-        #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
-        #self.mplWidget.canvas.mpl_disconnect(cid)
-
     def refresh_on(self):
         self.refresh_flag = True
 
@@ -203,7 +193,7 @@ class MainWindow(QMainWindow):
                     return s
             return None
 
-        self.logger.log(logging.DEBUG, 'Table selection changed')
+        #self.logger.log(logging.DEBUG, 'Table selection changed')
         try:
             if len(self.tableWidget_3.selectedRanges()) < 1:
                 return
@@ -788,6 +778,34 @@ class Signal:
             self.value = kwargs['value']
         if 'marks' in kwargs:
             self.marks = kwargs['marks']
+
+    def plot(self, axes):
+        try:
+            # Plot main line
+            axes.plot(self.x, self.y)
+            # Plot 'mark' highlight
+            if 'mark' in self.marks:
+                m1 = self.marks['mark'][0]
+                m2 = m1 + self.marks['mark'][1]
+                axes.plot(self.x[m1:m2], self.y[m1:m2])
+            # Plot 'zero' highlight
+            if 'zero' in self.marks:
+                m1 = self.marks['zero'][0]
+                m2 = m1 + self.marks['zero'][1]
+                axes.plot(self.x[m1:m2], self.y[m1:m2])
+            # Decorate the plot
+            axes.grid(True)
+            axes.set_title('{0} = {1:5.2f} {2}'.format(self.name, self.value, self.unit))
+            if b"xlabel" in self.params:
+                axes.set_xlabel(self.params[b"xlabel"].decode('ascii'))
+            elif "xlabel" in self.params:
+                axes.set_xlabel(self.params["xlabel"].decode('ascii'))
+            else:
+                axes.set_xlabel('Time, ms')
+            axes.set_ylabel(self.name + ', ' + self.unit)
+            # axes.legend(loc='best')
+        except:
+            pass
 
 
 class DataFile:
