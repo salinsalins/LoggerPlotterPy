@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
         self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
         self.statusBar().addPermanentWidget(self.clock)
 
-        self.setDefaultSettings()
+        self.set_defaults()
         print(progName + progVersion + ' started')
         self.restoreSettings()
         
@@ -147,17 +147,6 @@ class MainWindow(QMainWindow):
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(True)
         ###self.tableWidget.horizontalHeader().setVisible(True)
-        # Decode global config
-        # clear table
-        self.tableWidget.setRowCount(0)
-        n = 0
-        for key in config:
-            self.tableWidget.insertRow(n)
-            item = QTableWidgetItem(str(key))
-            self.tableWidget.setItem(n, 0, item)
-            item = QTableWidgetItem(str(config[key]))
-            self.tableWidget.setItem(n, 1, item)
-            n += 1
 
     def selectLogFile(self):
         """Opens a file select dialog"""
@@ -352,7 +341,7 @@ class MainWindow(QMainWindow):
         return columns
 
     def parseFolder(self, file_name=None):
-        self.logger.log(logging.DEBUG, 'parseFolder')
+        global config
         try:
             if file_name is None:
                 file_name = self.logFileName
@@ -365,9 +354,9 @@ class MainWindow(QMainWindow):
             if self.logTable.file_name is None:
                 return
             self.logFileName = self.logTable.file_name
-            try:
+            if "threshold" in config:
                 thr = config["threshold"]
-            except:
+            else:
                 thr = 0.03
             # Create sorted displayed columns list
             self.included = self.plainTextEdit_2.toPlainText().split('\n')
@@ -456,12 +445,13 @@ class MainWindow(QMainWindow):
             return False
         
     def restoreSettings(self, folder='', fileName=settingsFile) :
-        try :
+        global config
+        old_config = self.conf
+        try:
             fullName = os.path.join(str(folder), fileName)
             with open(fullName, 'r') as configfile:
                 s = configfile.read()
             self.conf = json.loads(s)
-            global config
             config = self.conf
             # Log level restore
             if 'log_level' in self.conf:
@@ -501,21 +491,30 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
 
             self.logger.log(logging.INFO, 'Configuration restored from %s'%fullName)
-            return True
-        except :
+            status = True
+        except:
             self.logger.log(logging.WARNING, 'Configuration restore error from %s'%fullName)
             self.printExceptionInfo(level=logging.DEBUG)
-            return False
+            status = False
+        finally:
+            for m in old_config:
+                if m not in config:
+                    config[m] = old_config[m]
+            self.conf = config
+            return status
 
-    def setDefaultSettings(self) :
+    def set_defaults(self) :
+        global config
         try :
-            # some class variables
             # window size and position
             self.resize(QSize(640, 480))
             self.move(QPoint(0, 0))
             self.logFileName = None
             self.conf = {}
-            #self.logger.log(logging.DEBUG, 'Default configuration set.')
+            self.conf['threshold'] = 0.03
+            self.conf['rel_threshold'] = 0.03
+            self.conf['abs_threshold'] = 1000.0
+            config = self.conf
             return True
         except :
             # print error info    
@@ -687,8 +686,6 @@ class LogTable():
             col = args[0]
             row = -1
         coln = self.col_number(col)
-        #if coln is None or coln >= len(self.val):
-        #    return 0.0
         return self.val[coln][row]
 
     def get_item(self, row, col):
@@ -923,6 +920,7 @@ class TextEditHandler(logging.Handler):
 class Config:
     def __init__(self):
         self.data = {}
+
     def __getitem__(self, item):
         return self.data[item]
 
