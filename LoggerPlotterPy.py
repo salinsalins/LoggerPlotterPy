@@ -540,8 +540,10 @@ class MainWindow(QMainWindow):
         self.logger.log(level, "Exception ", exc_info=True)
 
     def is_locked(self):
+        # if log file is not set = locked
         if self.logFileName is None:
             return True
+        # look for the file "lock.lock" in the folder of the log file
         folder = os.path.dirname(self.logFileName)
         file = os.path.join(folder, "lock.lock")
         if os.path.exists(file):
