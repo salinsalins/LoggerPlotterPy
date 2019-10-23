@@ -569,14 +569,11 @@ class LogTable():
         self.unit = [[],]
         self.headers = []
         self.file_name = None
-        self.file_size = 0
-        self.file_lines = 0
-        self.buf = None
+        self.file_size = -1
+        self.file_lines = -1
         self.rows = 0
         self.columns = 0
-        self.order = []
-        #self.extra_cols = extra_cols
-        
+
         # Full file name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn) :
@@ -606,27 +603,28 @@ class LogTable():
         # First field "date time" should be longer than 18 symbols
         if len(flds[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.warning('Wrong date/time format %s, line skipped' % flds[0])
+            self.logger.warning('Wrong date/time format "%s", line skipped' % flds[0])
             return
-        # Split time and date
+        # split time and date
         tm = flds[0].split(" ")[1].strip()
-        # tv = time.strftime()
+        # preserv only time
         flds[0] = "Time=" + tm
-        # Add row to table
+        # sdd row to table
         self.add_row()
-        # Iterate for key=value pairs
+        # iterate for key=value pairs
         for fld in flds:
             kv = fld.split("=")
             key = kv[0].strip()
             val = kv[1].strip()
             j = self.add_column(key)
             self.data[j][self.rows - 1] = val
-            # Split value and units
+            # split value and units
             vu = val.split(" ")
             try:
                 v = float(vu[0].strip().replace(',', '.'))
             except:
                 v = float('nan')
+                self.logger.debug('Non float value "%s"' % vu[0])
             self.val[j][self.rows - 1] = v
             # units
             try:
@@ -651,13 +649,14 @@ class LogTable():
 
     def refresh(self, extra_cols):
         try:
+            # if file size increased
+            new_size = os.path.getsize(self.file_name)
+            if new_size <= self.file_size:
+                return
             # read file to buf
             with open(self.file_name, "r") as stream:
                 buf = stream.read()
             if len(buf) <= 0:
-                return
-            new_size = os.path.getsize(self.file_name)
-            if new_size <= self.file_size:
                 return
             self.file_size = new_size
             # split buf to lines
@@ -666,7 +665,7 @@ class LogTable():
                 return
             self.logger.debug('%d additional lines in %s' % (len(lines)-self.file_lines, self.file_name))
             # Loop for added lines
-            for line in lines[self.file_lines : ]:
+            for line in lines[self.file_lines:]:
                 self.decode_line(line)
             self.file_lines = len(lines)
             # Add extra columns
