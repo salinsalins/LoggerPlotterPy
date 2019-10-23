@@ -570,6 +570,7 @@ class LogTable():
         self.headers = []
         self.file_name = None
         self.file_size = 0
+        self.file_lines = 0
         self.buf = None
         self.rows = 0
         self.columns = 0
@@ -581,65 +582,71 @@ class LogTable():
             self.logger.info('File %s does not exist' % file_name)
             return
         with open(fn, "r") as stream:
-            self.buf = stream.read()
+            buf = stream.read()
         # Read file to buf
-        if len(self.buf) <= 0 :
+        if len(buf) <= 0 :
             self.logger.info('Nothing to process in %s' % file_name)
             return
         self.file_name = fn
         self.file_size = os.path.getsize(fn)
         # Split buf to lines
-        lns = self.buf.split('\n')
+        lns = buf.split('\n')
         self.logger.debug('%d lines in %s' % (len(lns), self.file_name))
+        self.file_lines = lns
         # Loop for lines
         for ln in lns:
-            # Split line to fields
-            flds = ln.split("; ")
-            # First field "date time" should be longer than 18 symbols
-            if len(flds[0]) < 19:
-                # Wrong line format, skip to next line
-                #self.logger.debug('%d lines in %s' % (len(lns), self.file_name))
-                continue
-            # Split time and date
-            tm = flds[0].split(" ")[1].strip()
-            #tv = time.strftime()
-            flds[0] = "Time=" + tm
-            # Add row to table
-            self.add_row()
-            # Iterate for key=value pairs
-            for fld in flds:
-                kv = fld.split("=")
-                key = kv[0].strip()
-                val = kv[1].strip()
-                j = self.add_column(key)
-                self.data[j][self.rows-1] = val
-                # Split vlue and units
-                vu = val.split(" ")
-                try:
-                    v = float(vu[0].strip().replace(',', '.'))
-                except:
-                    v = float('nan')
-                self.val[j][self.rows-1] = v
-                # units
-                try:
-                    u = vu[1].strip()
-                except:
-                    u = ''
-                self.unit[j][self.rows-1] = u
+            self.decode_line(ln)
         # Add extra columns
+        self.add_extra_columns(extra_cols)
+
+    def decode_line(self, line):
+        # Split line to fields
+        flds = line.split("; ")
+        # First field "date time" should be longer than 18 symbols
+        if len(flds[0]) < 19:
+            # Wrong line format, skip to next line
+            self.logger.warning('Wrong date/time format %s, line skipped' % flds[0])
+            return
+        # Split time and date
+        tm = flds[0].split(" ")[1].strip()
+        # tv = time.strftime()
+        flds[0] = "Time=" + tm
+        # Add row to table
+        self.add_row()
+        # Iterate for key=value pairs
+        for fld in flds:
+            kv = fld.split("=")
+            key = kv[0].strip()
+            val = kv[1].strip()
+            j = self.add_column(key)
+            self.data[j][self.rows - 1] = val
+            # Split value and units
+            vu = val.split(" ")
+            try:
+                v = float(vu[0].strip().replace(',', '.'))
+            except:
+                v = float('nan')
+            self.val[j][self.rows - 1] = v
+            # units
+            try:
+                u = vu[1].strip()
+            except:
+                u = ''
+            self.unit[j][self.rows - 1] = u
+
+    def add_extra_columns(self, extra_cols):
         for row in range(self.rows):
-            for ec in extra_cols:
-                if ec.strip() != "":
-                    #eci = ec % row
+            for column in extra_cols:
+                if column.strip() != "":
                     try:
-                        key, value, units = eval(ec)
+                        key, value, units = eval(column)
                         if (key is not None) and (key != ''):
                             j = self.add_column(key)
                             self.data[j][row] = str(value) + ' ' + str(units)
                             self.val[j][row] = float(value)
                             self.unit[j][row] = str(units)
                     except:
-                        self.logger.log(logging.DEBUG, 'Column eval() error in %s' % ec)
+                        self.logger.log(logging.DEBUG, 'Column eval() error in %s' % column)
 
     def add_row(self):
         for item in self.data:
