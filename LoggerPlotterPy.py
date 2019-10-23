@@ -204,7 +204,6 @@ class MainWindow(QMainWindow):
                     return s
             return None
 
-        self.logger.log(logging.DEBUG, 'Table selection changed')
         try:
             if len(self.tableWidget_3.selectedRanges()) < 1:
                 return
@@ -215,7 +214,6 @@ class MainWindow(QMainWindow):
             if row < 0:
                 return
             folder = os.path.dirname(self.log_file_name)
-            #self.logger.log(logging.DEBUG, 'Folder %s'%folder)
             zipFileName = self.log_table.column("File")[row]
             self.logger.log(logging.DEBUG, 'Zip File %s'%zipFileName)
             # read zip file listing
@@ -231,7 +229,7 @@ class MainWindow(QMainWindow):
                     if s.name == c:
                         self.signals.append(self.sig_list.index(s))
                         break
-            # Add extra plots from plainTextEdit_4
+            # add extra plots from plainTextEdit_4
             extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
             for p in extra_plots:
                 if p.strip() != "":
@@ -250,7 +248,7 @@ class MainWindow(QMainWindow):
                         self.signals.append(self.sig_list.index(s))
                     except:
                         self.logger.log(logging.DEBUG, 'Plot eval() error in %s' % p)
-            # Plot signals
+            # plot signals
             jj = 0
             col = 0
             row = 0
@@ -279,15 +277,15 @@ class MainWindow(QMainWindow):
                 # get axes
                 axes = mplw.canvas.ax
                 axes.clear()
-                # Plot previous line
+                # plot previous line
                 if self.checkBox_2.isChecked():
                     for s1 in self.old_sig_list:
                         if s1.name == s.name:
                             axes.plot(s1.x, s1.y, "y-")
                             break
-                # Plot main line
+                # plot main line
                 axes.plot(s.x, s.y)
-                # Plot 'mark' highlight
+                # plot 'mark' highlight
                 if 'mark' in s.marks:
                     m1 = s.marks['mark'][0]
                     m2 = m1 + s.marks['mark'][1]
@@ -442,8 +440,8 @@ class MainWindow(QMainWindow):
         return
     
     def saveSettings(self, folder='', fileName=settingsFile) :
+        fullName = os.path.join(str(folder), fileName)
         try:
-            fullName = os.path.join(str(folder), fileName)
             # save window size and position
             p = self.pos()
             s = self.size()
@@ -468,8 +466,8 @@ class MainWindow(QMainWindow):
             return False
         
     def restoreSettings(self, folder='', fileName=settingsFile) :
+        fullName = os.path.join(str(folder), fileName)
         try :
-            fullName = os.path.join(str(folder), fileName)
             with open(fullName, 'r') as configfile:
                 s = configfile.read()
             self.conf = json.loads(s)
@@ -481,10 +479,12 @@ class MainWindow(QMainWindow):
                 self.logger.setLevel(v)
                 levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
                           logging.WARNING, logging.ERROR, logging.CRITICAL, logging.CRITICAL+10]
+                mm = 0
                 for m in range(len(levels)):
                     if v < levels[m]:
+                        mm = 0
                         break
-                self.comboBox_1.setCurrentIndex(m-1)
+                self.comboBox_1.setCurrentIndex(mm-1)
             # Restore window size and position
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
