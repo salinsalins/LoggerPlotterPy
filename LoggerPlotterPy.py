@@ -433,6 +433,7 @@ class MainWindow(QMainWindow):
             # select last row of widget -> tableSelectionChanged will be fired
             self.last_selection = -1
             self.tableWidget_3.scrollToBottom()
+            self.tableWidget_3.setFocus()
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
