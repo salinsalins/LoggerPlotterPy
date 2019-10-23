@@ -172,10 +172,10 @@ class MainWindow(QMainWindow):
     def selectLogFile(self):
         """Opens a file select dialog"""
         # define current dir
-        if self.logFileName is None:
+        if self.log_file_name is None:
             d = "./"
         else:
-            d = os.path.dirname(self.logFileName)
+            d = os.path.dirname(self.log_file_name)
         fileOpenDialog = QFileDialog(caption='Select log file', directory = d)
         # open file selection dialog
         fn = fileOpenDialog.getOpenFileName()
@@ -185,7 +185,7 @@ class MainWindow(QMainWindow):
             if len(fn[0]) > 1:
                 fn = fn[0]
         # different file selected
-        if self.logFileName == fn:
+        if self.log_file_name == fn:
             return
         i = self.comboBox_2.findText(fn)
         if i < 0:
@@ -213,9 +213,9 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.DEBUG, 'Table selection changed to row %i'%row)
             if row < 0:
                 return
-            folder = os.path.dirname(self.logFileName)
+            folder = os.path.dirname(self.log_file_name)
             #self.logger.log(logging.DEBUG, 'Folder %s'%folder)
-            zipFileName = self.logTable.column("File")[row]
+            zipFileName = self.log_table.column("File")[row]
             self.logger.log(logging.DEBUG, 'Zip File %s'%zipFileName)
             # read zip file listing
             self.dataFile = DataFile(zipFileName, folder = folder)
@@ -332,8 +332,8 @@ class MainWindow(QMainWindow):
             self.logger.warning('File %s is not found'%newLogFile)
             self.comboBox_2.removeItem(m)
             return
-        if self.logFileName != newLogFile:
-            self.logFileName = newLogFile
+        if self.log_file_name != newLogFile:
+            self.log_file_name = newLogFile
             self.parseFolder()
 
     def logLevelIndexChanged(self, m):
@@ -354,27 +354,27 @@ class MainWindow(QMainWindow):
         excluded = self.plainTextEdit_3.toPlainText().split('\n')
         columns = []
         for t in included:
-            if t in self.logTable.headers:
-                columns.append(self.logTable.headers.index(t))
-        for t in self.logTable.headers:
+            if t in self.log_table.headers:
+                columns.append(self.log_table.headers.index(t))
+        for t in self.log_table.headers:
             if t not in excluded and t not in columns:
-                columns.append(self.logTable.headers.index(t))
+                columns.append(self.log_table.headers.index(t))
         return columns
 
     def parseFolder(self, file_name=None):
-        self.logger.log(logging.DEBUG, 'parseFolder')
+        #self.logger.log(logging.DEBUG, 'parseFolder')
         try:
             if file_name is None:
-                file_name = self.logFileName
+                file_name = self.log_file_name
             if file_name is None:
                 return
             self.logger.log(logging.DEBUG, 'Reading log file %s' % file_name)
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-            # Read log file content to logTable
-            self.logTable = LogTable(file_name, extra_cols=self.extra_cols)
-            if self.logTable.file_name is None:
+            # read log file content to logTable
+            self.log_table = LogTable(file_name, extra_cols=self.extra_cols)
+            if self.log_table.file_name is None:
                 return
-            self.logFileName = self.logTable.file_name
+            self.log_file_name = self.log_table.file_name
             try:
                 thr = config["threshold"]
             except:
@@ -384,9 +384,9 @@ class MainWindow(QMainWindow):
             self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
             self.columns = []
             for t in self.included:
-                if t in self.logTable.headers:
+                if t in self.log_table.headers:
                     self.columns.append(t)
-            for t in self.logTable.headers:
+            for t in self.log_table.headers:
                 if t not in self.excluded and t not in self.columns:
                     self.columns.append(t)
             # disable table update events
@@ -402,21 +402,21 @@ class MainWindow(QMainWindow):
                 self.tableWidget_3.setHorizontalHeaderItem(k, QTableWidgetItem(c))
                 k += 1
             # insert and fill rows 
-            for k in range(self.logTable.rows):
+            for k in range(self.log_table.rows):
                 self.tableWidget_3.insertRow(k)
                 n = 0
                 for c in self.columns:
-                    m = self.logTable.find_col(c)
-                    v = self.logTable.val[m][k]
+                    m = self.log_table.find_col(c)
+                    v = self.log_table.val[m][k]
                     if v is None:
                         v = 0.0
                     try:
-                        txt = config['format'][self.logTable.headers[m]]%(self.logTable.val[m][k], self.logTable.unit[m][k])
+                        txt = config['format'][self.log_table.headers[m]] % (self.log_table.val[m][k], self.log_table.unit[m][k])
                     except:
-                        txt = self.logTable.data[m][k]
+                        txt = self.log_table.data[m][k]
                     item = QTableWidgetItem(txt)
                     if k > 0:
-                        v1 = self.logTable.val[m][k-1]
+                        v1 = self.log_table.val[m][k - 1]
                         if v1 is None:
                             v1 = 0.0
                         if v!=0.0 and abs(v1-v)/abs(v) > thr:
@@ -446,7 +446,7 @@ class MainWindow(QMainWindow):
             p = self.pos()
             s = self.size()
             self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
-            self.conf['folder'] = self.logFileName
+            self.conf['folder'] = self.log_file_name
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
             self.conf['log_level'] = self.logger.level
@@ -489,7 +489,7 @@ class MainWindow(QMainWindow):
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
             # Last folder
             if 'folder' in self.conf:
-                self.logFileName = self.conf['folder']
+                self.log_file_name = self.conf['folder']
             if 'included' in self.conf:
                 self.plainTextEdit_2.setPlainText(self.conf['included'])
             if 'excluded' in self.conf:
@@ -523,7 +523,7 @@ class MainWindow(QMainWindow):
             # window size and position
             self.resize(QSize(640, 480))
             self.move(QPoint(0, 0))
-            self.logFileName = None
+            self.log_file_name = None
             self.conf = {}
             #self.logger.log(logging.DEBUG, 'Default configuration set.')
             return True
@@ -541,10 +541,10 @@ class MainWindow(QMainWindow):
 
     def is_locked(self):
         # if log file is not set = locked
-        if self.logFileName is None:
+        if self.log_file_name is None:
             return True
         # look for the file "lock.lock" in the folder of the log file
-        folder = os.path.dirname(self.logFileName)
+        folder = os.path.dirname(self.log_file_name)
         file = os.path.join(folder, "lock.lock")
         if os.path.exists(file):
             return True
@@ -556,8 +556,8 @@ class MainWindow(QMainWindow):
         # check if lock file exists
         if self.is_locked():
             return
-        oldSize = self.logTable.file_size
-        newSize = os.path.getsize(self.logFileName)
+        oldSize = self.log_table.file_size
+        newSize = os.path.getsize(self.log_file_name)
         if newSize <= oldSize:
             return
         self.parseFolder()
