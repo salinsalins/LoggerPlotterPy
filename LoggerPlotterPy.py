@@ -279,22 +279,42 @@ class MainWindow(QMainWindow):
                 axes.clear()
                 # plot previous line
                 if self.checkBox_2.isChecked():
+                    color = '#ffff00'
+                    try:
+                        color = config['colors']['previous']
+                    except:
+                        pass
                     for s1 in self.old_sig_list:
                         if s1.name == s.name:
-                            axes.plot(s1.x, s1.y, "y-")
+                            axes.plot(s1.x, s1.y, color=color)
                             break
                 # plot main line
-                axes.plot(s.x, s.y)
+                color = '#00ff00'
+                try:
+                    color = config['colors']['trace']
+                except:
+                    pass
+                axes.plot(s.x, s.y, color=color)
                 # plot 'mark' highlight
                 if 'mark' in s.marks:
                     m1 = s.marks['mark'][0]
                     m2 = m1 + s.marks['mark'][1]
-                    axes.plot(s.x[m1:m2], s.y[m1:m2])
+                    color = '#ff0000'
+                    try:
+                        color = config['colors']['trace']
+                    except:
+                        pass
+                    axes.plot(s.x[m1:m2], s.y[m1:m2], color=color)
                 # Plot 'zero' highlight
                 if 'zero' in s.marks:
                     m1 = s.marks['zero'][0]
                     m2 = m1 + s.marks['zero'][1]
-                    axes.plot(s.x[m1:m2], s.y[m1:m2])
+                    color = '#0000ff'
+                    try:
+                        color = config['colors']['trace']
+                    except:
+                        pass
+                    axes.plot(s.x[m1:m2], s.y[m1:m2], color=color)
                 # Decorate the plot
                 axes.grid(True)
                 axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
@@ -374,10 +394,6 @@ class MainWindow(QMainWindow):
             if self.log_table.file_name is None:
                 return
             self.log_file_name = self.log_table.file_name
-            try:
-                thr = config["threshold"]
-            except:
-                thr = 0.03
             # Create sorted displayed columns list
             self.included = self.plainTextEdit_2.toPlainText().split('\n')
             self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
@@ -395,36 +411,46 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.setColumnCount(0)
             # refill table widget
             # insert columns
-            k = 0
-            for c in self.columns:
-                self.tableWidget_3.insertColumn(k)
-                self.tableWidget_3.setHorizontalHeaderItem(k, QTableWidgetItem(c))
-                k += 1
-            # insert and fill rows 
-            for k in range(self.log_table.rows):
-                self.tableWidget_3.insertRow(k)
+            row = 0
+            for column in self.columns:
+                self.tableWidget_3.insertColumn(row)
+                self.tableWidget_3.setHorizontalHeaderItem(row, QTableWidgetItem(column))
+                row += 1
+            # insert and fill rows
+            for row in range(self.log_table.rows):
+                self.tableWidget_3.insertRow(row)
                 n = 0
-                for c in self.columns:
-                    m = self.log_table.find_col(c)
-                    v = self.log_table.val[m][k]
-                    if v is None:
-                        v = 0.0
+                for column in self.columns:
+                    col = self.log_table.find_col(column)
                     try:
-                        txt = config['format'][self.log_table.headers[m]] % (self.log_table.val[m][k], self.log_table.unit[m][k])
+                        fmt = config['format'][self.log_table.headers[col]]
+                        txt = fmt % (self.log_table.val[col][row], self.log_table.unit[col][row])
                     except:
-                        txt = self.log_table.data[m][k]
+                        txt = self.log_table.data[col][row]
                     item = QTableWidgetItem(txt)
-                    if k > 0:
-                        v1 = self.log_table.val[m][k - 1]
+                    if row > 0:
+                        v = self.log_table.val[col][row]
+                        if v is None:
+                            v = 0.0
+                        v1 = self.log_table.val[col][row - 1]
                         if v1 is None:
                             v1 = 0.0
-                        if v!=0.0 and abs(v1-v)/abs(v) > thr:
-                            #item.setForeground(QBrush(QColor(255, 0, 0)))
+                        try:
+                            thr = 0.03
+                            thr = config['threshold']
+                            thr = config['thresholds'][self.log_table.headers[col]]
+                        except:
+                            pass
+                        flag = True
+                        if thr > 0.0:
+                            flag = (v != 0.0) and (abs((v1-v)/v) > thr)
+                        elif thr < 0.0:
+                            flag = abs(v1 - v) > -thr
+                        if flag:
                             item.setFont(QFont('Open Sans Bold', weight=QFont.Bold))
                         else:
-                            #item.setForeground(QBrush(QColor(0, 0, 0)))
                             item.setFont(QFont('Open Sans', weight=QFont.Normal))
-                    self.tableWidget_3.setItem(k, n, item)
+                    self.tableWidget_3.setItem(row, n, item)
                     n += 1
             # enable table update events
             self.tableWidget_3.itemSelectionChanged.connect(self.table_sel_changed)
