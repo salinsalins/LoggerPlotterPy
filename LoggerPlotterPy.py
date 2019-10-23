@@ -101,7 +101,8 @@ class MainWindow(QMainWindow):
                     alternate-background-color: #d0d0d0;
                 }
                 QHeaderView::section {
-                    background-color: #646464;
+                    background-color: palette(dark);
+                    border: 1px solid black;
                 }
             """)
         # Disable text wrapping in log window
