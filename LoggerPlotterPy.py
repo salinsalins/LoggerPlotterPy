@@ -482,6 +482,10 @@ class MainWindow(QMainWindow):
             self.conf['cb_2'] = self.checkBox_2.isChecked()
             self.conf['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
             self.conf['extra_col'] = str(self.plainTextEdit_5.toPlainText())
+            if os.path.exists(fullName):
+                # try to read old config to confirm correct syntax
+                with open(fullName, 'r') as configfile:
+                    s = configfile.read()
             with open(fullName, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s'%fullName)
