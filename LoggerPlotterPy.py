@@ -202,6 +202,7 @@ class MainWindow(QMainWindow):
             for s in self.sig_list:
                 if s.name == name:
                     return s
+            #raise LookupError()
             return None
 
         try:
