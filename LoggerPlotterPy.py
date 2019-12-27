@@ -599,7 +599,9 @@ class MainWindow(QMainWindow):
 
 
 class LogTable():
-    def __init__(self, file_name: str, folder: str = "", extra_cols: list = []):
+    def __init__(self, file_name: str, folder: str = "", extra_cols=None):
+        if extra_cols is None:
+            extra_cols = []
         self.logger = logger
         self.data = [[],]
         self.val = [[],]
