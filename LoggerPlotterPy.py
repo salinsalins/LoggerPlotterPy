@@ -43,8 +43,9 @@ settingsFile = progName + '.json'
 # Configure logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                                       datefmt='%H:%M:%S')
+f_str = '%(asctime)s %(funcName)s(%(lineno)s) ' + \
+        '%(levelname)-7s %(message)s'
+log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(log_formatter)
 logger.addHandler(console_handler)
@@ -93,6 +94,7 @@ class MainWindow(QMainWindow):
         self.actionAbout.triggered.connect(self.showAbout)
 
         # Additional configuration
+        self.setWindowIcon(QtGui.QIcon('icon.png'))
         header = self.tableWidget_3.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch) #QHeaderView.Stretch QHeaderView.ResizeToContents
         self.tableWidget_3.setStyleSheet("""
@@ -638,7 +640,7 @@ class LogTable():
         # First field "date time" should be longer than 18 symbols
         if len(flds[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.warning('Wrong date/time format "%s", line skipped' % flds[0])
+            self.logger.info('Wrong date/time format "%s", line skipped' % flds[0])
             return
         # split time and date
         tm = flds[0].split(" ")[1].strip()
