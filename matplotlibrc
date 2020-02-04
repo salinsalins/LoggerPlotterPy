@@ -6,12 +6,13 @@ lines.linewidth   : 1.0     ## line width in points
 #font.weight         : normal
 #font.size           : 10.0
 
-axes.facecolor      : white   ## axes background color
+#axes.facecolor      : white   ## axes background color
+axes.facecolor      : 1d648d   ## axes background color
 #axes.edgecolor      : black   ## axes edge color
 #axes.linewidth      : 0.8     ## edge linewidth
 axes.labelsize      : small   ## fontsize of the x any y labels
 axes.titlesize      : medium   ## fontsize of the axes title
-axes.prop_cycle    : cycler('color', ['1f77b4', 'ff7f0e', '2ca02c', 'd62728', '9467bd', '8c564b', 'e377c2', '7f7f7f', 'bcbd22', '17becf'])
+axes.prop_cycle    : cycler('color', ['00ff00', 'ff0000', '0000ff', 'ffff00', '9467bd', '8c564b', 'e377c2', '7f7f7f', 'bcbd22', '17becf'])
 #axes.prop_cycle    : cycler('color', ['1f77b4', 'ff7f0e', '2ca02c', 'd62728', '9467bd', '8c564b', 'e377c2', '7f7f7f', 'bcbd22', '17becf'])
                       ## color cycle for plot lines  as list of string
                       ## colorspecs: single letter, long name, or web-style hex

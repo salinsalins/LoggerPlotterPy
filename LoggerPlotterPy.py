@@ -183,10 +183,11 @@ class MainWindow(QMainWindow):
         # open file selection dialog
         fn = fileOpenDialog.getOpenFileName()
         # if a fn is not empty
-        if fn:
-            # Qt4 and Qt5 compatibility workaround
-            if len(fn[0]) > 1:
-                fn = fn[0]
+        # Qt4 and Qt5 compatibility workaround
+        if fn is not None and len(fn) > 1:
+            fn = fn[0]
+        if fn == '':
+            return
         # different file selected
         if self.log_file_name == fn:
             return
