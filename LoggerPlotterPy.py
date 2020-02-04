@@ -37,18 +37,8 @@ import numpy as np
 from mplwidget import MplWidget
 
 progName = 'LoggerPlotterPy'
-progVersion = '_4_3'
+progVersion = '_4_4'
 settingsFile = progName + '.json'
-
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-f_str = '%(asctime)s %(funcName)s(%(lineno)s) ' + \
-        '%(levelname)-7s %(message)s'
-log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(log_formatter)
-logger.addHandler(console_handler)
 
 # Global configuration dictionary
 config = {}
@@ -71,10 +61,10 @@ class MainWindow(QMainWindow):
         uic.loadUi('LoggerPlotter.ui', self)
 
         # Configure logging
-        self.logger = logger
-        self.text_edit_handler = TextEditHandler(self.plainTextEdit)
-        self.text_edit_handler.setFormatter(log_formatter)
-        self.logger.addHandler(self.text_edit_handler)
+        self.logger = config_logger()
+        #self.text_edit_handler = TextEditHandler(self.plainTextEdit)
+        #self.text_edit_handler.setFormatter(self.logger.handlers[0].formatter)
+        #self.logger.addHandler(self.text_edit_handler)
 
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.selectLogFile)
@@ -143,6 +133,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(True)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
+        self.saveSettings()
         self.table_sel_changed()
         if self.refresh_flag:
             self.refresh_flag = False
@@ -603,7 +594,7 @@ class LogTable():
     def __init__(self, file_name: str, folder: str = "", extra_cols=None):
         if extra_cols is None:
             extra_cols = []
-        self.logger = logger
+        self.logger = config_logger()
         self.data = [[],]
         self.val = [[],]
         self.unit = [[],]
@@ -685,7 +676,7 @@ class LogTable():
                             self.val[j][row] = float(value)
                             self.unit[j][row] = str(units)
                     except:
-                        self.logger.log(logging.DEBUG, 'Column eval() error in %s' % column)
+                        self.logger.log(logging.INFO, 'Column eval() error in \n              %s' % column)
 
     def refresh(self, extra_cols):
         try:
@@ -865,7 +856,7 @@ class Signal:
 class DataFile:
     def __init__(self, fileName, folder=""):
         #self.logger = logging.getLogger(__name__)
-        self.logger = logger
+        self.logger = config_logger()
         self.file_name = None
         self.files = []
         self.signals = []
@@ -980,6 +971,17 @@ class Config:
     def __getitem__(self, item):
         return self.data[item]
 
+def config_logger(name: str=__name__, level: int=logging.DEBUG):
+    logger = logging.getLogger(name)
+    if not logger.hasHandlers():
+        logger.propagate = False
+        logger.setLevel(level)
+        f_str = '%(asctime)s,%(msecs)3d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
+        log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(log_formatter)
+        logger.addHandler(console_handler)
+    return logger
 
 if __name__ == '__main__':
     # create the GUI application
