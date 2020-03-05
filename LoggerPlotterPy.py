@@ -1,12 +1,9 @@
 # coding: utf-8
-'''
+"""
 Created on Jul 2, 2017
 
 @author: sanin
-''' 
-# used to parse files more easily
-#from __future__ import with_statement
-#from __future__ import print_function
+"""
 
 import os.path
 import sys
@@ -36,18 +33,27 @@ import PyQt5.QtGui as QtGui
 import numpy as np
 from mplwidget import MplWidget
 
+from .devices import *
+
+def config_logger(name: str=__name__, level: int=logging.DEBUG):
+    logger = logging.getLogger(name)
+    if not logger.hasHandlers():
+        logger.propagate = False
+        logger.setLevel(level)
+        f_str = '%(asctime)s,%(msecs)3d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
+        log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(log_formatter)
+        logger.addHandler(console_handler)
+    return logger
+
+
 progName = 'LoggerPlotterPy'
 progVersion = '_4_3'
 settingsFile = progName + '.json'
 
 # Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-log_formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                                       datefmt='%H:%M:%S')
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(log_formatter)
-logger.addHandler(console_handler)
+logger = config_logger(level=logging.DEBUG)
 
 # Global configuration dictionary
 config = {}
@@ -57,7 +63,6 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         # Initialization of the superclass
         super(MainWindow, self).__init__(parent)
-
         # Class members definition
         self.refresh_flag = False
         self.last_selection = -1
@@ -65,18 +70,12 @@ class MainWindow(QMainWindow):
         self.old_sig_list = []
         self.signals = []
         self.extra_cols = []
-
         # Load the UI
         uic.loadUi('LoggerPlotter.ui', self)
-
         # Configure logging
         self.logger = logger
-        self.text_edit_handler = TextEditHandler(self.plainTextEdit)
-        self.text_edit_handler.setFormatter(log_formatter)
-        self.logger.addHandler(self.text_edit_handler)
-
         # Connect signals with the slots
-        self.pushButton_2.clicked.connect(self.selectLogFile)
+        self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_sel_changed)
         self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
@@ -86,15 +85,14 @@ class MainWindow(QMainWindow):
         self.plainTextEdit_5.textChanged.connect(self.refresh_on)
         # Menu actions connection
         self.actionQuit.triggered.connect(qApp.quit)
-        self.actionOpen.triggered.connect(self.selectLogFile)
-        self.actionPlot.triggered.connect(self.showPlotPane)
+        self.actionOpen.triggered.connect(self.select_log_file)
+        self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionLog.triggered.connect(self.show_log_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
-        self.actionAbout.triggered.connect(self.showAbout)
-
+        self.actionAbout.triggered.connect(self.show_about)
         # Additional configuration
         header = self.tableWidget_3.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch) #QHeaderView.Stretch QHeaderView.ResizeToContents
+        header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         self.tableWidget_3.setStyleSheet("""
                 QTableView {
                     gridline-color: black;
@@ -111,32 +109,24 @@ class MainWindow(QMainWindow):
         self.clock = QLabel(" ")
         self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
         self.statusBar().addPermanentWidget(self.clock)
-
+        # default settings
         self.setDefaultSettings()
-
         print(progName + progVersion + ' started')
-
-        # Restore settings from default config file
+        # Restore settings
         self.restoreSettings()
-        
         # Additional decorations
-        #self.tableWidget_3.horizontalHeader().
-        
+        # self.tableWidget_3.horizontalHeader().
         # Read data files
         self.parseFolder()
-        
-        # Connect mouse button press event
-        #self.cid = self.mplWidget.canvas.mpl_connect('button_press_event', self.onclick)
-        #self.mplWidget.canvas.mpl_disconnect(cid)
 
     def refresh_on(self):
         self.refresh_flag = True
 
-    def showAbout(self):
+    def show_about(self):
         QMessageBox.information(self, 'About', progName + ' Version ' + progVersion + 
                                 '\nPlot Logger saved shot logs and traces.', QMessageBox.Ok)
 
-    def showPlotPane(self):
+    def show_plot_pane(self):
         self.stackedWidget.setCurrentIndex(0)
         self.actionPlot.setChecked(True)
         self.actionLog.setChecked(False)
@@ -157,7 +147,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(True)
-        ###self.tableWidget.horizontalHeader().setVisible(True)
+        # ##self.tableWidget.horizontalHeader().setVisible(True)
         # Decode global config
         # clear table
         self.tableWidget.setRowCount(0)
@@ -170,7 +160,7 @@ class MainWindow(QMainWindow):
             self.tableWidget.setItem(n, 1, item)
             n += 1
 
-    def selectLogFile(self):
+    def select_log_file(self):
         """Opens a file select dialog"""
         # define current dir
         if self.log_file_name is None:
@@ -197,12 +187,10 @@ class MainWindow(QMainWindow):
         self.comboBox_2.setCurrentIndex(i)
     
     def table_sel_changed(self):
-
         def sig(name):
             for s in self.sig_list:
                 if s.name == name:
                     return s
-            #raise LookupError()
             return None
 
         try:
@@ -341,15 +329,15 @@ class MainWindow(QMainWindow):
             self.last_selection = row
         except:
             self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
-            self.printExceptionInfo(level=logging.DEBUG)
- 
+            self.logger.debug('Exception:', exc_info=True)
+
     def fileSelectionChanged(self, m):
-        self.logger.debug('File selection changed to %s' % str(m))
+        self.logger.debug('Selection changed to %s' % str(m))
         if m < 0:
             return
         newLogFile = str(self.comboBox_2.currentText())
         if not os.path.exists(newLogFile):
-            self.logger.warning('File %s is not found'%newLogFile)
+            self.logger.warning('File %s not found'%newLogFile)
             self.comboBox_2.removeItem(m)
             return
         if self.log_file_name != newLogFile:
@@ -357,7 +345,6 @@ class MainWindow(QMainWindow):
             self.parseFolder()
 
     def logLevelIndexChanged(self, m):
-        #self.logger.debug('Selection changed to %s'%str(m))
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
                   logging.WARNING, logging.ERROR, logging.CRITICAL]
         if m >= 0:
