@@ -49,7 +49,7 @@ def config_logger(name: str=__name__, level: int=logging.DEBUG):
 
 
 progName = 'LoggerPlotterPy'
-progVersion = '_4_3'
+progVersion = '_4_4'
 settingsFile = progName + '.json'
 
 # Configure logging
@@ -72,8 +72,13 @@ class MainWindow(QMainWindow):
         self.extra_cols = []
         # Load the UI
         uic.loadUi('LoggerPlotter.ui', self)
+
         # Configure logging
         self.logger = logger
+        self.text_edit_handler = TextEditHandler(self.plainTextEdit)
+        self.text_edit_handler.setFormatter(log_formatter)
+        self.logger.addHandler(self.text_edit_handler)
+
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
@@ -91,6 +96,7 @@ class MainWindow(QMainWindow):
         self.actionParameters.triggered.connect(self.show_param_pane)
         self.actionAbout.triggered.connect(self.show_about)
         # Additional configuration
+        self.setWindowIcon(QtGui.QIcon('icon.png'))
         header = self.tableWidget_3.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         self.tableWidget_3.setStyleSheet("""
@@ -131,6 +137,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(True)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
+        self.saveSettings()
         self.table_sel_changed()
         if self.refresh_flag:
             self.refresh_flag = False
@@ -171,10 +178,11 @@ class MainWindow(QMainWindow):
         # open file selection dialog
         fn = fileOpenDialog.getOpenFileName()
         # if a fn is not empty
-        if fn:
-            # Qt4 and Qt5 compatibility workaround
-            if len(fn[0]) > 1:
-                fn = fn[0]
+        # Qt4 and Qt5 compatibility workaround
+        if fn is not None and len(fn) > 1:
+            fn = fn[0]
+        if fn == '':
+            return
         # different file selected
         if self.log_file_name == fn:
             return
@@ -584,8 +592,10 @@ class MainWindow(QMainWindow):
 
 
 class LogTable():
-    def __init__(self, file_name: str, folder: str = "", extra_cols: list = []):
-        self.logger = logger
+    def __init__(self, file_name: str, folder: str = "", extra_cols=None):
+        if extra_cols is None:
+            extra_cols = []
+        self.logger = config_logger()
         self.data = [[],]
         self.val = [[],]
         self.unit = [[],]
@@ -625,7 +635,7 @@ class LogTable():
         # First field "date time" should be longer than 18 symbols
         if len(flds[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.warning('Wrong date/time format "%s", line skipped' % flds[0])
+            self.logger.info('Wrong date/time format "%s", line skipped' % flds[0])
             return
         # split time and date
         tm = flds[0].split(" ")[1].strip()
@@ -667,7 +677,7 @@ class LogTable():
                             self.val[j][row] = float(value)
                             self.unit[j][row] = str(units)
                     except:
-                        self.logger.log(logging.DEBUG, 'Column eval() error in %s' % column)
+                        self.logger.log(logging.INFO, 'Column eval() error in \n              %s' % column)
 
     def refresh(self, extra_cols):
         try:
@@ -847,7 +857,7 @@ class Signal:
 class DataFile:
     def __init__(self, fileName, folder=""):
         #self.logger = logging.getLogger(__name__)
-        self.logger = logger
+        self.logger = config_logger()
         self.file_name = None
         self.files = []
         self.signals = []
