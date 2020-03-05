@@ -72,13 +72,8 @@ class MainWindow(QMainWindow):
         self.extra_cols = []
         # Load the UI
         uic.loadUi('LoggerPlotter.ui', self)
-
         # Configure logging
         self.logger = logger
-        self.text_edit_handler = TextEditHandler(self.plainTextEdit)
-        self.text_edit_handler.setFormatter(log_formatter)
-        self.logger.addHandler(self.text_edit_handler)
-
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
