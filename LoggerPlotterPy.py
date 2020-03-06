@@ -36,6 +36,7 @@ from mplwidget import MplWidget
 
 from modules import *
 
+
 def config_logger(name: str=__name__, level: int=logging.DEBUG):
     logger = logging.getLogger(name)
     if not logger.hasHandlers():
@@ -121,14 +122,14 @@ class MainWindow(QMainWindow):
         self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
         self.statusBar().addPermanentWidget(self.clock)
         # default settings
-        self.setDefaultSettings()
+        self.set_default_settings()
         print(APPLICATION_NAME + APPLICATION_VERSION + ' started')
         # Restore settings
-        self.restoreSettings()
+        self.restore_settings()
         # Additional decorations
         # self.tableWidget_3.horizontalHeader().
         # Read data files
-        self.parseFolder()
+        self.parse_folder()
 
     def refresh_on(self):
         self.refresh_flag = True
@@ -142,11 +143,11 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(True)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
-        self.saveSettings()
+        self.save_settings()
         self.table_selection_changed()
         if self.refresh_flag:
             self.refresh_flag = False
-            self.parseFolder()
+            self.parse_folder()
     
     def show_log_pane(self):
         self.stackedWidget.setCurrentIndex(1)
@@ -340,7 +341,7 @@ class MainWindow(QMainWindow):
             return
         if self.log_file_name != newLogFile:
             self.log_file_name = newLogFile
-            self.parseFolder()
+            self.parse_folder()
 
     def logLevelIndexChanged(self, m):
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
@@ -350,10 +351,10 @@ class MainWindow(QMainWindow):
  
     def onQuit(self) :
         # save global settings
-        self.saveSettings()
+        self.save_settings()
         timer.stop()
         
-    def sortedColumns(self):
+    def sorted_columns(self):
         # create sorted displayed columns list
         included = self.plainTextEdit_2.toPlainText().split('\n')
         excluded = self.plainTextEdit_3.toPlainText().split('\n')
@@ -366,7 +367,7 @@ class MainWindow(QMainWindow):
                 columns.append(self.log_table.headers.index(t))
         return columns
 
-    def parseFolder(self, file_name=None):
+    def parse_folder(self, file_name=None):
         #self.logger.log(logging.DEBUG, 'parseFolder')
         try:
             if file_name is None:
@@ -407,7 +408,7 @@ class MainWindow(QMainWindow):
                 self.tableWidget_3.insertRow(row)
                 n = 0
                 for column in self.columns:
-                    col = self.log_table.find_col(column)
+                    col = self.log_table.find_column(column)
                     try:
                         fmt = config['format'][self.log_table.headers[col]]
                         txt = fmt % (self.log_table.val[col][row], self.log_table.unit[col][row])
@@ -451,7 +452,7 @@ class MainWindow(QMainWindow):
             self.logger.debug('Exception:', exc_info=True)
         return
     
-    def saveSettings(self, folder='', fileName=CONFIG_FILE) :
+    def save_settings(self, folder='', fileName=CONFIG_FILE) :
         fullName = os.path.join(str(folder), fileName)
         try:
             # save window size and position
@@ -481,7 +482,7 @@ class MainWindow(QMainWindow):
             self.logger.debug('Exception:', exc_info=True)
             return False
         
-    def restoreSettings(self, folder='', fileName=CONFIG_FILE) :
+    def restore_settings(self, folder='', fileName=CONFIG_FILE) :
         fullName = os.path.join(str(folder), fileName)
         try :
             with open(fullName, 'r') as configfile:
@@ -551,7 +552,7 @@ class MainWindow(QMainWindow):
             self.logger.debug('Exception:', exc_info=True)
             return False
 
-    def setDefaultSettings(self):
+    def set_default_settings(self):
         try:
             # window size and position
             self.resize(QSize(640, 480))
@@ -586,7 +587,7 @@ class MainWindow(QMainWindow):
         newSize = os.path.getsize(self.log_file_name)
         if newSize <= oldSize:
             return
-        self.parseFolder()
+        self.parse_folder()
 
 
 class LogTable:
@@ -721,7 +722,7 @@ class LogTable:
             del item[row]
         self.rows -= 1
 
-    def col_number(self, col):
+    def column_number(self, col):
         coln = col
         if isinstance(col, str):
             if col not in self.headers:
@@ -730,7 +731,7 @@ class LogTable:
         return coln
 
     def remove_column(self, col):
-        coln = self.col_number(col)
+        coln = self.column_number(col)
         if coln is None:
             return
         del self.data[coln]
@@ -746,7 +747,7 @@ class LogTable:
         else:
             col = args[0]
             row = -1
-        coln = self.col_number(col)
+        coln = self.column_number(col)
         if col is None:
             return ''
         return self.data[coln][row]
@@ -758,7 +759,7 @@ class LogTable:
         else:
             col = args[0]
             row = -1
-        coln = self.col_number(col)
+        coln = self.column_number(col)
         #if coln is None or coln >= len(self.val):
         #    return 0.0
         return self.val[coln][row]
@@ -767,7 +768,7 @@ class LogTable:
         return self.item(row, col)
 
     def set_item(self, row, col, val):
-        coln = self.col_number(col)
+        coln = self.column_number(col)
         self.data[coln][row] = val
         vu = val.split(" ")
         try:
@@ -783,11 +784,11 @@ class LogTable:
         return True
 
     def column(self, col):
-        coln = self.col_number(col)
+        coln = self.column_number(col)
         return self.data[coln]
 
-    def row(self, row):
-        return [self.data[n][row] for n in range(len(self.headers))]
+    def row(self, r):
+        return [self.data[n][r] for n in range(len(self.headers))]
 
     def add_column(self, col_name):
         if col_name is None or col_name == '':
@@ -805,7 +806,7 @@ class LogTable:
         self.columns += 1
         return self.headers.index(col_name)
         
-    def find_col(self, col_name):
+    def find_column(self, col_name):
         if col_name in self.headers:
             return self.headers.index(col_name)
         else:
