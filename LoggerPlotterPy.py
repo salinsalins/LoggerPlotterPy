@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
-        self.tableWidget_3.itemSelectionChanged.connect(self.table_sel_changed)
+        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
         self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
         self.plainTextEdit_2.textChanged.connect(self.refresh_on)
         self.plainTextEdit_3.textChanged.connect(self.refresh_on)
@@ -136,7 +136,7 @@ class MainWindow(QMainWindow):
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
         self.saveSettings()
-        self.table_sel_changed()
+        self.table_selection_changed()
         if self.refresh_flag:
             self.refresh_flag = False
             self.parseFolder()
@@ -192,32 +192,34 @@ class MainWindow(QMainWindow):
             i = 0
         # change selection and fire callback
         self.comboBox_2.setCurrentIndex(i)
-    
-    def table_sel_changed(self):
+
+    def table_selection_changed(self):
         def sig(name):
-            for s in self.sig_list:
-                if s.name == name:
-                    return s
+            for sg in self.sig_list:
+                if sg.name == name:
+                    return sg
             return None
 
         try:
+            # if selection is empty
             if len(self.tableWidget_3.selectedRanges()) < 1:
                 return
             row = self.tableWidget_3.selectedRanges()[0].topRow()
+            # if selected the same row
             if self.last_selection == row:
                 return
-            self.logger.log(logging.DEBUG, 'Table selection changed to row %i'%row)
+            # different row selected
+            self.logger.log(logging.DEBUG, 'Selection changed to row %i' % row)
             if row < 0:
                 return
             folder = os.path.dirname(self.log_file_name)
             zipFileName = self.log_table.column("File")[row]
-            self.logger.log(logging.DEBUG, 'Zip File %s'%zipFileName)
+            self.logger.log(logging.DEBUG, 'Used zip File %s' % zipFileName)
             # read zip file listing
-            self.dataFile = DataFile(zipFileName, folder = folder)
+            self.dataFile = DataFile(zipFileName, folder=folder)
             # read signals from zip file
             self.old_sig_list = self.sig_list
             self.sig_list = self.dataFile.read_all_signals()
-            layout = self.scrollAreaWidgetContents_3.layout()
             # reorder plots according to columns order in the table
             self.signals = []
             for c in self.columns:
@@ -243,8 +245,10 @@ class MainWindow(QMainWindow):
                         self.sig_list.append(s)
                         self.signals.append(self.sig_list.index(s))
                     except:
-                        self.logger.log(logging.DEBUG, 'Plot eval() error in %s' % p)
+                        self.logger.info('Plot eval() error in %s' % p)
+                        self.logger.debug('Exception:', exc_info=True)
             # plot signals
+            layout = self.scrollAreaWidgetContents_3.layout()
             jj = 0
             col = 0
             row = 0
@@ -275,42 +279,22 @@ class MainWindow(QMainWindow):
                 axes.clear()
                 # plot previous line
                 if self.checkBox_2.isChecked():
-                    color = '#ffff00'
-                    try:
-                        color = config['colors']['previous']
-                    except:
-                        pass
                     for s1 in self.old_sig_list:
                         if s1.name == s.name:
-                            axes.plot(s1.x, s1.y, color=color)
+                            axes.plot(s1.x, s1.y, color=self.previous_color)
                             break
                 # plot main line
-                color = '#00ff00'
-                try:
-                    color = config['colors']['trace']
-                except:
-                    pass
-                axes.plot(s.x, s.y, color=color)
+                axes.plot(s.x, s.y, color=self.trace_color)
                 # plot 'mark' highlight
                 if 'mark' in s.marks:
                     m1 = s.marks['mark'][0]
                     m2 = m1 + s.marks['mark'][1]
-                    color = '#ff0000'
-                    try:
-                        color = config['colors']['trace']
-                    except:
-                        pass
-                    axes.plot(s.x[m1:m2], s.y[m1:m2], color=color)
+                    axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.mark_color)
                 # Plot 'zero' highlight
                 if 'zero' in s.marks:
                     m1 = s.marks['zero'][0]
                     m2 = m1 + s.marks['zero'][1]
-                    color = '#0000ff'
-                    try:
-                        color = config['colors']['trace']
-                    except:
-                        pass
-                    axes.plot(s.x[m1:m2], s.y[m1:m2], color=color)
+                    axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.zero_color)
                 # Decorate the plot
                 axes.grid(True)
                 axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
@@ -344,7 +328,7 @@ class MainWindow(QMainWindow):
             return
         newLogFile = str(self.comboBox_2.currentText())
         if not os.path.exists(newLogFile):
-            self.logger.warning('File %s not found'%newLogFile)
+            self.logger.warning('File %s not found' % newLogFile)
             self.comboBox_2.removeItem(m)
             return
         if self.log_file_name != newLogFile:
@@ -400,7 +384,7 @@ class MainWindow(QMainWindow):
                 if t not in self.excluded and t not in self.columns:
                     self.columns.append(t)
             # disable table update events
-            self.tableWidget_3.itemSelectionChanged.disconnect(self.table_sel_changed)
+            self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
             # clear table
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
@@ -448,7 +432,7 @@ class MainWindow(QMainWindow):
                     self.tableWidget_3.setItem(row, n, item)
                     n += 1
             # enable table update events
-            self.tableWidget_3.itemSelectionChanged.connect(self.table_sel_changed)
+            self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
             self.tableWidget_3.resizeColumnsToContents()
             # select last row of widget -> tableSelectionChanged will be fired
             self.last_selection = -1
@@ -457,7 +441,7 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
-            self.printExceptionInfo(level=logging.DEBUG)
+            self.logger.debug('Exception:', exc_info=True)
         return
     
     def saveSettings(self, folder='', fileName=CONFIG_FILE) :
@@ -487,7 +471,7 @@ class MainWindow(QMainWindow):
             return True
         except :
             self.logger.log(logging.WARNING, 'Configuration save error to %s'%fullName)
-            self.printExceptionInfo(level=logging.DEBUG)
+            self.logger.debug('Exception:', exc_info=True)
             return False
         
     def restoreSettings(self, folder='', fileName=CONFIG_FILE) :
@@ -514,6 +498,23 @@ class MainWindow(QMainWindow):
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
+            # colors
+            try:
+                self.trace_color = config['colors']['trace']
+            except:
+                pass
+            try:
+                self.previous_color = config['colors']['previous']
+            except:
+                pass
+            try:
+                self.mark_color = config['colors']['mark']
+            except:
+                pass
+            try:
+                self.zero_color = config['colors']['zero']
+            except:
+                pass
             # Last folder
             if 'folder' in self.conf:
                 self.log_file_name = self.conf['folder']
@@ -536,17 +537,20 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
             if 'history_index' in self.conf:
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
-
-            self.logger.log(logging.INFO, 'Configuration restored from %s'%fullName)
+            self.logger.log(logging.INFO, 'Configuration restored from %s' % fullName)
             return True
         except :
-            self.logger.log(logging.WARNING, 'Configuration restore error from %s'%fullName)
-            self.printExceptionInfo(level=logging.DEBUG)
+            self.logger.log(logging.WARNING, 'Configuration restore error from %s' % fullName)
+            self.logger.debug('Exception:', exc_info=True)
             return False
 
-    def setDefaultSettings(self) :
+    def setDefaultSettings(self):
         try :
             # some class variables
+            self.previous_color = '#ffff00'
+            self.trace_color = '#00ff00'
+            self.mark_color = '#ff0000'
+            self.zero_color = '#0000ff'
             # window size and position
             self.resize(QSize(640, 480))
             self.move(QPoint(0, 0))
@@ -557,7 +561,7 @@ class MainWindow(QMainWindow):
         except :
             # print error info    
             self.logger.log(logging.WARNING, 'Default configuration error.')
-            self.printExceptionInfo(level=logging.DEBUG)
+            self.logger.debug('Exception:', exc_info=True)
             return False
 
     def printExceptionInfo(self, level=logging.ERROR):
