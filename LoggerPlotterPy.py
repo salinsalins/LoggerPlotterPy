@@ -12,6 +12,7 @@ import logging
 import zipfile
 import time
 import copy
+import numbers
 
 from PyQt5.QtWidgets import QMainWindow, QHeaderView
 from PyQt5.QtWidgets import QApplication
@@ -583,6 +584,9 @@ class MainWindow(QMainWindow):
         self.clock.setText(t)
         # check if lock file exists
         if self.is_locked():
+            return
+        # check if log file exists
+        if not os.path.exists(self.log_file_name):
             return
         oldSize = self.log_table.file_size
         newSize = os.path.getsize(self.log_file_name)
