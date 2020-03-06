@@ -33,7 +33,7 @@ import PyQt5.QtGui as QtGui
 import numpy as np
 from mplwidget import MplWidget
 
-from .devices import *
+from devices import *
 
 def config_logger(name: str=__name__, level: int=logging.DEBUG):
     logger = logging.getLogger(name)
@@ -48,12 +48,15 @@ def config_logger(name: str=__name__, level: int=logging.DEBUG):
     return logger
 
 
-progName = 'LoggerPlotterPy'
-progVersion = '_4_4'
-settingsFile = progName + '.json'
+ORGANIZATION_NAME = 'BINP'
+APPLICATION_NAME = 'LoggerPlotterPy'
+APPLICATION_NAME_SHORT = APPLICATION_NAME
+APPLICATION_VERSION = '_4_4'
+CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
+UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
 # Configure logging
-logger = config_logger(level=logging.DEBUG)
+logger = config_logger(level=logging.INFO)
 
 # Global configuration dictionary
 config = {}
@@ -71,7 +74,7 @@ class MainWindow(QMainWindow):
         self.signals = []
         self.extra_cols = []
         # Load the UI
-        uic.loadUi('LoggerPlotter.ui', self)
+        uic.loadUi(UI_FILE, self)
         # Configure logging
         self.logger = logger
         # Connect signals with the slots
@@ -112,7 +115,7 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.clock)
         # default settings
         self.setDefaultSettings()
-        print(progName + progVersion + ' started')
+        print(APPLICATION_NAME + APPLICATION_VERSION + ' started')
         # Restore settings
         self.restoreSettings()
         # Additional decorations
@@ -124,7 +127,7 @@ class MainWindow(QMainWindow):
         self.refresh_flag = True
 
     def show_about(self):
-        QMessageBox.information(self, 'About', progName + ' Version ' + progVersion + 
+        QMessageBox.information(self, 'About', APPLICATION_NAME + ' Version ' + APPLICATION_VERSION +
                                 '\nPlot Logger saved shot logs and traces.', QMessageBox.Ok)
 
     def show_plot_pane(self):
@@ -456,7 +459,7 @@ class MainWindow(QMainWindow):
             self.printExceptionInfo(level=logging.DEBUG)
         return
     
-    def saveSettings(self, folder='', fileName=settingsFile) :
+    def saveSettings(self, folder='', fileName=CONFIG_FILE) :
         fullName = os.path.join(str(folder), fileName)
         try:
             # save window size and position
@@ -486,7 +489,7 @@ class MainWindow(QMainWindow):
             self.printExceptionInfo(level=logging.DEBUG)
             return False
         
-    def restoreSettings(self, folder='', fileName=settingsFile) :
+    def restoreSettings(self, folder='', fileName=CONFIG_FILE) :
         fullName = os.path.join(str(folder), fileName)
         try :
             with open(fullName, 'r') as configfile:
@@ -969,6 +972,8 @@ class Config:
 
 
 if __name__ == '__main__':
+    if len(sys.argv) >= 2:
+        CONFIG_FILE = sys.argv[1]
     # create the GUI application
     app = QApplication(sys.argv)
     # instantiate the main window
