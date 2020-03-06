@@ -66,7 +66,13 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         # Initialization of the superclass
         super(MainWindow, self).__init__(parent)
-        # Class members definition
+        # class members definition
+        self.previous_color = '#ffff00'
+        self.trace_color = '#00ff00'
+        self.mark_color = '#ff0000'
+        self.zero_color = '#0000ff'
+        self.log_file_name = None
+        self.conf = {}
         self.refresh_flag = False
         self.last_selection = -1
         self.sig_list = []
@@ -545,21 +551,12 @@ class MainWindow(QMainWindow):
             return False
 
     def setDefaultSettings(self):
-        try :
-            # some class variables
-            self.previous_color = '#ffff00'
-            self.trace_color = '#00ff00'
-            self.mark_color = '#ff0000'
-            self.zero_color = '#0000ff'
+        try:
             # window size and position
             self.resize(QSize(640, 480))
             self.move(QPoint(0, 0))
-            self.log_file_name = None
-            self.conf = {}
-            #self.logger.log(logging.DEBUG, 'Default configuration set.')
             return True
-        except :
-            # print error info    
+        except:
             self.logger.log(logging.WARNING, 'Default configuration error.')
             self.logger.debug('Exception:', exc_info=True)
             return False
