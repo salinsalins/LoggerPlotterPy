@@ -172,24 +172,25 @@ class MainWindow(QMainWindow):
             d = "./"
         else:
             d = os.path.dirname(self.log_file_name)
-        fileOpenDialog = QFileDialog(caption='Select log file', directory = d)
+        fileOpenDialog = QFileDialog(caption='Select Log File', directory=d)
         # open file selection dialog
         fn = fileOpenDialog.getOpenFileName()
-        # if a fn is not empty
         # Qt4 and Qt5 compatibility workaround
         if fn is not None and len(fn) > 1:
             fn = fn[0]
-        if fn == '':
+        # if fn is empty
+        if fn is None or fn == '':
             return
-        # different file selected
+        # if it is the same file as being used
         if self.log_file_name == fn:
             return
+        # different file selected
         i = self.comboBox_2.findText(fn)
         if i < 0:
-            # add item to history
+            # add file name to history
             self.comboBox_2.insertItem(-1, fn)
             i = 0
-        # change selection abd fire callback
+        # change selection and fire callback
         self.comboBox_2.setCurrentIndex(i)
     
     def table_sel_changed(self):
