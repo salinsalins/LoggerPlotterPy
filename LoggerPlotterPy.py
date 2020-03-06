@@ -562,12 +562,6 @@ class MainWindow(QMainWindow):
             self.logger.debug('Exception:', exc_info=True)
             return False
 
-    def printExceptionInfo(self, level=logging.ERROR):
-        #excInfo = sys.exc_info()
-        #(tp, value) = sys.exc_info()[:2]
-        #self.logger.log(level, 'Exception %s %s'%(str(tp), str(value)))
-        self.logger.log(level, "Exception ", exc_info=True)
-
     def is_locked(self):
         # if log file is not set = locked
         if self.log_file_name is None:
@@ -595,7 +589,7 @@ class MainWindow(QMainWindow):
         self.parseFolder()
 
 
-class LogTable():
+class LogTable:
     def __init__(self, file_name: str, folder: str = "", extra_cols=None):
         if extra_cols is None:
             extra_cols = []
