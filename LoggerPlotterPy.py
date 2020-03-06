@@ -77,8 +77,8 @@ class MainWindow(QMainWindow):
         self.conf = {}
         self.refresh_flag = False
         self.last_selection = -1
-        self.sig_list = []
-        self.old_sig_list = []
+        self.signal_list = []
+        self.old_signal_list = []
         self.signals = []
         self.extra_cols = []
         # Load the UI
@@ -203,7 +203,7 @@ class MainWindow(QMainWindow):
 
     def table_selection_changed(self):
         def sig(name):
-            for sg in self.sig_list:
+            for sg in self.signal_list:
                 if sg.name == name:
                     return sg
             return None
@@ -226,14 +226,14 @@ class MainWindow(QMainWindow):
             # read zip file listing
             self.dataFile = DataFile(zipFileName, folder=folder)
             # read signals from zip file
-            self.old_sig_list = self.sig_list
-            self.sig_list = self.dataFile.read_all_signals()
+            self.old_signal_list = self.signal_list
+            self.signal_list = self.dataFile.read_all_signals()
             # reorder plots according to columns order in the table
             self.signals = []
             for c in self.columns:
-                for s in self.sig_list:
+                for s in self.signal_list:
                     if s.name == c:
-                        self.signals.append(self.sig_list.index(s))
+                        self.signals.append(self.signal_list.index(s))
                         break
             # add extra plots from plainTextEdit_4
             extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
@@ -250,8 +250,8 @@ class MainWindow(QMainWindow):
                                 s.x = x_val
                                 s.y = y_val
                                 s.name = key
-                        self.sig_list.append(s)
-                        self.signals.append(self.sig_list.index(s))
+                        self.signal_list.append(s)
+                        self.signals.append(self.signal_list.index(s))
                     except:
                         self.logger.info('Plot eval() error in %s' % p)
                         self.logger.debug('Exception:', exc_info=True)
@@ -262,7 +262,7 @@ class MainWindow(QMainWindow):
             row = 0
             col_count = 3
             for c in self.signals:
-                s = self.sig_list[c]
+                s = self.signal_list[c]
                 # Use existing plot widgets or add new
                 if jj < layout.count():
                     # use existing plot widget
@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
                 axes.clear()
                 # plot previous line
                 if self.checkBox_2.isChecked():
-                    for s1 in self.old_sig_list:
+                    for s1 in self.old_signal_list:
                         if s1.name == s.name:
                             axes.plot(s1.x, s1.y, color=self.previous_color)
                             break
@@ -411,15 +411,15 @@ class MainWindow(QMainWindow):
                     col = self.log_table.find_column(column)
                     try:
                         fmt = config['format'][self.log_table.headers[col]]
-                        txt = fmt % (self.log_table.val[col][row], self.log_table.unit[col][row])
+                        txt = fmt % (self.log_table.values[col][row], self.log_table.unit[col][row])
                     except:
                         txt = self.log_table.data[col][row]
                     item = QTableWidgetItem(txt)
                     if row > 0:
-                        v = self.log_table.val[col][row]
+                        v = self.log_table.values[col][row]
                         if v is None:
                             v = 0.0
-                        v1 = self.log_table.val[col][row - 1]
+                        v1 = self.log_table.values[col][row - 1]
                         if v1 is None:
                             v1 = 0.0
                         try:
@@ -595,9 +595,9 @@ class LogTable:
         if extra_cols is None:
             extra_cols = []
         self.logger = config_logger()
-        self.data = [[],]
-        self.val = [[],]
-        self.unit = [[],]
+        self.data = [[], ]
+        self.values = [[], ]
+        self.unit = [[], ]
         self.headers = []
         self.file_name = None
         self.file_size = -1
@@ -638,9 +638,9 @@ class LogTable:
             return
         # split time and date
         tm = flds[0].split(" ")[1].strip()
-        # preserv only time
+        # preserve only time
         flds[0] = "Time=" + tm
-        # sdd row to table
+        # add row to table
         self.add_row()
         # iterate for key=value pairs
         for fld in flds:
@@ -656,7 +656,7 @@ class LogTable:
             except:
                 v = float('nan')
                 self.logger.debug('Non float value "%s"' % vu[0])
-            self.val[j][self.rows - 1] = v
+            self.values[j][self.rows - 1] = v
             # units
             try:
                 u = vu[1].strip()
@@ -673,10 +673,11 @@ class LogTable:
                         if (key is not None) and (key != ''):
                             j = self.add_column(key)
                             self.data[j][row] = str(value) + ' ' + str(units)
-                            self.val[j][row] = float(value)
+                            self.values[j][row] = float(value)
                             self.unit[j][row] = str(units)
                     except:
                         self.logger.log(logging.INFO, 'Column eval() error in \n              %s' % column)
+                        self.logger.debug('Exception:', exc_info=True)
 
     def refresh(self, extra_cols):
         try:
@@ -707,7 +708,7 @@ class LogTable:
     def add_row(self):
         for item in self.data:
             item.append("")
-        for item in self.val:
+        for item in self.values:
             item.append(0.0)
         for item in self.unit:
             item.append("")
@@ -716,7 +717,7 @@ class LogTable:
     def remove_row(self, row):
         for item in self.data:
             del item[row]
-        for item in self.val:
+        for item in self.values:
             del item[row]
         for item in self.unit:
             del item[row]
@@ -735,7 +736,7 @@ class LogTable:
         if coln is None:
             return
         del self.data[coln]
-        del self.val[coln]
+        del self.values[coln]
         del self.unit[coln]
         del self.headers[coln]
         self.columns -= 1
@@ -762,20 +763,20 @@ class LogTable:
         coln = self.column_number(col)
         #if coln is None or coln >= len(self.val):
         #    return 0.0
-        return self.val[coln][row]
+        return self.values[coln][row]
 
     def get_item(self, row, col):
         return self.item(row, col)
 
-    def set_item(self, row, col, val):
+    def set_item(self, row: int, col: int, value: str):
         coln = self.column_number(col)
-        self.data[coln][row] = val
-        vu = val.split(" ")
+        self.data[coln][row] = value
+        vu = value.split(" ")
         try:
             v = float(vu[0].strip().replace(',', '.'))
         except:
             v = 0.0
-        self.val[coln][row] = v
+        self.values[coln][row] = v
         try:
             u = vu[1].strip()
         except:
@@ -800,7 +801,7 @@ class LogTable:
         new_col = [""] * self.rows
         self.data.append(new_col)
         new_col = [0.0] * self.rows
-        self.val.append(new_col)
+        self.values.append(new_col)
         new_col = [""] * self.rows
         self.unit.append(new_col)
         self.columns += 1
