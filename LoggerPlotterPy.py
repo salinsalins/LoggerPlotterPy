@@ -838,18 +838,18 @@ class Signal:
 
 
 class DataFile:
-    def __init__(self, fileName, folder=""):
+    def __init__(self, file_name, folder=""):
         #self.logger = logging.getLogger(__name__)
         self.logger = config_logger()
         self.file_name = None
         self.files = []
         self.signals = []
-        fn = os.path.join(folder, fileName)
-        with zipfile.ZipFile(fn, 'r') as zipobj:
-            self.files = zipobj.namelist()
+        fn = os.path.join(folder, file_name)
+        with zipfile.ZipFile(fn, 'r') as zip_file:
+            self.files = zip_file.namelist()
         self.file_name = fn
         for f in self.files:
-            if f.find("chan") >= 0 and f.find("param") < 0:
+            if f.find("chan") >= 0 and f.find("paramchan") < 0:
                 self.signals.append(f)
         
     def read_signal(self, signal_name: str) -> Signal:
