@@ -900,7 +900,10 @@ class DataFile:
                     self.logger.debug("Wrong parameter %s for %s" % (ln, signal_name))
         # scale to units
         if b'display_unit' in signal.params:
-            signal.scale = float(signal.params[b'display_unit'])
+            try:
+                signal.scale = float(signal.params[b'display_unit'])
+            except:
+                signal.scale = 1.0
             signal.y *= signal.scale
         # name of the signal
         if b"label" in signal.params:
@@ -919,8 +922,8 @@ class DataFile:
         for k in signal.params:
             if k.endswith(b"_start"):
                 try:
-                    ms = int((float(signal.params[k]) - x0) / dx)
-                    ml = int(float(signal.params[k.replace(b"_start", b'_length')]) / dx)
+                    ms = int((float(signal.params[k].replace(b',', b'.')) - x0) / dx)
+                    ml = int(float(signal.params[k.replace(b"_start", b'_length')].replace(b',', b'.')) / dx)
                     mv = signal.y[ms:ms+ml].mean()
                 except:
                     self.logger.log(logging.WARNING, 'Mark %s value can not be computed for %s' % (k, signal_name))
