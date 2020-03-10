@@ -844,10 +844,10 @@ class DataFile:
         self.file_name = None
         self.files = []
         self.signals = []
-        fn = os.path.join(folder, file_name)
-        with zipfile.ZipFile(fn, 'r') as zip_file:
+        full_name = os.path.join(folder, file_name)
+        with zipfile.ZipFile(full_name, 'r') as zip_file:
             self.files = zip_file.namelist()
-        self.file_name = fn
+        self.file_name = full_name
         for f in self.files:
             if f.find("chan") >= 0 and f.find("paramchan") < 0:
                 self.signals.append(f)
