@@ -655,7 +655,8 @@ class LogTable:
                 v = float(vu[0].strip().replace(',', '.'))
             except:
                 v = float('nan')
-                self.logger.debug('Non float value "%s"' % vu[0])
+                if key != 'Time' and key != 'File':
+                    self.logger.debug('Non float value "%s"' % vu[0])
             self.values[j][self.rows - 1] = v
             # units
             try:
@@ -824,34 +825,16 @@ class LogTable:
     
 
 class Signal:
-    def __init__(self, *args, **kwargs):
-        #self.logger = logging.getLogger(__name__)
-        # Default settings
-        self.x = np.zeros(1)
-        self.y = np.zeros(1)
-        self.params = {}
-        self.name = ''
-        self.unit = ''
-        self.scale = 1.0
-        self.value = 0.0
-        self.marks = {}
-        # From kwargs
-        if 'x' in kwargs:
-            self.x = kwargs['x']
-        if 'y' in kwargs:
-            self.y = kwargs['y']
-        if 'params' in kwargs:
-            self.params = kwargs['params']
-        if 'name' in kwargs:
-            self.name = kwargs['name']
-        if 'unit' in kwargs:
-            self.unit = kwargs['unit']
-        if 'scale' in kwargs:
-            self.scale = kwargs['scale']
-        if 'value' in kwargs:
-            self.value = kwargs['value']
-        if 'marks' in kwargs:
-            self.marks = kwargs['marks']
+    def __init__(self, x=np.zeros(1), y=np.zeros(1), params={}, name='',
+                 unit='', scale=1.0, value=0.0, marks={}):
+        self.x = x
+        self.y = y
+        self.params = params
+        self.name = name
+        self.unit = unit
+        self.scale = scale
+        self.value = value
+        self.marks = marks
 
 
 class DataFile:
@@ -876,12 +859,21 @@ class DataFile:
             return signal
         with zipfile.ZipFile(self.file_name, 'r') as zipobj:
             buf = zipobj.read(signal_name)
-            pf = signal_name.replace('chan', 'paramchan')
-            pbuf = zipobj.read(pf)
-        lines = buf.split(b"\r\n")
+            param_name = signal_name.replace('chan', 'paramchan')
+            pbuf = zipobj.read(param_name)
+        if b'\r\n' in buf:
+            spltch = b"\r\n"
+        elif b'\n' in buf:
+            spltch = b"\n"
+        elif b'\r' in buf:
+            spltch = b"\r"
+        else:
+            self.logger.warning("Incorrect data format for %s" % signal_name)
+            return signal
+        lines = buf.split(spltch)
         n = len(lines)
         if n < 2:
-            self.logger.log(logging.ERROR, "No data for signal %s" % signal_name)
+            self.logger.warning("No data for %s" % signal_name)
             return signal
         signal.x = np.empty(n)
         signal.y = np.empty(n)
@@ -893,17 +885,19 @@ class DataFile:
                 signal.y[ii] = float(xy[1].replace(b',', b'.'))
             except:
                 self.logger.log(logging.ERROR, "Wrong data for signal %s" % signal_name)
-                #return signal
                 signal.x[ii] = 0.0
                 signal.y[ii] = 0.0
             ii += 1
         # read parameters        
         signal.params = {}
-        lines = pbuf.split(b"\r\n")
+        lines = pbuf.split(spltch)
         for ln in lines:
-            kv = ln.split(b'=')
-            if len(kv) >= 2:
-                signal.params[kv[0].strip()] = kv[1].strip()
+            if ln != b'':
+                kv = ln.split(b'=')
+                if len(kv) >= 2:
+                    signal.params[kv[0].strip()] = kv[1].strip()
+                else:
+                    self.logger.debug("Wrong parameter %s for %s" % (ln, signal_name))
         # scale to units
         if b'display_unit' in signal.params:
             signal.scale = float(signal.params[b'display_unit'])
