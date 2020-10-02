@@ -11,8 +11,6 @@ import json
 import logging
 import zipfile
 import time
-import copy
-import numbers
 
 from PyQt5.QtWidgets import QMainWindow, QHeaderView
 from PyQt5.QtWidgets import QApplication
@@ -35,19 +33,20 @@ import numpy as np
 from mplwidget import MplWidget
 
 from modules import *
+from imports import *
 
 
-def config_logger(name: str=__name__, level: int=logging.DEBUG):
-    logger = logging.getLogger(name)
-    if not logger.hasHandlers():
-        logger.propagate = False
-        logger.setLevel(level)
+def config_logger(name=__name__, level=logging.DEBUG):
+    lgr = logging.getLogger(name)
+    if not lgr.hasHandlers():
+        lgr.propagate = False
+        lgr.setLevel(level)
         f_str = '%(asctime)s,%(msecs)3d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
         log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(log_formatter)
-        logger.addHandler(console_handler)
-    return logger
+        lgr.addHandler(console_handler)
+    return lgr
 
 
 ORGANIZATION_NAME = 'BINP'
@@ -67,12 +66,14 @@ config = {}
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         # Initialization of the superclass
-        super(MainWindow, self).__init__(parent)
+        super().__init__(parent)
         # class members definition
+        # colors
         self.previous_color = '#ffff00'
         self.trace_color = '#00ff00'
         self.mark_color = '#ff0000'
         self.zero_color = '#0000ff'
+        #
         self.log_file_name = None
         self.conf = {}
         self.refresh_flag = False
@@ -81,6 +82,7 @@ class MainWindow(QMainWindow):
         self.old_signal_list = []
         self.signals = []
         self.extra_cols = []
+        #
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # Configure logging
@@ -160,18 +162,6 @@ class MainWindow(QMainWindow):
         self.actionPlot.setChecked(False)
         self.actionLog.setChecked(False)
         self.actionParameters.setChecked(True)
-        # ##self.tableWidget.horizontalHeader().setVisible(True)
-        # Decode global config
-        # clear table
-        self.tableWidget.setRowCount(0)
-        n = 0
-        for key in config:
-            self.tableWidget.insertRow(n)
-            item = QTableWidgetItem(str(key))
-            self.tableWidget.setItem(n, 0, item)
-            item = QTableWidgetItem(str(config[key]))
-            self.tableWidget.setItem(n, 1, item)
-            n += 1
 
     def select_log_file(self):
         """Opens a file select dialog"""
@@ -180,9 +170,9 @@ class MainWindow(QMainWindow):
             d = "./"
         else:
             d = os.path.dirname(self.log_file_name)
-        fileOpenDialog = QFileDialog(caption='Select Log File', directory=d)
+        file_open_dialog = QFileDialog(caption='Select Log File', directory=d)
         # open file selection dialog
-        fn = fileOpenDialog.getOpenFileName()
+        fn = file_open_dialog.getOpenFileName()
         # Qt4 and Qt5 compatibility workaround
         if fn is not None and len(fn) > 1:
             fn = fn[0]
