@@ -750,7 +750,7 @@ class LogTable:
             col = args[0]
             row = -1
         coln = self.column_number(col)
-        if col is None:
+        if coln is None:
             return ''
         return self.data[coln][row]
 
@@ -762,8 +762,8 @@ class LogTable:
             col = args[0]
             row = -1
         coln = self.column_number(col)
-        #if coln is None or coln >= len(self.val):
-        #    return 0.0
+        if coln is None or coln >= len(self.values):
+            return float('nan')
         return self.values[coln][row]
 
     def get_item(self, row, col):
