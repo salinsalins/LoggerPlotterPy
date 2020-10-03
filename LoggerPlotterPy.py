@@ -395,6 +395,12 @@ class MainWindow(QMainWindow):
                 self.tableWidget_3.setHorizontalHeaderItem(row, QTableWidgetItem(column))
                 row += 1
             # insert and fill rows
+            # numbers = self.columns.copy
+            # formats = self.columns.copy
+            # for i in range(len(self.columns)):
+            #     numbers[i] = self.log_table.find_column(self.columns[i])
+            #     fmt = config['format'][self.log_table.headers[i]]
+            #     formats[i] = self.log_table.find_column(self.columns[i])
             for row in range(self.log_table.rows):
                 self.tableWidget_3.insertRow(row)
                 n = 0
@@ -402,7 +408,7 @@ class MainWindow(QMainWindow):
                     col = self.log_table.find_column(column)
                     try:
                         fmt = config['format'][self.log_table.headers[col]]
-                        txt = fmt % (self.log_table.values[col][row], self.log_table.unit[col][row])
+                        txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
                     except:
                         txt = self.log_table.data[col][row]
                     item = QTableWidgetItem(txt)
@@ -589,7 +595,7 @@ class LogTable:
         self.logger = config_logger()
         self.data = [[], ]
         self.values = [[], ]
-        self.unit = [[], ]
+        self.units = [[], ]
         self.headers = []
         self.file_name = None
         self.file_size = -1
@@ -605,7 +611,7 @@ class LogTable:
         # read file to buf
         with open(fn, "r") as stream:
             buf = stream.read()
-        if len(buf) <= 0 :
+        if len(buf) <= 0:
             self.logger.info('Nothing to process in %s' % file_name)
             return
         self.file_name = fn
@@ -655,7 +661,7 @@ class LogTable:
                 u = vu[1].strip()
             except:
                 u = ''
-            self.unit[j][self.rows - 1] = u
+            self.units[j][self.rows - 1] = u
 
     def add_extra_columns(self, extra_cols):
         for row in range(self.rows):
@@ -667,7 +673,7 @@ class LogTable:
                             j = self.add_column(key)
                             self.data[j][row] = str(value) + ' ' + str(units)
                             self.values[j][row] = float(value)
-                            self.unit[j][row] = str(units)
+                            self.units[j][row] = str(units)
                     except:
                         self.logger.log(logging.INFO, 'Column eval() error in \n              %s' % column)
                         self.logger.debug('Exception:', exc_info=True)
@@ -703,7 +709,7 @@ class LogTable:
             item.append("")
         for item in self.values:
             item.append(0.0)
-        for item in self.unit:
+        for item in self.units:
             item.append("")
         self.rows += 1
     
@@ -712,7 +718,7 @@ class LogTable:
             del item[row]
         for item in self.values:
             del item[row]
-        for item in self.unit:
+        for item in self.units:
             del item[row]
         self.rows -= 1
 
@@ -720,7 +726,7 @@ class LogTable:
         coln = col
         if isinstance(col, str):
             if col not in self.headers:
-                return None
+                return -1
             coln = self.headers.index(col)
         return coln
 
@@ -730,7 +736,7 @@ class LogTable:
             return
         del self.data[coln]
         del self.values[coln]
-        del self.unit[coln]
+        del self.units[coln]
         del self.headers[coln]
         self.columns -= 1
 
@@ -761,20 +767,24 @@ class LogTable:
     def get_item(self, row, col):
         return self.item(row, col)
 
-    def set_item(self, row: int, col: int, value: str):
+    def set_item(self, row: int, col, value: str):
         coln = self.column_number(col)
+        if coln < 0:
+            return False
+        if row < 0 or row > len(self.data[coln])-1:
+            return False
         self.data[coln][row] = value
         vu = value.split(" ")
         try:
             v = float(vu[0].strip().replace(',', '.'))
         except:
-            v = 0.0
+            v = float('nan')
         self.values[coln][row] = v
         try:
             u = vu[1].strip()
         except:
             u = ''
-        self.unit[coln][row] = u
+        self.units[coln][row] = u
         return True
 
     def column(self, col):
@@ -793,17 +803,17 @@ class LogTable:
         self.headers.append(col_name)
         new_col = [""] * self.rows
         self.data.append(new_col)
-        new_col = [0.0] * self.rows
+        new_col = [float('nan')] * self.rows
         self.values.append(new_col)
         new_col = [""] * self.rows
-        self.unit.append(new_col)
+        self.units.append(new_col)
         self.columns += 1
         return self.headers.index(col_name)
         
     def find_column(self, col_name):
-        if col_name in self.headers:
+        try:
             return self.headers.index(col_name)
-        else:
+        except:
             return -1
 
     def __contains__(self, item):
