@@ -358,13 +358,12 @@ class MainWindow(QMainWindow):
         return columns
 
     def parse_folder(self, file_name=None):
-        #self.logger.log(logging.DEBUG, 'parseFolder')
         try:
             if file_name is None:
                 file_name = self.log_file_name
             if file_name is None:
                 return
-            self.logger.log(logging.DEBUG, 'Reading log file %s' % file_name)
+            self.logger.debug('Reading log file %s', file_name)
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             # read log file content to logTable
             self.log_table = LogTable(file_name, extra_cols=self.extra_cols)
@@ -375,15 +374,17 @@ class MainWindow(QMainWindow):
             self.included = self.plainTextEdit_2.toPlainText().split('\n')
             self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
             self.columns = []
+            # add included columns if present
             for t in self.included:
                 if t in self.log_table.headers:
                     self.columns.append(t)
+            # add other columns if not excluded
             for t in self.log_table.headers:
                 if t not in self.excluded and t not in self.columns:
                     self.columns.append(t)
-            # disable table update events
+            # disable table widget update events
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
-            # clear table
+            # clear table widget
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
             # refill table widget
@@ -405,6 +406,7 @@ class MainWindow(QMainWindow):
                     except:
                         txt = self.log_table.data[col][row]
                     item = QTableWidgetItem(txt)
+                    # mark changed values
                     if row > 0:
                         v = self.log_table.values[col][row]
                         if v is None:
@@ -429,7 +431,7 @@ class MainWindow(QMainWindow):
                             item.setFont(QFont('Open Sans', weight=QFont.Normal))
                     self.tableWidget_3.setItem(row, n, item)
                     n += 1
-            # enable table update events
+            # enable table widget update events
             self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
             self.tableWidget_3.resizeColumnsToContents()
             # select last row of widget -> tableSelectionChanged will be fired
