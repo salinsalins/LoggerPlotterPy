@@ -573,6 +573,7 @@ class MainWindow(QMainWindow):
         return False
 
     def timer_handler(self):
+        # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')
         self.clock.setText(t)
         # check if lock file exists
