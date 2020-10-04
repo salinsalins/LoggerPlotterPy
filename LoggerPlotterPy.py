@@ -724,16 +724,16 @@ class LogTable:
         self.rows -= 1
 
     def column_number(self, col):
-        coln = col
-        if isinstance(col, str):
-            if col not in self.headers:
-                return -1
-            coln = self.headers.index(col)
-        return coln
+        try:
+            if isinstance(col, str):
+                return self.headers.index(col)
+            return int(col)
+        except:
+            return -1
 
     def remove_column(self, col):
         coln = self.column_number(col)
-        if coln is None:
+        if coln < 0:
             return
         del self.data[coln]
         del self.values[coln]
@@ -749,7 +749,7 @@ class LogTable:
             col = args[0]
             row = -1
         coln = self.column_number(col)
-        if coln is None:
+        if coln < 0:
             return ''
         return self.data[coln][row]
 
@@ -761,9 +761,11 @@ class LogTable:
             col = args[0]
             row = -1
         coln = self.column_number(col)
-        if coln is None or coln >= len(self.values):
+        try:
+            return self.values[coln][row]
+        except:
             return float('nan')
-        return self.values[coln][row]
+
 
     def get_item(self, row, col):
         return self.item(row, col)
@@ -790,6 +792,8 @@ class LogTable:
 
     def column(self, col):
         coln = self.column_number(col)
+        if coln < 0:
+            return None
         return self.data[coln]
 
     def row(self, r):
