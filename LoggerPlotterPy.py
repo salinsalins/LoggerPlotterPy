@@ -838,6 +838,15 @@ class Signal:
         self.value = value
         self.marks = marks
 
+    # def __add__(self, other):
+    #     x1min = self.x.min()
+    #     x1max = self.x.max()
+    #     x2min = other.x.min()
+    #     x2max = other.x.max()
+    #     xmin = min(x1min, x2min)
+    #     xmax = max(x1max, x2max)
+    #     return self
+
 
 class DataFile:
     def __init__(self, file_name, folder=""):
