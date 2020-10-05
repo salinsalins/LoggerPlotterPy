@@ -82,7 +82,6 @@ class MainWindow(QMainWindow):
         self.old_signal_list = []
         self.signals = []
         self.extra_cols = []
-        #
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # Configure logging
@@ -122,7 +121,9 @@ class MainWindow(QMainWindow):
         # Clock label at status bar
         self.clock = QLabel(" ")
         self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
+        # add widget to status bar
         self.statusBar().addPermanentWidget(self.clock)
+        self.statusBar().showMessage('Starting...')
         # default settings
         self.set_default_settings()
         print(APPLICATION_NAME + APPLICATION_VERSION + ' started')
@@ -150,7 +151,7 @@ class MainWindow(QMainWindow):
         if self.refresh_flag:
             self.refresh_flag = False
             self.parse_folder()
-    
+
     def show_log_pane(self):
         self.stackedWidget.setCurrentIndex(1)
         self.actionPlot.setChecked(False)
@@ -303,13 +304,13 @@ class MainWindow(QMainWindow):
                 else:
                     axes.set_xlabel('Time, ms')
                 axes.set_ylabel(s.name + ', ' + s.unit)
-                #axes.legend(loc='best') 
+                # axes.legend(loc='best')
                 # Show plot
                 mplw.canvas.draw()
                 jj += 1
             # Remove unused plot widgets
-            while jj < layout.count() :
-                item = layout.takeAt(layout.count()-1)
+            while jj < layout.count():
+                item = layout.takeAt(layout.count() - 1)
                 if not item:
                     continue
                 w = item.widget()
@@ -338,12 +339,12 @@ class MainWindow(QMainWindow):
                   logging.WARNING, logging.ERROR, logging.CRITICAL]
         if m >= 0:
             self.logger.setLevel(levels[m])
- 
-    def onQuit(self) :
+
+    def onQuit(self):
         # save global settings
         self.save_settings()
         timer.stop()
-        
+
     def sorted_columns(self):
         # create sorted displayed columns list
         included = self.plainTextEdit_2.toPlainText().split('\n')
@@ -363,6 +364,7 @@ class MainWindow(QMainWindow):
                 file_name = self.log_file_name
             if file_name is None:
                 return
+            self.statusBar().showMessage('Reading %s' % file_name)
             self.logger.debug('Reading log file %s', file_name)
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             # read log file content to logTable
@@ -420,15 +422,15 @@ class MainWindow(QMainWindow):
                         v1 = self.log_table.values[col][row - 1]
                         if v1 is None:
                             v1 = 0.0
+                        thr = 0.03
                         try:
-                            thr = 0.03
                             thr = config['threshold']
                             thr = config['thresholds'][self.log_table.headers[col]]
                         except:
                             pass
                         flag = True
                         if thr > 0.0:
-                            flag = (v != 0.0) and (abs((v1-v)/v) > thr)
+                            flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
                         elif thr < 0.0:
                             flag = abs(v1 - v) > -thr
                         if flag:
@@ -444,21 +446,23 @@ class MainWindow(QMainWindow):
             self.last_selection = -1
             self.tableWidget_3.scrollToBottom()
             self.tableWidget_3.setFocus()
-            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount()-1)
+            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.logger.debug('Exception:', exc_info=True)
+        self.statusBar().showMessage('File: %s' % file_name)
         return
-    
-    def save_settings(self, folder='', fileName=CONFIG_FILE) :
-        fullName = os.path.join(str(folder), fileName)
+
+    def save_settings(self, folder='', file_name=CONFIG_FILE):
+        full_name = os.path.join(str(folder), file_name)
         try:
             # save window size and position
             p = self.pos()
             s = self.size()
-            self.conf['main_window'] = {'size':(s.width(), s.height()), 'position':(p.x(), p.y())}
+            self.conf['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
             self.conf['folder'] = self.log_file_name
-            self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in range(min(self.comboBox_2.count(), 10))]
+            self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in
+                                    range(min(self.comboBox_2.count(), 10))]
             self.conf['history_index'] = self.comboBox_2.currentIndex()
             self.conf['log_level'] = self.logger.level
             self.conf['included'] = str(self.plainTextEdit_2.toPlainText())
@@ -467,23 +471,23 @@ class MainWindow(QMainWindow):
             self.conf['cb_2'] = self.checkBox_2.isChecked()
             self.conf['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
             self.conf['extra_col'] = str(self.plainTextEdit_5.toPlainText())
-            if os.path.exists(fullName):
+            if os.path.exists(full_name):
                 # try to read old config to confirm correct syntax
-                with open(fullName, 'r') as configfile:
+                with open(full_name, 'r') as configfile:
                     s = configfile.read()
-            with open(fullName, 'w') as configfile:
+            with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
-            self.logger.info('Configuration saved to %s'%fullName)
+            self.logger.info('Configuration saved to %s' % full_name)
             return True
-        except :
-            self.logger.log(logging.WARNING, 'Configuration save error to %s'%fullName)
+        except:
+            self.logger.log(logging.WARNING, 'Configuration save error to %s' % full_name)
             self.logger.debug('Exception:', exc_info=True)
             return False
-        
-    def restore_settings(self, folder='', fileName=CONFIG_FILE) :
-        fullName = os.path.join(str(folder), fileName)
-        try :
-            with open(fullName, 'r') as configfile:
+
+    def restore_settings(self, folder='', file_name=CONFIG_FILE):
+        full_name = os.path.join(str(folder), file_name)
+        try:
+            with open(full_name, 'r') as configfile:
                 s = configfile.read()
             self.conf = json.loads(s)
             global config
@@ -493,13 +497,13 @@ class MainWindow(QMainWindow):
                 v = self.conf['log_level']
                 self.logger.setLevel(v)
                 levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
-                          logging.WARNING, logging.ERROR, logging.CRITICAL, logging.CRITICAL+10]
+                          logging.WARNING, logging.ERROR, logging.CRITICAL, logging.CRITICAL + 10]
                 mm = 0
                 for m in range(len(levels)):
                     if v < levels[m]:
                         mm = 0
                         break
-                self.comboBox_1.setCurrentIndex(mm-1)
+                self.comboBox_1.setCurrentIndex(mm - 1)
             # Restore window size and position
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
@@ -543,10 +547,10 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
             if 'history_index' in self.conf:
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
-            self.logger.log(logging.INFO, 'Configuration restored from %s' % fullName)
+            self.logger.log(logging.INFO, 'Configuration restored from %s' % full_name)
             return True
-        except :
-            self.logger.log(logging.WARNING, 'Configuration restore error from %s' % fullName)
+        except:
+            self.logger.log(logging.WARNING, 'Configuration restore error from %s' % full_name)
             self.logger.debug('Exception:', exc_info=True)
             return False
 
@@ -606,7 +610,7 @@ class LogTable:
 
         # Full file name
         fn = os.path.join(folder, file_name)
-        if not os.path.exists(fn) :
+        if not os.path.exists(fn):
             self.logger.info('File %s does not exist' % file_name)
             return
         # read file to buf
@@ -695,7 +699,7 @@ class LogTable:
             lines = buf.split('\n')
             if len(lines) <= self.file_lines:
                 return
-            self.logger.debug('%d additional lines in %s' % (len(lines)-self.file_lines, self.file_name))
+            self.logger.debug('%d additional lines in %s' % (len(lines) - self.file_lines, self.file_name))
             # Loop for added lines
             for line in lines[self.file_lines:]:
                 self.decode_line(line)
@@ -713,7 +717,7 @@ class LogTable:
         for item in self.units:
             item.append("")
         self.rows += 1
-    
+
     def remove_row(self, row):
         for item in self.data:
             del item[row]
@@ -766,7 +770,6 @@ class LogTable:
         except:
             return float('nan')
 
-
     def get_item(self, row, col):
         return self.item(row, col)
 
@@ -774,7 +777,7 @@ class LogTable:
         coln = self.column_number(col)
         if coln < 0:
             return False
-        if row < 0 or row > len(self.data[coln])-1:
+        if row < 0 or row > len(self.data[coln]) - 1:
             return False
         self.data[coln][row] = value
         vu = value.split(" ")
@@ -814,7 +817,7 @@ class LogTable:
         self.units.append(new_col)
         self.columns += 1
         return self.headers.index(col_name)
-        
+
     def find_column(self, col_name):
         try:
             return self.headers.index(col_name)
@@ -827,13 +830,14 @@ class LogTable:
     def __len__(self):
         return len(self.headers)
 
-    def __getitem__(self, item):
-        return self.column[item]
-    
 
 class Signal:
-    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params={}, name='',
-                 unit='', scale=1.0, value=0.0, marks={}):
+    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params=None, name='',
+                 unit='', scale=1.0, value=0.0, marks=None):
+        if params is None:
+            params = {}
+        if marks is None:
+            marks = {}
         self.x = x
         self.y = y
         self.params = params
@@ -845,7 +849,7 @@ class Signal:
 
     def __add__(self, other):
         args = self.justify(self, other)
-        result = Signal(args[0].x, args[0].y+args[1].y)
+        result = Signal(args[0].x, args[0].y + args[1].y)
         return result
 
     @staticmethod
@@ -869,7 +873,7 @@ class Signal:
 
 class DataFile:
     def __init__(self, file_name, folder=""):
-        #self.logger = logging.getLogger(__name__)
+        # self.logger = logging.getLogger(__name__)
         self.logger = config_logger()
         self.file_name = None
         self.files = []
@@ -881,7 +885,7 @@ class DataFile:
         for f in self.files:
             if f.find("chan") >= 0 and f.find("paramchan") < 0:
                 self.signals.append(f)
-        
+
     def read_signal(self, signal_name: str) -> Signal:
         signal = Signal()
         if signal_name not in self.signals:
@@ -954,7 +958,7 @@ class DataFile:
                 try:
                     ms = int((float(signal.params[k].replace(b',', b'.')) - x0) / dx)
                     ml = int(float(signal.params[k.replace(b"_start", b'_length')].replace(b',', b'.')) / dx)
-                    mv = signal.y[ms:ms+ml].mean()
+                    mv = signal.y[ms:ms + ml].mean()
                 except:
                     self.logger.log(logging.WARNING, 'Mark %s value can not be computed for %s' % (k, signal_name))
                     ms = 0
@@ -969,7 +973,7 @@ class DataFile:
         if 'mark' in signal.marks:
             signal.value = signal.marks["mark"][2] - zero
         else:
-            signal.value = 0.0    
+            signal.value = 0.0
         return signal
 
     def read_all_signals(self):
@@ -996,6 +1000,7 @@ class TextEditHandler(logging.Handler):
 class Config:
     def __init__(self):
         self.data = {}
+
     def __getitem__(self, item):
         return self.data[item]
 
