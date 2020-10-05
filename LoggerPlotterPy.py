@@ -99,7 +99,6 @@ class MainWindow(QMainWindow):
         self.actionQuit.triggered.connect(qApp.quit)
         self.actionOpen.triggered.connect(self.select_log_file)
         self.actionPlot.triggered.connect(self.show_plot_pane)
-        self.actionLog.triggered.connect(self.show_log_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
         self.actionAbout.triggered.connect(self.show_about)
         # Additional configuration
@@ -116,8 +115,6 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
-        # Disable text wrapping in log window
-        self.plainTextEdit.setLineWrapMode(0)
         # Clock label at status bar
         self.clock = QLabel(" ")
         self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
@@ -144,7 +141,6 @@ class MainWindow(QMainWindow):
     def show_plot_pane(self):
         self.stackedWidget.setCurrentIndex(0)
         self.actionPlot.setChecked(True)
-        self.actionLog.setChecked(False)
         self.actionParameters.setChecked(False)
         self.save_settings()
         self.table_selection_changed()
@@ -152,16 +148,9 @@ class MainWindow(QMainWindow):
             self.refresh_flag = False
             self.parse_folder()
 
-    def show_log_pane(self):
+    def show_param_pane(self):
         self.stackedWidget.setCurrentIndex(1)
         self.actionPlot.setChecked(False)
-        self.actionLog.setChecked(True)
-        self.actionParameters.setChecked(False)
-
-    def show_param_pane(self):
-        self.stackedWidget.setCurrentIndex(2)
-        self.actionPlot.setChecked(False)
-        self.actionLog.setChecked(False)
         self.actionParameters.setChecked(True)
 
     def select_log_file(self):

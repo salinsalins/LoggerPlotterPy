@@ -156,8 +156,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>1037</width>
-                       <height>461</height>
+                       <width>1046</width>
+                       <height>456</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -201,7 +201,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>1063</width>
-                       <height>218</height>
+                       <height>210</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -240,7 +240,7 @@
                          <number>0</number>
                         </property>
                         <attribute name="horizontalHeaderVisible">
-                         <bool>true</bool>
+                         <bool>false</bool>
                         </attribute>
                         <attribute name="horizontalHeaderDefaultSectionSize">
                          <number>100</number>
@@ -265,50 +265,6 @@
                   </widget>
                  </item>
                 </layout>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-            <widget class="QWidget" name="stackedWidgetPage2">
-             <layout class="QVBoxLayout" name="verticalLayout_3">
-              <property name="spacing">
-               <number>3</number>
-              </property>
-              <property name="leftMargin">
-               <number>3</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>3</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QPlainTextEdit" name="plainTextEdit">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="autoFillBackground">
-                 <bool>false</bool>
-                </property>
-                <property name="undoRedoEnabled">
-                 <bool>false</bool>
-                </property>
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
                </widget>
               </item>
              </layout>
@@ -763,7 +719,6 @@ File</string>
      <string>View</string>
     </property>
     <addaction name="actionPlot"/>
-    <addaction name="actionLog"/>
     <addaction name="actionParameters"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
