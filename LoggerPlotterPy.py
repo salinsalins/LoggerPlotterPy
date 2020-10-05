@@ -596,7 +596,6 @@ class LogTable:
         self.file_lines = -1
         self.rows = 0
         self.columns = 0
-
         # Full file name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn):
