@@ -29,7 +29,7 @@ from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QFont
 import PyQt5.QtGui as QtGui
 
-import numpy as np
+import numpy
 from mplwidget import MplWidget
 
 from modules import *
@@ -832,7 +832,7 @@ class LogTable:
     
 
 class Signal:
-    def __init__(self, x=np.zeros(1), y=np.zeros(1), params={}, name='',
+    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params={}, name='',
                  unit='', scale=1.0, value=0.0, marks={}):
         self.x = x
         self.y = y
@@ -843,14 +843,28 @@ class Signal:
         self.value = value
         self.marks = marks
 
-    # def __add__(self, other):
-    #     x1min = self.x.min()
-    #     x1max = self.x.max()
-    #     x2min = other.x.min()
-    #     x2max = other.x.max()
-    #     xmin = min(x1min, x2min)
-    #     xmax = max(x1max, x2max)
-    #     return self
+    def __add__(self, other):
+        args = self.justify(self, other)
+        result = Signal(args[0].x, args[0].y+args[1].y)
+        return result
+
+    @staticmethod
+    def justify(first, other):
+        if len(first.x) == len(other.x) and \
+                first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
+            return first, other
+        result = (Signal(), Signal())
+        xmin = max(first.x[0], other.x[0])
+        xmax = min(first.x[-1], other.x[-1])
+        if xmax <= xmin:
+            return result
+        n = min(len(first.x), len(other.x))
+        x = numpy.linspace(xmin, xmax, n)
+        result[0].x = x
+        result[1].x = x
+        result[0].y = numpy.interp(x, first.x, first.y)
+        result[1].y = numpy.interp(x, other.x, other.y)
+        return result
 
 
 class DataFile:
@@ -891,8 +905,8 @@ class DataFile:
         if n < 2:
             self.logger.warning("No data for %s" % signal_name)
             return signal
-        signal.x = np.empty(n)
-        signal.y = np.empty(n)
+        signal.x = numpy.empty(n)
+        signal.y = numpy.empty(n)
         ii = 0
         for ln in lines:
             xy = ln.split(b'; ')
