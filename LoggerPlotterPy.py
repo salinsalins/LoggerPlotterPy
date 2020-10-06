@@ -104,7 +104,8 @@ class MainWindow(QMainWindow):
         # Additional configuration
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         header = self.tableWidget_3.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
+        #header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
+        header.setSectionResizeMode(QHeaderView.ResizeToContents)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(0)
         header.sectionDoubleClicked.connect(self.test)
         self.tableWidget_3.setStyleSheet("""
