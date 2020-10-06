@@ -105,6 +105,8 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         header = self.tableWidget_3.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
+        header.setSectionResizeMode(0)
+        header.sectionDoubleClicked.connect(self.test)
         self.tableWidget_3.setStyleSheet("""
                 QTableView {
                     gridline-color: black;
@@ -130,6 +132,9 @@ class MainWindow(QMainWindow):
         # self.tableWidget_3.horizontalHeader().
         # Read data files
         self.parse_folder()
+
+    def test(self, a):
+        print('test', a)
 
     def refresh_on(self):
         self.refresh_flag = True
