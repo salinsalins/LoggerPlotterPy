@@ -236,6 +236,8 @@ class MainWindow(QMainWindow):
                                 s.x = x_val
                                 s.y = y_val
                                 s.name = key
+                            else:
+                                s = Signal()
                         self.signal_list.append(s)
                         self.signals.append(self.signal_list.index(s))
                     except:
