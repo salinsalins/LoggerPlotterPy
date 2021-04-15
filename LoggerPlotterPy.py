@@ -30,6 +30,7 @@ from PyQt5.QtGui import QFont
 import PyQt5.QtGui as QtGui
 
 import numpy
+
 np = numpy
 from mplwidget import MplWidget
 
@@ -109,7 +110,7 @@ class MainWindow(QMainWindow):
         # Additional configuration
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         header = self.tableWidget_3.horizontalHeader()
-        #header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
+        # header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(QHeaderView.ResizeToContents)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(0)
         header.sectionDoubleClicked.connect(self.test)
@@ -234,13 +235,18 @@ class MainWindow(QMainWindow):
                         result = eval(p)
                         if isinstance(result, Signal):
                             s = result
-                        else:
+                        elif len(result) == 3:
                             key, x_val, y_val = result
-                            s = Signal(name='undefined')
                             if key != '':
+                                s = Signal(name='undefined')
                                 s.x = x_val
                                 s.y = y_val
                                 s.name = key
+                        elif len(result) == 2:
+                            if isinstance(result[1], Signal):
+                                s = Signal(name='undefined')
+                                s = result[1]
+                                s.name = result[0]
                         self.signal_list.append(s)
                         self.signals.append(self.signal_list.index(s))
                     except:
@@ -851,8 +857,27 @@ class Signal:
         self.marks = marks
 
     def __add__(self, other):
-        args = self.justify(self, other)
-        result = Signal(args[0].x, args[0].y + args[1].y)
+        if isinstance(other, Signal):
+            args = self.justify(self, other)
+            result = Signal(args[0].x, args[0].y + args[1].y)
+        else:
+            result = Signal(self.x, self.y + other)
+        return result
+
+    def __sub__(self, other):
+        if isinstance(other, Signal):
+            args = self.justify(self, other)
+            result = Signal(args[0].x, args[0].y - args[1].y)
+        else:
+            result = Signal(self.x, self.y - other)
+        return result
+
+    def __mul__(self, other):
+        if isinstance(other, Signal):
+            args = self.justify(self, other)
+            result = Signal(args[0].x, args[0].y * args[1].y)
+        else:
+            result = Signal(self.x, self.y * other)
         return result
 
     @staticmethod
