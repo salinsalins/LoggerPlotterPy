@@ -231,13 +231,11 @@ class MainWindow(QMainWindow):
                             s = result
                         else:
                             key, x_val, y_val = result
+                            s = Signal(name='undefined')
                             if key != '':
-                                s = Signal()
                                 s.x = x_val
                                 s.y = y_val
                                 s.name = key
-                            else:
-                                s = Signal()
                         self.signal_list.append(s)
                         self.signals.append(self.signal_list.index(s))
                     except:
