@@ -30,6 +30,7 @@ from PyQt5.QtGui import QFont
 import PyQt5.QtGui as QtGui
 
 import numpy
+np = numpy
 from mplwidget import MplWidget
 
 from modules import *
@@ -639,7 +640,7 @@ class LogTable:
         # First field "date time" should be longer than 18 symbols
         if len(flds[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.info('Wrong date/time format "%s", line skipped' % flds[0])
+            self.logger.info('Wrong date/time format in "%s", line skipped' % flds[0])
             return
         # split time and date
         tm = flds[0].split(" ")[1].strip()
@@ -661,7 +662,7 @@ class LogTable:
             except:
                 v = float('nan')
                 if key != 'Time' and key != 'File':
-                    self.logger.debug('Non float value "%s"' % vu[0])
+                    self.logger.debug('Non float value in "%s"' % fld)
             self.values[j][self.rows - 1] = v
             # units
             try:
@@ -682,7 +683,7 @@ class LogTable:
                             self.values[j][row] = float(value)
                             self.units[j][row] = str(units)
                     except:
-                        self.logger.log(logging.INFO, 'Column eval() error in \n              %s' % column)
+                        self.logger.log(logging.INFO, 'Column eval() error in \n   %s' % column)
                         self.logger.debug('Exception:', exc_info=True)
 
     def refresh(self, extra_cols):
@@ -960,9 +961,12 @@ class DataFile:
                 try:
                     ms = int((float(signal.params[k].replace(b',', b'.')) - x0) / dx)
                     ml = int(float(signal.params[k.replace(b"_start", b'_length')].replace(b',', b'.')) / dx)
+                    if ml <= 0 or ms < 0:
+                        raise Exception('Empty slice')
                     mv = signal.y[ms:ms + ml].mean()
                 except:
                     self.logger.log(logging.WARNING, 'Mark %s value can not be computed for %s' % (k, signal_name))
+                    self.logger.debug('Exception:', exc_info=True)
                     ms = 0
                     ml = 0
                     mv = 0.0
