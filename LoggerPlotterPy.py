@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
                 return
             folder = os.path.dirname(self.log_file_name)
             zipFileName = self.log_table.column("File")[row]
-            self.logger.log(logging.DEBUG, 'Used zip File %s' % zipFileName)
+            self.logger.log(logging.DEBUG, 'Using zip File %s' % zipFileName)
             # read zip file listing
             self.dataFile = DataFile(zipFileName, folder=folder)
             # read signals from zip file
@@ -575,6 +575,9 @@ class MainWindow(QMainWindow):
         # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')
         self.clock.setText(t)
+        # check if in parameters edit mode
+        if self.stackedWidget.currentIndex() != 0:
+            return
         # check if lock file exists
         if self.is_locked():
             return
