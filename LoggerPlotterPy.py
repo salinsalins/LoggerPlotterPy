@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
         self.trace_color = '#00ff00'
         self.mark_color = '#ff0000'
         self.zero_color = '#0000ff'
-        #
+
         self.log_file_name = None
         self.conf = {}
         self.refresh_flag = False
@@ -82,6 +82,10 @@ class MainWindow(QMainWindow):
         self.old_signal_list = []
         self.signals = []
         self.extra_cols = []
+        self.oldsize = 0
+        self.newsize = 0
+
+        # initial actions
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # Configure logging
@@ -361,6 +365,7 @@ class MainWindow(QMainWindow):
                 return
             self.statusBar().showMessage('Reading %s' % file_name)
             self.logger.debug('Reading log file %s', file_name)
+            # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             # read log file content to logTable
             self.log_table = LogTable(file_name, extra_cols=self.extra_cols)
@@ -386,11 +391,11 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.setColumnCount(0)
             # refill table widget
             # insert columns
-            row = 0
+            cln = 0
             for column in self.columns:
-                self.tableWidget_3.insertColumn(row)
-                self.tableWidget_3.setHorizontalHeaderItem(row, QTableWidgetItem(column))
-                row += 1
+                self.tableWidget_3.insertColumn(cln)
+                self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
+                cln += 1
             # insert and fill rows
             # numbers = self.columns.copy
             # formats = self.columns.copy
@@ -584,9 +589,9 @@ class MainWindow(QMainWindow):
         # check if log file exists
         if not os.path.exists(self.log_file_name):
             return
-        oldSize = self.log_table.file_size
-        newSize = os.path.getsize(self.log_file_name)
-        if newSize <= oldSize:
+        self.oldSize = self.log_table.file_size
+        self.newSize = os.path.getsize(self.log_file_name)
+        if self.newSize <= self.oldSize:
             return
         self.parse_folder()
 
