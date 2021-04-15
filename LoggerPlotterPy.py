@@ -826,7 +826,7 @@ class LogTable:
 
 
 class Signal:
-    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params=None, name='',
+    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params=None, name='empty',
                  unit='', scale=1.0, value=0.0, marks=None):
         if params is None:
             params = {}
