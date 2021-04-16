@@ -11,14 +11,13 @@ import pyqtgraph
 
 class MplWidget(pyqtgraph.PlotWidget):
     def __init__(self, parent=None, height=300, width=300):
-        # initialization of Qt MainWindow widget
-        QtGui.QWidget.__init__(self, parent)
-
+        self.canvas = object()
+        self.canvas.ax = object()
         self.ntb = ToolBar()
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
 
-class ToolBar():
+class ToolBar:
     def __init__(self, *args):
         pass
 
