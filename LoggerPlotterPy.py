@@ -33,6 +33,7 @@ import numpy
 
 np = numpy
 from mplwidget import MplWidget
+#from pyqtgraphdget import MplWidget
 
 from modules import *
 from imports import *
@@ -200,6 +201,7 @@ class MainWindow(QMainWindow):
                     return sg
             return None
 
+        # self.logger.debug('Entry')
         try:
             # if selection is empty
             if len(self.tableWidget_3.selectedRanges()) < 1:
@@ -253,6 +255,7 @@ class MainWindow(QMainWindow):
                         self.logger.info('Plot eval() error in %s' % p)
                         self.logger.debug('Exception:', exc_info=True)
             # plot signals
+            self.logger.debug('Plot signals begin')
             layout = self.scrollAreaWidgetContents_3.layout()
             jj = 0
             col = 0
@@ -323,6 +326,7 @@ class MainWindow(QMainWindow):
                 if w:
                     w.deleteLater()
             self.last_selection = row
+            self.logger.debug('Plot signals end')
         except:
             self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
             self.logger.debug('Exception:', exc_info=True)
