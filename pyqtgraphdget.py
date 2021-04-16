@@ -11,11 +11,38 @@ import pyqtgraph
 
 class MplWidget(pyqtgraph.PlotWidget):
     def __init__(self, parent=None, height=300, width=300):
-        self.canvas = object()
-        self.canvas.ax = object()
+        super().__init__()
+        self.canvas = axes_adapter(self)
+        self.canvas.ax = axes_adapter(self)
         self.ntb = ToolBar()
+
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
+
+class axes_adapter(pyqtgraph.PlotWidget):
+    def __init__(self, item):
+        self.item = item
+        super().__init__()
+        pass
+
+    def grid(self, val=True):
+        self.item.getPlotItem().showGrid(val, val)
+
+    def set_title(self, val=''):
+        self.item.getPlotItem().setTitle(val)
+
+    def set_xlabel(self, val=''):
+        pass
+
+    def set_ylabel(self, val=''):
+        pass
+
+    def draw(self, val=''):
+        pass
+
+    def plot(self, x, y, color='#ffffff'):
+        self.item.plot(x, y, pen=color)
+
 
 class ToolBar:
     def __init__(self, *args):

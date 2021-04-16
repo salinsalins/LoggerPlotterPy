@@ -32,8 +32,8 @@ import PyQt5.QtGui as QtGui
 import numpy
 
 np = numpy
-from mplwidget import MplWidget
-#from pyqtgraphdget import MplWidget
+#from mplwidget import MplWidget
+from pyqtgraphdget import MplWidget
 
 from modules import *
 from imports import *
