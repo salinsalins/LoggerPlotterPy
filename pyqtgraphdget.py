@@ -8,6 +8,8 @@ from PyQt5 import QtGui
 #from PyQt5 import QtWidgets as QtGui
 import pyqtgraph
 #from pyqtgraph import PlotWidget as Figure
+bgc = '#1d648d'
+pyqtgraph.setConfigOption('background', '#1d648d')
 
 class MplWidget(pyqtgraph.PlotWidget):
     def __init__(self, parent=None, height=300, width=300):
