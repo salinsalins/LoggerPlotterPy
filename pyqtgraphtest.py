@@ -27,6 +27,7 @@ import numpy as np
 x = np.random.normal(size=1000)
 y = np.random.normal(size=1000)
 plot.plot(x, y, pen=None, symbol='o')  ## setting pen=None disables line drawing
+plot.plot(x, y*2)  ## setting pen=None disables line drawing
 
 plot.setMinimumHeight(300)
 plot.setMinimumWidth(500)
