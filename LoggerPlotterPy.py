@@ -127,6 +127,7 @@ class MainWindow(QMainWindow):
         # Clock label at status bar
         self.clock = QLabel(" ")
         self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
+        self.statusBar().setFont(QFont('Open Sans', 14))
         # add widget to status bar
         self.statusBar().addPermanentWidget(self.clock)
         self.statusBar().showMessage('Starting...')
