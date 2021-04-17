@@ -202,6 +202,7 @@ class MainWindow(QMainWindow):
             return None
 
         # self.logger.debug('Entry')
+        t0 = time.time()
         try:
             # if selection is empty
             if len(self.tableWidget_3.selectedRanges()) < 1:
@@ -255,7 +256,7 @@ class MainWindow(QMainWindow):
                         self.logger.info('Plot eval() error in %s' % p)
                         self.logger.debug('Exception:', exc_info=True)
             # plot signals
-            self.logger.debug('Plot signals begin')
+            self.logger.debug('Plot signals begin %s', time.time()-t0)
             layout = self.scrollAreaWidgetContents_3.layout()
             jj = 0
             col = 0
@@ -326,7 +327,7 @@ class MainWindow(QMainWindow):
                 if w:
                     w.deleteLater()
             self.last_selection = row
-            self.logger.debug('Plot signals end')
+            self.logger.debug('Plot signals end %s', time.time()-t0)
         except:
             self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
             self.logger.debug('Exception:', exc_info=True)
