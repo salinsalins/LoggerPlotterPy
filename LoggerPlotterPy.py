@@ -918,6 +918,14 @@ class Signal:
             result = Signal(self.x, self.y * other)
         return result
 
+    def __truediv__(self, other):
+        if isinstance(other, Signal):
+            args = self.justify(self, other)
+            result = Signal(args[0].x, args[0].y / args[1].y)
+        else:
+            result = Signal(self.x, self.y / other)
+        return result
+
     @staticmethod
     def justify(first, other):
         if len(first.x) == len(other.x) and \
