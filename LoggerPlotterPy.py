@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QLabel
-from PyQt5 import uic
+from PyQt5 import uic, QtCore
 from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QTimer
@@ -1046,6 +1046,11 @@ if __name__ == '__main__':
         CONFIG_FILE = sys.argv[1]
     # create the GUI application
     app = QApplication(sys.argv)
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+    #app.setHighDpiScaleFactorRoundingPolicy(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    #app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+    #app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
+    #app.setAttribute(QtCore.Qt.AA_Use96Dpi)
     # instantiate the main window
     dmw = MainWindow()
     app.aboutToQuit.connect(dmw.onQuit)

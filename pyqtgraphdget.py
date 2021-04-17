@@ -49,7 +49,8 @@ class MplWidget(pyqtgraph.PlotWidget):
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
         self.getPlotItem().showGrid(True, True)
-        pyqtgraph.GridItem().setPen('k')
+        #self.getPlotItem().getAxis('left').setBackgroundColor('w')
+        #pyqtgraph.GridItem().setPen('k')
 
 class MplAdapter:
     def __init__(self, item):
@@ -74,7 +75,7 @@ class MplAdapter:
         pass
 
     def plot(self, x, y, color='#ffffff'):
-        self.item.plot(x, y, pen=color)
+        self.item.plot(x, y, pen={'color': color, 'width': 2})
 
     def clear(self):
         self.item.clear()
