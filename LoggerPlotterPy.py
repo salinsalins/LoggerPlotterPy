@@ -255,6 +255,20 @@ class MainWindow(QMainWindow):
                     except:
                         self.logger.info('Plot eval() error in %s' % p)
                         self.logger.debug('Exception:', exc_info=True)
+            # reorder signals to plot order and exclude not necessary
+            plot_order = self.plainTextEdit_7.toPlainText().split('\n')
+            excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
+            ordered_signals = []
+            for p in plot_order:
+                for s in self.signal_list:
+                    if s.name == p:
+                        ordered_signals.append(self.signal_list.index(s))
+                        break
+            for p in self.signals:
+                if p not in ordered_signals:
+                    if self.signal_list[p].name not in excluded_plots:
+                        ordered_signals.append(p)
+            self.signals = ordered_signals
             # plot signals
             self.logger.debug('Plot signals begin %s', time.time()-t0)
             layout = self.scrollAreaWidgetContents_3.layout()
@@ -466,6 +480,12 @@ class MainWindow(QMainWindow):
         return
 
     def save_settings(self, folder='', file_name=CONFIG_FILE):
+        def attr2conf(attr, name):
+            try:
+                self.conf[name] = str(attr)
+            except:
+                pass
+
         full_name = os.path.join(str(folder), file_name)
         try:
             # save window size and position
@@ -483,6 +503,8 @@ class MainWindow(QMainWindow):
             self.conf['cb_2'] = self.checkBox_2.isChecked()
             self.conf['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
             self.conf['extra_col'] = str(self.plainTextEdit_5.toPlainText())
+            attr2conf(self.plainTextEdit_6.toPlainText(), 'exclude_plots')
+            attr2conf(self.plainTextEdit_7.toPlainText(), 'plot_order')
             if os.path.exists(full_name):
                 # try to read old config to confirm correct syntax
                 with open(full_name, 'r') as configfile:
@@ -497,6 +519,11 @@ class MainWindow(QMainWindow):
             return False
 
     def restore_settings(self, folder='', file_name=CONFIG_FILE):
+        def conf2attr(attr, name):
+            try:
+                attr(self.conf[name])
+            except:
+                pass
         full_name = os.path.join(str(folder), file_name)
         try:
             with open(full_name, 'r') as configfile:
@@ -548,6 +575,12 @@ class MainWindow(QMainWindow):
                 self.plainTextEdit_4.setPlainText(self.conf['extra_plot'])
             if 'extra_col' in self.conf:
                 self.plainTextEdit_5.setPlainText(self.conf['extra_col'])
+            if 'extra_col' in self.conf:
+                self.plainTextEdit_5.setPlainText(self.conf['extra_col'])
+            if 'exclude_plots' in self.conf and hasattr(self, 'plainTextEdit_6'):
+                self.plainTextEdit_6.setPlainText(self.conf['exclude_plots'])
+            if 'plot_order' in self.conf and hasattr(self, 'plainTextEdit_7'):
+                self.plainTextEdit_7.setPlainText(self.conf['plot_order'])
             if 'cb_1' in self.conf:
                 self.checkBox_1.setChecked(self.conf['cb_1'])
             if 'cb_2' in self.conf:

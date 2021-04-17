@@ -157,7 +157,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>1037</width>
-                       <height>466</height>
+                       <height>468</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -204,7 +204,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>1065</width>
-                       <height>220</height>
+                       <height>218</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -605,23 +605,11 @@
                     <property name="spacing">
                      <number>3</number>
                     </property>
-                    <item row="0" column="0">
-                     <widget class="QLabel" name="label_3">
-                      <property name="text">
-                       <string>Includet Columns</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="1">
-                     <widget class="QLabel" name="label_4">
-                      <property name="text">
-                       <string>Excluded Columns</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
+                    <item row="1" column="1">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_3">
+                      <property name="plainText">
+                       <string>Shot
+File</string>
                       </property>
                      </widget>
                     </item>
@@ -632,11 +620,40 @@
                       </property>
                      </widget>
                     </item>
-                    <item row="1" column="1">
-                     <widget class="QPlainTextEdit" name="plainTextEdit_3">
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_3">
+                      <property name="text">
+                       <string>Include Columns</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLabel" name="label_4">
+                      <property name="text">
+                       <string>Exclude Columns</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="2">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_6">
                       <property name="plainText">
-                       <string>Shot
-File</string>
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="2">
+                     <widget class="QLabel" name="label_8">
+                      <property name="text">
+                       <string>Exclude plots</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
                       </property>
                      </widget>
                     </item>
@@ -665,13 +682,26 @@ File</string>
                     <item row="1" column="0">
                      <widget class="QPlainTextEdit" name="plainTextEdit_4"/>
                     </item>
-                    <item row="1" column="1">
-                     <widget class="QPlainTextEdit" name="plainTextEdit_5"/>
-                    </item>
                     <item row="0" column="1">
                      <widget class="QLabel" name="label_6">
                       <property name="text">
                        <string>Additional columns</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_5"/>
+                    </item>
+                    <item row="1" column="2">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_7"/>
+                    </item>
+                    <item row="0" column="2">
+                     <widget class="QLabel" name="label_7">
+                      <property name="text">
+                       <string>Plot order</string>
                       </property>
                       <property name="alignment">
                        <set>Qt::AlignCenter</set>
