@@ -35,8 +35,7 @@ np = numpy
 #from mplwidget import MplWidget
 from pyqtgraphdget import MplWidget
 
-from modules import *
-from imports import *
+import imports
 
 
 def config_logger(name=__name__, level=logging.DEBUG):
