@@ -271,6 +271,7 @@ class MainWindow(QMainWindow):
             self.signals = ordered_signals
             # plot signals
             self.logger.debug('Plot signals begin %s', time.time()-t0)
+            self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
             layout = self.scrollAreaWidgetContents_3.layout()
             jj = 0
             col = 0
@@ -341,8 +342,10 @@ class MainWindow(QMainWindow):
                 if w:
                     w.deleteLater()
             self.last_selection = row
+            self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.logger.debug('Plot signals end %s', time.time()-t0)
         except:
+            self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
             self.logger.debug('Exception:', exc_info=True)
 
@@ -411,6 +414,7 @@ class MainWindow(QMainWindow):
                 if t not in self.excluded and t not in self.columns:
                     self.columns.append(t)
             # disable table widget update events
+            self.tableWidget_3.setUpdatesEnabled(False)
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
             # clear table widget
             self.tableWidget_3.setRowCount(0)
@@ -466,6 +470,7 @@ class MainWindow(QMainWindow):
                     self.tableWidget_3.setItem(row, n, item)
                     n += 1
             # enable table widget update events
+            self.tableWidget_3.setUpdatesEnabled(True)
             self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
             self.tableWidget_3.resizeColumnsToContents()
             # select last row of widget -> tableSelectionChanged will be fired
