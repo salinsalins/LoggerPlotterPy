@@ -77,6 +77,7 @@ class MainWindow(QMainWindow):
         self.zero_color = '#0000ff'
 
         self.log_file_name = None
+        self.root = None
         self.conf = {}
         self.refresh_flag = False
         self.last_selection = -1
@@ -541,13 +542,13 @@ class MainWindow(QMainWindow):
                 v = self.conf['log_level']
                 self.logger.setLevel(v)
                 levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
-                          logging.WARNING, logging.ERROR, logging.CRITICAL, logging.CRITICAL + 10]
+                          logging.WARNING, logging.ERROR, logging.CRITICAL]
                 mm = 0
                 for m in range(len(levels)):
-                    if v < levels[m]:
-                        mm = 0
+                    if v <= levels[m]:
+                        mm = m
                         break
-                self.comboBox_1.setCurrentIndex(mm - 1)
+                self.comboBox_1.setCurrentIndex(mm)
             # Restore window size and position
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
@@ -626,6 +627,16 @@ class MainWindow(QMainWindow):
             return True
         return False
 
+    def get_root(self):
+        a = os.path.dirname(self.log_file_name)
+        a = os.path.dirname(a)
+        a = os.path.dirname(a)
+        a = os.path.dirname(a)
+        if os.path.isfile('filename.txt'):
+            pass
+        #print('root', a)
+        return a
+
     def timer_handler(self):
         # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')
@@ -633,6 +644,7 @@ class MainWindow(QMainWindow):
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
             return
+        #self.get_root()
         # check if lock file exists
         if self.is_locked():
             return
@@ -988,8 +1000,8 @@ class DataFile:
         if n < 2:
             self.logger.warning("No data for %s" % signal_name)
             return signal
-        signal.x = numpy.empty(n)
-        signal.y = numpy.empty(n)
+        signal.x = numpy.zeros(n, dtype=float)
+        signal.y = numpy.zeros(n, dtype=float)
         ii = 0
         for ln in lines:
             xy = ln.split(b'; ')
@@ -998,8 +1010,6 @@ class DataFile:
                 signal.y[ii] = float(xy[1].replace(b',', b'.'))
             except:
                 self.logger.log(logging.ERROR, "Wrong data for signal %s" % signal_name)
-                signal.x[ii] = 0.0
-                signal.y[ii] = 0.0
             ii += 1
         # read parameters        
         signal.params = {}
