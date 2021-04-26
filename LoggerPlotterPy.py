@@ -51,12 +51,24 @@ def config_logger(name=__name__, level=logging.DEBUG):
     return lgr
 
 
+def timeit(method):
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+        print('%r %2.2f sec' % (method.__name__, te-ts))
+        return result
+    return timed
+
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'LoggerPlotterPy'
 APPLICATION_NAME_SHORT = APPLICATION_NAME
 APPLICATION_VERSION = '_4_4'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
+
+CELL_BOLD_FONT = QFont('Open Sans Bold', weight=QFont.Bold)
+CELL_NORMAL_FONT = QFont('Open Sans', weight=QFont.Normal)
 
 # Configure logging
 logger = config_logger(level=logging.INFO)
@@ -114,7 +126,7 @@ class MainWindow(QMainWindow):
         # header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(QHeaderView.ResizeToContents)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(0)
-        header.sectionDoubleClicked.connect(self.test)
+        # header.sectionDoubleClicked.connect(self.test)
         self.tableWidget_3.setStyleSheet("""
                 QTableView {
                     gridline-color: black;
@@ -125,7 +137,7 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
-        # Clock label at status bar
+        # clock label at status bar
         self.clock = QLabel(" ")
         self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
         self.statusBar().setFont(QFont('Open Sans', 14))
@@ -135,11 +147,11 @@ class MainWindow(QMainWindow):
         # default settings
         self.set_default_settings()
         print(APPLICATION_NAME + APPLICATION_VERSION + ' started')
-        # Restore settings
+        # restore settings
         self.restore_settings()
-        # Additional decorations
+        # additional decorations
         # self.tableWidget_3.horizontalHeader().
-        # Read data files
+        # read data files
         self.parse_folder()
 
     def test(self, a):
@@ -195,6 +207,7 @@ class MainWindow(QMainWindow):
         # change selection and fire callback
         self.comboBox_2.setCurrentIndex(i)
 
+    @timeit
     def table_selection_changed(self):
         def sig(name):
             for sg in self.signal_list:
@@ -387,6 +400,7 @@ class MainWindow(QMainWindow):
                 columns.append(self.log_table.headers.index(t))
         return columns
 
+    @timeit
     def parse_folder(self, file_name=None):
         try:
             if file_name is None:
@@ -455,7 +469,6 @@ class MainWindow(QMainWindow):
                             v1 = 0.0
                         thr = 0.03
                         try:
-                            thr = config['threshold']
                             thr = config['thresholds'][self.log_table.headers[col]]
                         except:
                             pass
@@ -465,15 +478,15 @@ class MainWindow(QMainWindow):
                         elif thr < 0.0:
                             flag = abs(v1 - v) > -thr
                         if flag:
-                            item.setFont(QFont('Open Sans Bold', weight=QFont.Bold))
+                            item.setFont(CELL_BOLD_FONT)
                         else:
-                            item.setFont(QFont('Open Sans', weight=QFont.Normal))
+                            item.setFont(CELL_NORMAL_FONT)
                     self.tableWidget_3.setItem(row, n, item)
                     n += 1
             # enable table widget update events
             self.tableWidget_3.setUpdatesEnabled(True)
-            self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
             self.tableWidget_3.resizeColumnsToContents()
+            self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
             # select last row of widget -> tableSelectionChanged will be fired
             self.last_selection = -1
             self.tableWidget_3.scrollToBottom()
