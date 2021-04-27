@@ -11,6 +11,7 @@ import json
 import logging
 import zipfile
 import time
+import gc
 
 from PyQt5.QtWidgets import QMainWindow, QHeaderView
 from PyQt5.QtWidgets import QApplication
@@ -217,6 +218,7 @@ class MainWindow(QMainWindow):
 
         # self.logger.debug('Entry')
         t0 = time.time()
+        gc.collect()
         try:
             # if selection is empty
             if len(self.tableWidget_3.selectedRanges()) < 1:
