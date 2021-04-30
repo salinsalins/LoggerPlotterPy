@@ -56,6 +56,10 @@ class MplWidget(pyqtgraph.PlotWidget):
         #self.getPlotItem().getAxis('left').setBackgroundColor('w')
         #pyqtgraph.GridItem().setPen('k')
 
+    def clearScaleHistory(self):
+        self.getPlotItem().vb.clearScaleHistory()
+
+
 class MplAdapter:
     def __init__(self, item):
         self.item = item
@@ -84,6 +88,9 @@ class MplAdapter:
 
     def clear(self):
         self.item.clear()
+        self.item.getPlotItem().vb.clearScaleHistory()
+
+    def clearScaleHistory(self):
         self.item.getPlotItem().vb.clearScaleHistory()
 
 
