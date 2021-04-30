@@ -84,7 +84,7 @@ class MplAdapter:
 
     def clear(self):
         self.item.clear()
-        ##self.item.getPlotItem().clearScaleHistory()
+        self.item.getPlotItem().vb.clearScaleHistory()
 
 
 class ToolBar:
