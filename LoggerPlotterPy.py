@@ -252,6 +252,7 @@ class MainWindow(QMainWindow):
                 if p.strip() != "":
                     try:
                         result = eval(p)
+                        s = Signal(name='undefined')
                         if isinstance(result, Signal):
                             s = result
                         elif len(result) == 3:
@@ -652,6 +653,7 @@ class MainWindow(QMainWindow):
         #print('root', a)
         return a
 
+    @timeit
     def timer_handler(self):
         # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')

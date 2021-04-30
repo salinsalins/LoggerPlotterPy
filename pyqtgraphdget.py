@@ -39,6 +39,10 @@ class CustomViewBox(pyqtgraph.ViewBox):
     def wheelEvent(self, ev, axis=None):
         ev.ignore()
 
+    def clearScaleHistory(self):
+        self.axHistory = [] # maintain a history of zoom locations
+        self.axHistoryPointer = -1 # pointer into the history. Allows forward/backward movement, not just "undo"
+
 
 class MplWidget(pyqtgraph.PlotWidget):
     def __init__(self, parent=None, height=300, width=300):
@@ -55,6 +59,7 @@ class MplWidget(pyqtgraph.PlotWidget):
 class MplAdapter:
     def __init__(self, item):
         self.item = item
+        #self.plot_item_count = 0
         #super().__init__()
         pass
 
@@ -79,6 +84,7 @@ class MplAdapter:
 
     def clear(self):
         self.item.clear()
+        ##self.item.getPlotItem().clearScaleHistory()
 
 
 class ToolBar:
