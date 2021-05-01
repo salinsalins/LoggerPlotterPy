@@ -1083,7 +1083,7 @@ class DataFile:
                     ml = int(float(signal.params[k.replace(b"_start", b'_length')].replace(b',', b'.')) / dx)
                     ml = min(len(signal.y) - ms, ml)
                     if ml <= 0 or ms < 0:
-                        raise Exception('Empty slice for mark ' + k)
+                        raise Exception('Wrong slice for mark ' + k)
                     mv = signal.y[ms:ms + ml].mean()
                     signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
                 except:
