@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1073</width>
-    <height>767</height>
+    <width>1383</width>
+    <height>964</height>
    </rect>
   </property>
   <property name="font">
@@ -156,8 +156,8 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>1037</width>
-                       <height>468</height>
+                       <width>1347</width>
+                       <height>665</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -203,7 +203,7 @@
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>1065</width>
+                       <width>1375</width>
                        <height>218</height>
                       </rect>
                      </property>
@@ -583,6 +583,12 @@
                  </item>
                  <item>
                   <widget class="QFrame" name="frame_5">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="frameShape">
                     <enum>QFrame::StyledPanel</enum>
                    </property>
@@ -607,6 +613,12 @@
                     </property>
                     <item row="1" column="1">
                      <widget class="QPlainTextEdit" name="plainTextEdit_3">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                        <horstretch>1</horstretch>
+                        <verstretch>1</verstretch>
+                       </sizepolicy>
+                      </property>
                       <property name="plainText">
                        <string>Shot
 File</string>
@@ -615,6 +627,12 @@ File</string>
                     </item>
                     <item row="1" column="0">
                      <widget class="QPlainTextEdit" name="plainTextEdit_2">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                        <horstretch>1</horstretch>
+                        <verstretch>1</verstretch>
+                       </sizepolicy>
+                      </property>
                       <property name="plainText">
                        <string>Time</string>
                       </property>
@@ -641,16 +659,19 @@ File</string>
                      </widget>
                     </item>
                     <item row="1" column="2">
-                     <widget class="QPlainTextEdit" name="plainTextEdit_6">
-                      <property name="plainText">
-                       <string/>
+                     <widget class="QPlainTextEdit" name="plainTextEdit_5">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                        <horstretch>3</horstretch>
+                        <verstretch>1</verstretch>
+                       </sizepolicy>
                       </property>
                      </widget>
                     </item>
                     <item row="0" column="2">
-                     <widget class="QLabel" name="label_8">
+                     <widget class="QLabel" name="label_6">
                       <property name="text">
-                       <string>Exclude plots</string>
+                       <string>Additional columns</string>
                       </property>
                       <property name="alignment">
                        <set>Qt::AlignCenter</set>
@@ -662,6 +683,12 @@ File</string>
                  </item>
                  <item>
                   <widget class="QFrame" name="frame_7">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="frameShape">
                     <enum>QFrame::StyledPanel</enum>
                    </property>
@@ -669,36 +696,22 @@ File</string>
                     <enum>QFrame::Raised</enum>
                    </property>
                    <layout class="QGridLayout" name="gridLayout_2">
+                    <property name="leftMargin">
+                     <number>3</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>3</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>3</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>3</number>
+                    </property>
+                    <property name="spacing">
+                     <number>3</number>
+                    </property>
                     <item row="0" column="0">
-                     <widget class="QLabel" name="label_5">
-                      <property name="text">
-                       <string>Additional plots</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="1" column="0">
-                     <widget class="QPlainTextEdit" name="plainTextEdit_4"/>
-                    </item>
-                    <item row="0" column="1">
-                     <widget class="QLabel" name="label_6">
-                      <property name="text">
-                       <string>Additional columns</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="1" column="1">
-                     <widget class="QPlainTextEdit" name="plainTextEdit_5"/>
-                    </item>
-                    <item row="1" column="2">
-                     <widget class="QPlainTextEdit" name="plainTextEdit_7"/>
-                    </item>
-                    <item row="0" column="2">
                      <widget class="QLabel" name="label_7">
                       <property name="text">
                        <string>Plot order</string>
@@ -708,21 +721,67 @@ File</string>
                       </property>
                      </widget>
                     </item>
+                    <item row="1" column="1">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_6">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                        <horstretch>1</horstretch>
+                        <verstretch>1</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="plainText">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLabel" name="label_8">
+                      <property name="text">
+                       <string>Exclude plots</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="2">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_4">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                        <horstretch>3</horstretch>
+                        <verstretch>1</verstretch>
+                       </sizepolicy>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="2">
+                     <widget class="QLabel" name="label_5">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="text">
+                       <string>Additional plots</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QPlainTextEdit" name="plainTextEdit_7">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                        <horstretch>1</horstretch>
+                        <verstretch>1</verstretch>
+                       </sizepolicy>
+                      </property>
+                     </widget>
+                    </item>
                    </layout>
                   </widget>
-                 </item>
-                 <item>
-                  <spacer name="verticalSpacer">
-                   <property name="orientation">
-                    <enum>Qt::Vertical</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>20</width>
-                     <height>40</height>
-                    </size>
-                   </property>
-                  </spacer>
                  </item>
                 </layout>
                </widget>
@@ -744,7 +803,7 @@ File</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1073</width>
+     <width>1383</width>
      <height>34</height>
     </rect>
    </property>
