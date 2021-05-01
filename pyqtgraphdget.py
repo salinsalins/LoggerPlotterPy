@@ -22,7 +22,7 @@ class CustomViewBox(pyqtgraph.ViewBox):
         self.setBackgroundColor('#1d648da0')
         #self.setBorder(pen=('green', 5))
 
-    ## reimplement right-click to zoom out
+    # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
             if ev.double():

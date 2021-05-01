@@ -61,6 +61,7 @@ def timeit(method):
         return result
     return timed
 
+
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'LoggerPlotterPy'
 APPLICATION_NAME_SHORT = APPLICATION_NAME
@@ -98,8 +99,12 @@ class MainWindow(QMainWindow):
         self.old_signal_list = []
         self.signals = []
         self.extra_cols = []
-        self.oldsize = 0
-        self.newsize = 0
+        self.data_file = None
+        self.old_size = 0
+        self.new_size = 0
+        self.included = []
+        self.excluded = []
+        self.columns = []
 
         # initial actions
         # Load the UI
@@ -108,9 +113,9 @@ class MainWindow(QMainWindow):
         self.logger = logger
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
-        self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
+        self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-        self.comboBox_1.currentIndexChanged.connect(self.logLevelIndexChanged)
+        self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         self.plainTextEdit_2.textChanged.connect(self.refresh_on)
         self.plainTextEdit_3.textChanged.connect(self.refresh_on)
         self.plainTextEdit_4.textChanged.connect(self.refresh_on)
@@ -232,13 +237,13 @@ class MainWindow(QMainWindow):
             if row < 0:
                 return
             folder = os.path.dirname(self.log_file_name)
-            zipFileName = self.log_table.column("File")[row]
-            self.logger.log(logging.DEBUG, 'Using zip File %s' % zipFileName)
+            zip_file_name = self.log_table.column("File")[row]
+            self.logger.log(logging.DEBUG, 'Using zip File %s' % zip_file_name)
             # read zip file listing
-            self.dataFile = DataFile(zipFileName, folder=folder)
+            self.data_file = DataFile(zip_file_name, folder=folder)
             # read signals from zip file
             self.old_signal_list = self.signal_list
-            self.signal_list = self.dataFile.read_all_signals()
+            self.signal_list = self.data_file.read_all_signals()
             # reorder plots according to columns order in the table
             self.signals = []
             for c in self.columns:
@@ -252,7 +257,6 @@ class MainWindow(QMainWindow):
                 if p.strip() != "":
                     try:
                         result = eval(p)
-                        s = Signal(name='undefined')
                         if isinstance(result, Signal):
                             s = result
                         elif len(result) == 3:
@@ -366,31 +370,31 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
             self.logger.debug('Exception:', exc_info=True)
 
-    def fileSelectionChanged(self, m):
+    def file_selection_changed(self, m):
         self.logger.debug('Selection changed to %s' % str(m))
         if m < 0:
             return
-        newLogFile = str(self.comboBox_2.currentText())
-        if not os.path.exists(newLogFile):
-            self.logger.warning('File %s not found' % newLogFile)
+        new_log_file = str(self.comboBox_2.currentText())
+        if not os.path.exists(new_log_file):
+            self.logger.warning('File %s not found' % new_log_file)
             self.comboBox_2.removeItem(m)
             return
-        if self.log_file_name != newLogFile:
-            self.log_file_name = newLogFile
+        if self.log_file_name != new_log_file:
+            self.log_file_name = new_log_file
             self.parse_folder()
 
-    def logLevelIndexChanged(self, m):
+    def log_level_index_changed(self, m: int) -> None:
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
                   logging.WARNING, logging.ERROR, logging.CRITICAL]
         if m >= 0:
             self.logger.setLevel(levels[m])
 
-    def onQuit(self):
+    def on_quit(self):
         # save global settings
         self.save_settings()
         timer.stop()
 
-    def sorted_columns(self):
+    def sort_columns(self):
         # create sorted displayed columns list
         included = self.plainTextEdit_2.toPlainText().split('\n')
         excluded = self.plainTextEdit_3.toPlainText().split('\n')
@@ -402,6 +406,21 @@ class MainWindow(QMainWindow):
             if t not in excluded and t not in columns:
                 columns.append(self.log_table.headers.index(t))
         return columns
+
+    @staticmethod
+    def sort_list(initial, included=None, excluded=None):
+        if included is None:
+            included = []
+        if excluded is None:
+            excluded = []
+        result = []
+        for t in included:
+            if t in initial:
+                result.append(t)
+        for t in initial:
+            if t not in excluded and t not in result:
+                result.append(t)
+        return result
 
     @timeit
     def parse_folder(self, file_name=None):
@@ -608,10 +627,10 @@ class MainWindow(QMainWindow):
             if 'cb_2' in self.conf:
                 self.checkBox_2.setChecked(self.conf['cb_2'])
             if 'history' in self.conf:
-                self.comboBox_2.currentIndexChanged.disconnect(self.fileSelectionChanged)
+                self.comboBox_2.currentIndexChanged.disconnect(self.file_selection_changed)
                 self.comboBox_2.clear()
                 self.comboBox_2.addItems(self.conf['history'])
-                self.comboBox_2.currentIndexChanged.connect(self.fileSelectionChanged)
+                self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
             if 'history_index' in self.conf:
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
             self.logger.log(logging.INFO, 'Configuration restored from %s' % full_name)
@@ -650,7 +669,6 @@ class MainWindow(QMainWindow):
         a = os.path.dirname(a)
         if os.path.isfile('filename.txt'):
             pass
-        #print('root', a)
         return a
 
     @timeit
@@ -661,16 +679,15 @@ class MainWindow(QMainWindow):
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
             return
-        #self.get_root()
         # check if lock file exists
         if self.is_locked():
             return
         # check if log file exists
         if not os.path.exists(self.log_file_name):
             return
-        self.oldSize = self.log_table.file_size
-        self.newSize = os.path.getsize(self.log_file_name)
-        if self.newSize <= self.oldSize:
+        self.old_size = self.log_table.file_size
+        self.new_size = os.path.getsize(self.log_file_name)
+        if self.new_size <= self.old_size:
             return
         self.parse_folder()
 
@@ -991,7 +1008,7 @@ class DataFile:
             self.files = zip_file.namelist()
         self.file_name = full_name
         for f in self.files:
-            if f.find("chan") >= 0 and f.find("paramchan") < 0:
+            if f.find("chan") >= 0 > f.find("paramchan"):
                 self.signals.append(f)
 
     def read_signal(self, signal_name: str) -> Signal:
@@ -1126,7 +1143,7 @@ if __name__ == '__main__':
     #app.setAttribute(QtCore.Qt.AA_Use96Dpi)
     # instantiate the main window
     dmw = MainWindow()
-    app.aboutToQuit.connect(dmw.onQuit)
+    app.aboutToQuit.connect(dmw.on_quit)
     # show it
     dmw.show()
     # defile and start timer task
