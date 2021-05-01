@@ -1081,16 +1081,14 @@ class DataFile:
                 try:
                     ms = int((float(signal.params[k].replace(b',', b'.')) - x0) / dx)
                     ml = int(float(signal.params[k.replace(b"_start", b'_length')].replace(b',', b'.')) / dx)
+                    ml = min(len(signal.y) - ms, ml)
                     if ml <= 0 or ms < 0:
-                        raise Exception('Empty slice')
+                        raise Exception('Empty slice for mark ' + k)
                     mv = signal.y[ms:ms + ml].mean()
+                    signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
                 except:
                     self.logger.log(logging.WARNING, 'Mark %s value can not be computed for %s' % (k, signal_name))
                     self.logger.debug('Exception:', exc_info=True)
-                    ms = 0
-                    ml = 0
-                    mv = 0.0
-                signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
         # zero mark
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
