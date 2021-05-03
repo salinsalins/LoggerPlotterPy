@@ -44,7 +44,7 @@ def config_logger(name=__name__, level=logging.DEBUG):
     if not lgr.hasHandlers():
         lgr.propagate = False
         lgr.setLevel(level)
-        f_str = '%(asctime)s,%(msecs)3d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
+        f_str = '%(asctime)s,%(msecs)03d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
         log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(log_formatter)
@@ -65,7 +65,7 @@ def timeit(method):
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'LoggerPlotterPy'
 APPLICATION_NAME_SHORT = APPLICATION_NAME
-APPLICATION_VERSION = '_4_4'
+APPLICATION_VERSION = '_4_5'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
@@ -168,7 +168,7 @@ class MainWindow(QMainWindow):
 
     def show_about(self):
         QMessageBox.information(self, 'About', APPLICATION_NAME + ' Version ' + APPLICATION_VERSION +
-                                '\nPlot Logger saved shot logs and traces.', QMessageBox.Ok)
+                                '\nShow saved shot logs and plot traces.', QMessageBox.Ok)
 
     def show_plot_pane(self):
         self.stackedWidget.setCurrentIndex(0)
