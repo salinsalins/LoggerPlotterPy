@@ -147,14 +147,16 @@ class MainWindow(QMainWindow):
             """)
         # clock label at status bar
         self.clock = QLabel(" ")
-        self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
-        self.statusBar().setFont(QFont('Open Sans', 14))
+        clockfont = QFont('Open Sans Bold', 16, weight=QFont.Bold)
+        self.clock.setFont(clockfont)
+        sbfont = QFont('Open Sans', 14)
+        self.statusBar().setFont(sbfont)
         # another widgets for status bar
         self.sblbl1 = QLabel("")
-        self.sblbl1.setFont(QFont('Open Sans', 14))
+        self.sblbl1.setFont(sbfont)
         self.sblbl1.setStyleSheet('border: 0; color:  yellow; background: lightgray;')
         self.sblbl2 = QLabel("")
-        self.sblbl2.setFont(QFont('Open Sans', 14))
+        self.sblbl2.setFont(sbfont)
         self.sblbl2.setStyleSheet('border: 0; color:  red;')
         # add widgets to status bar
         self.statusBar().reformat()
