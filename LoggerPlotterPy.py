@@ -97,7 +97,7 @@ class MainWindow(QMainWindow):
         self.refresh_flag = False
         self.last_selection = -1
         self.signal_list = []
-        self.signal_list = []
+        self.old_signal_list = []
         self.signals = []
         self.extra_cols = []
         self.data_file = None
@@ -244,7 +244,7 @@ class MainWindow(QMainWindow):
             # read zip file listing
             self.data_file = DataFile(zip_file_name, folder=folder)
             # read signals from zip file
-            self.signal_list = self.signal_list
+            self.old_signal_list = self.signal_list
             self.signal_list = self.data_file.read_all_signals()
             # reorder plots according to columns order in the table
             self.signals = []
@@ -326,7 +326,7 @@ class MainWindow(QMainWindow):
                 axes.clear()
                 # plot previous line
                 if self.checkBox_2.isChecked():
-                    for s1 in self.signal_list:
+                    for s1 in self.old_signal_list:
                         if s1.name == s.name:
                             axes.plot(s1.x, s1.y, color=self.previous_color)
                             break
