@@ -554,6 +554,7 @@ class MainWindow(QMainWindow):
             self.conf['excluded'] = str(self.plainTextEdit_3.toPlainText())
             self.conf['cb_1'] = self.checkBox_1.isChecked()
             self.conf['cb_2'] = self.checkBox_2.isChecked()
+            self.conf['cb_3'] = self.checkBox_3.isChecked()
             self.conf['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
             self.conf['extra_col'] = str(self.plainTextEdit_5.toPlainText())
             attr2conf(self.plainTextEdit_6.toPlainText(), 'exclude_plots')
@@ -638,6 +639,8 @@ class MainWindow(QMainWindow):
                 self.checkBox_1.setChecked(self.conf['cb_1'])
             if 'cb_2' in self.conf:
                 self.checkBox_2.setChecked(self.conf['cb_2'])
+            if 'cb_3' in self.conf:
+                self.checkBox_3.setChecked(self.conf['cb_3'])
             if 'history' in self.conf:
                 self.comboBox_2.currentIndexChanged.disconnect(self.file_selection_changed)
                 self.comboBox_2.clear()
