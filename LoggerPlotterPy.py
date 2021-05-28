@@ -57,7 +57,8 @@ def timeit(method):
         ts = time.time()
         result = method(*args, **kw)
         te = time.time()
-        print('%r %2.2f sec' % (method.__name__, te-ts))
+        if te - ts > 0.01:
+            print('%r %2.2f sec' % (method.__name__, te-ts))
         return result
     return timed
 
@@ -96,7 +97,7 @@ class MainWindow(QMainWindow):
         self.refresh_flag = False
         self.last_selection = -1
         self.signal_list = []
-        self.old_signal_list = []
+        self.signal_list = []
         self.signals = []
         self.extra_cols = []
         self.data_file = None
@@ -105,6 +106,7 @@ class MainWindow(QMainWindow):
         self.included = []
         self.excluded = []
         self.columns = []
+        self.new_shot = True
 
         # initial actions
         # Load the UI
@@ -242,7 +244,7 @@ class MainWindow(QMainWindow):
             # read zip file listing
             self.data_file = DataFile(zip_file_name, folder=folder)
             # read signals from zip file
-            self.old_signal_list = self.signal_list
+            self.signal_list = self.signal_list
             self.signal_list = self.data_file.read_all_signals()
             # reorder plots according to columns order in the table
             self.signals = []
@@ -324,7 +326,7 @@ class MainWindow(QMainWindow):
                 axes.clear()
                 # plot previous line
                 if self.checkBox_2.isChecked():
-                    for s1 in self.old_signal_list:
+                    for s1 in self.signal_list:
                         if s1.name == s.name:
                             axes.plot(s1.x, s1.y, color=self.previous_color)
                             break
@@ -353,6 +355,12 @@ class MainWindow(QMainWindow):
                 # axes.legend(loc='best')
                 # Show plot
                 mplw.canvas.draw()
+                try:
+                    if self.new_shot and self.checkBox_3.isChecked():
+                        mplw.clearScaleHistory()
+                        mplw.autoRange()
+                except:
+                    pass
                 jj += 1
             # Remove unused plot widgets
             while jj < layout.count():
@@ -369,6 +377,8 @@ class MainWindow(QMainWindow):
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
             self.logger.debug('Exception:', exc_info=True)
+        finally:
+            self.new_shot = False
 
     def file_selection_changed(self, m):
         self.logger.debug('Selection changed to %s' % str(m))
@@ -381,6 +391,7 @@ class MainWindow(QMainWindow):
             return
         if self.log_file_name != new_log_file:
             self.log_file_name = new_log_file
+            self.signal_list = []
             self.parse_folder()
 
     def log_level_index_changed(self, m: int) -> None:
@@ -424,6 +435,7 @@ class MainWindow(QMainWindow):
 
     @timeit
     def parse_folder(self, file_name=None):
+        self.new_shot = True
         try:
             if file_name is None:
                 file_name = self.log_file_name
@@ -689,6 +701,7 @@ class MainWindow(QMainWindow):
         self.new_size = os.path.getsize(self.log_file_name)
         if self.new_size <= self.old_size:
             return
+        self.new_shot = True
         self.parse_folder()
 
 
