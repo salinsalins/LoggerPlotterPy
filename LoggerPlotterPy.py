@@ -13,7 +13,7 @@ import zipfile
 import time
 import gc
 
-from PyQt5.QtWidgets import QMainWindow, QHeaderView
+from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import qApp
 from PyQt5.QtWidgets import QFileDialog
@@ -149,9 +149,28 @@ class MainWindow(QMainWindow):
         self.clock = QLabel(" ")
         self.clock.setFont(QFont('Open Sans Bold', 16, weight=QFont.Bold))
         self.statusBar().setFont(QFont('Open Sans', 14))
-        # add widget to status bar
+        # another widgets for status bar
+        self.sblbl1 = QLabel("")
+        self.sblbl1.setFont(QFont('Open Sans', 14))
+        self.sblbl1.setStyleSheet('border: 0; color:  yellow; background: lightgray;')
+        self.sblbl2 = QLabel("")
+        self.sblbl2.setFont(QFont('Open Sans', 14))
+        self.sblbl2.setStyleSheet('border: 0; color:  red;')
+        # add widgets to status bar
+        self.statusBar().reformat()
+        self.statusBar().setStyleSheet('border: 0; background-color: #FFF8DC;')
+        self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
+        self.statusBar().addPermanentWidget(VLine())  # <---
+        self.statusBar().addPermanentWidget(self.sblbl1)
+        self.statusBar().addPermanentWidget(VLine())  # <---
+        self.statusBar().addPermanentWidget(self.sblbl2)
+        self.statusBar().addPermanentWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(self.clock)
+        self.statusBar().addPermanentWidget(VLine())  # <---
+        #self.sblbl1.setText("Label: Hello")
+        #self.sblbl2.setText("Data : 15-09-2019")
         self.statusBar().showMessage('Starting...')
+
         # default settings
         self.set_default_settings()
         print(APPLICATION_NAME + APPLICATION_VERSION + ' started')
@@ -373,7 +392,12 @@ class MainWindow(QMainWindow):
             if self.checkBox_2.isChecked():
                 if self.last_selection >= 0:
                     last_sel_time = self.log_table.column("Time")[self.last_selection]
-                    self.statusBar().showMessage('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+                    self.sblbl1.setText(last_sel_time)
+                    #self.statusBar().showMessage('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+                else:
+                    self.sblbl1.setText('')
+            else:
+                self.sblbl1.setText('')
             self.last_selection = row_s
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.logger.debug('Plot signals end %s', time.time()-t0)
@@ -711,6 +735,13 @@ class MainWindow(QMainWindow):
             return
         self.new_shot = True
         self.parse_folder()
+
+
+class VLine(QFrame):
+    # a simple VLine, like the one you get from designer
+    def __init__(self):
+        super(VLine, self).__init__()
+        self.setFrameShape(self.VLine|self.Sunken)
 
 
 class LogTable:
