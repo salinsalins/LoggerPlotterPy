@@ -230,16 +230,16 @@ class MainWindow(QMainWindow):
             # if selection is empty
             if len(self.tableWidget_3.selectedRanges()) < 1:
                 return
-            row = self.tableWidget_3.selectedRanges()[0].topRow()
+            row_s = self.tableWidget_3.selectedRanges()[0].topRow()
             # if selected the same row
-            if self.last_selection == row:
+            if self.last_selection == row_s:
                 return
             # different row selected
-            self.logger.log(logging.DEBUG, 'Selection changed to row %i' % row)
-            if row < 0:
+            self.logger.log(logging.DEBUG, 'Selection changed to row %i' % row_s)
+            if row_s < 0:
                 return
             folder = os.path.dirname(self.log_file_name)
-            zip_file_name = self.log_table.column("File")[row]
+            zip_file_name = self.log_table.column("File")[row_s]
             self.logger.log(logging.DEBUG, 'Using zip File %s' % zip_file_name)
             # read zip file listing
             self.data_file = DataFile(zip_file_name, folder=folder)
@@ -370,7 +370,11 @@ class MainWindow(QMainWindow):
                 w = item.widget()
                 if w:
                     w.deleteLater()
-            self.last_selection = row
+            if self.checkBox_2.isChecked():
+                if self.last_selection >= 0:
+                    last_sel_time = self.log_table.column("Time")[self.last_selection]
+                    self.statusBar().showMessage('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+            self.last_selection = row_s
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.logger.debug('Plot signals end %s', time.time()-t0)
         except:
@@ -436,6 +440,7 @@ class MainWindow(QMainWindow):
     @timeit
     def parse_folder(self, file_name=None):
         self.new_shot = True
+        self.last_selection = -1
         try:
             if file_name is None:
                 file_name = self.log_file_name
