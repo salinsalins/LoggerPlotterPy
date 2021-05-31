@@ -399,15 +399,11 @@ class MainWindow(QMainWindow):
                 w = item.widget()
                 if w:
                     w.deleteLater()
-            if self.checkBox_2.isChecked():
-                if self.last_selection >= 0:
-                    #self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
-                    last_sel_time = self.log_table.column("Time")[self.last_selection]
-                    self.sblbl1.setText(last_sel_time)
-                    self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
-                else:
-                    self.sblbl1.setText("        ")
-                    self.sblbl2.setText('File: %s' % self.log_file_name)
+            if self.checkBox_2.isChecked() and self.last_selection >= 0:
+                #self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
+                last_sel_time = self.log_table.column("Time")[self.last_selection]
+                self.sblbl1.setText(last_sel_time)
+                self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
             else:
                 self.sblbl1.setText("        ")
                 self.sblbl2.setText('File: %s' % self.log_file_name)
