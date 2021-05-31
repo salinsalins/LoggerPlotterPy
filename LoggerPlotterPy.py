@@ -154,24 +154,29 @@ class MainWindow(QMainWindow):
         # another widgets for status bar
         self.sblbl1 = QLabel("")
         self.sblbl1.setFont(sbfont)
-        self.sblbl1.setStyleSheet('border: 0; color:  yellow; background: lightgray;')
+        self.sblbl1.setStyleSheet('border: 0; color:  yellow; background: gray;')
+        self.sblbl1.setText("        ")
         self.sblbl2 = QLabel("")
         self.sblbl2.setFont(sbfont)
-        self.sblbl2.setStyleSheet('border: 0; color:  red;')
+#        self.sblbl2.setStyleSheet('color:  red;')
+#        self.sblbl3 = QLabel("")
+#        self.sblbl3.setFont(sbfont)
+        #self.sblbl3.setStyleSheet('border: 0;')
         # add widgets to status bar
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0; background-color: #FFF8DC;')
         self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
-        self.statusBar().addPermanentWidget(VLine())  # <---
-        self.statusBar().addPermanentWidget(self.sblbl1)
-        self.statusBar().addPermanentWidget(VLine())  # <---
-        self.statusBar().addPermanentWidget(self.sblbl2)
+        self.statusBar().addWidget(self.sblbl1)
+        self.statusBar().addWidget(VLine())  # <---
+        self.statusBar().addWidget(self.sblbl2)
+        self.statusBar().addWidget(VLine())  # <---
+        #self.statusBar().addWidget(self.sblbl3)
+        #self.statusBar().addWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(self.clock)
-        self.statusBar().addPermanentWidget(VLine())  # <---
-        #self.sblbl1.setText("Label: Hello")
         #self.sblbl2.setText("Data : 15-09-2019")
-        self.statusBar().showMessage('Starting...')
+        self.sblbl2.setText("Starting...")
+        #self.statusBar().showMessage('Starting...')
 
         # default settings
         self.set_default_settings()
@@ -396,10 +401,11 @@ class MainWindow(QMainWindow):
                     last_sel_time = self.log_table.column("Time")[self.last_selection]
                     self.sblbl1.setText(last_sel_time)
                     #self.statusBar().showMessage('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+                    self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
                 else:
-                    self.sblbl1.setText('')
+                    self.sblbl1.setText("        ")
             else:
-                self.sblbl1.setText('')
+                self.sblbl1.setText("        ")
             self.last_selection = row_s
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.logger.debug('Plot signals end %s', time.time()-t0)
@@ -472,7 +478,8 @@ class MainWindow(QMainWindow):
                 file_name = self.log_file_name
             if file_name is None:
                 return
-            self.statusBar().showMessage('Reading %s' % file_name)
+            #self.statusBar().showMessage('Reading %s' % file_name)
+            self.sblbl2.setText('Reading %s' % file_name)
             self.logger.debug('Reading log file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
@@ -560,7 +567,8 @@ class MainWindow(QMainWindow):
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.logger.debug('Exception:', exc_info=True)
-        self.statusBar().showMessage('File: %s' % file_name)
+        #self.statusBar().showMessage('File: %s' % file_name)
+        self.sblbl2.setText('File: %s' % file_name)
         return
 
     def save_settings(self, folder='', file_name=CONFIG_FILE):
