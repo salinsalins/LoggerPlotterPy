@@ -161,10 +161,6 @@ class MainWindow(QMainWindow):
         self.sblbl1.setText("        ")
         self.sblbl2 = QLabel("")
         self.sblbl2.setFont(self.statusbar_font)
-#        self.sblbl2.setStyleSheet('color:  red;')
-#        self.sblbl3 = QLabel("")
-#        self.sblbl3.setFont(sbfont)
-        #self.sblbl3.setStyleSheet('border: 0;')
         # add widgets to status bar
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0; background-color: #FFF8DC;')
@@ -173,11 +169,8 @@ class MainWindow(QMainWindow):
         self.statusBar().addWidget(VLine())  # <---
         self.statusBar().addWidget(self.sblbl2)
         self.statusBar().addWidget(VLine())  # <---
-        #self.statusBar().addWidget(self.sblbl3)
-        #self.statusBar().addWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(self.clock)
-        #self.sblbl2.setText("Data : 15-09-2019")
         self.sblbl2.setText("Starting...")
         #self.statusBar().showMessage('Starting...')
 
@@ -187,7 +180,7 @@ class MainWindow(QMainWindow):
         # restore settings
         self.restore_settings()
         # additional decorations
-        # self.tableWidget_3.horizontalHeader().
+        self.tableWidget_3.horizontalHeader().setVisible(True)
         # read data files
         self.parse_folder()
 
