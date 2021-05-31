@@ -145,19 +145,22 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
+        # brushes, colors, fonts
+        self.yellow_brush = QBrush(QColor('#FFFF00'))
+        self.clock_font = QFont('Open Sans Bold', 16, weight=QFont.Bold)
+        self.statusbar_font = QFont('Open Sans', 14)
         # clock label at status bar
         self.clock = QLabel(" ")
-        clockfont = QFont('Open Sans Bold', 16, weight=QFont.Bold)
-        self.clock.setFont(clockfont)
-        sbfont = QFont('Open Sans', 14)
-        self.statusBar().setFont(sbfont)
+        self.clock.setFont(self.clock_font)
+        self.statusbar_font = QFont('Open Sans', 14)
+        self.statusBar().setFont(self.statusbar_font)
         # another widgets for status bar
         self.sblbl1 = QLabel("")
-        self.sblbl1.setFont(sbfont)
+        self.sblbl1.setFont(self.statusbar_font)
         self.sblbl1.setStyleSheet('border: 0; color:  yellow; background: gray;')
         self.sblbl1.setText("        ")
         self.sblbl2 = QLabel("")
-        self.sblbl2.setFont(sbfont)
+        self.sblbl2.setFont(self.statusbar_font)
 #        self.sblbl2.setStyleSheet('color:  red;')
 #        self.sblbl3 = QLabel("")
 #        self.sblbl3.setFont(sbfont)
@@ -398,14 +401,16 @@ class MainWindow(QMainWindow):
                     w.deleteLater()
             if self.checkBox_2.isChecked():
                 if self.last_selection >= 0:
+                    #self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
                     last_sel_time = self.log_table.column("Time")[self.last_selection]
                     self.sblbl1.setText(last_sel_time)
-                    #self.statusBar().showMessage('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
                     self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
                 else:
                     self.sblbl1.setText("        ")
+                    self.sblbl2.setText('File: %s' % self.log_file_name)
             else:
                 self.sblbl1.setText("        ")
+                self.sblbl2.setText('File: %s' % self.log_file_name)
             self.last_selection = row_s
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.logger.debug('Plot signals end %s', time.time()-t0)
