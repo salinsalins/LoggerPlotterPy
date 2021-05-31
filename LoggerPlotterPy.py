@@ -157,7 +157,7 @@ class MainWindow(QMainWindow):
         # another widgets for status bar
         self.sblbl1 = QLabel("")
         self.sblbl1.setFont(self.statusbar_font)
-        self.sblbl1.setStyleSheet('border: 0; color:  yellow; background: gray;')
+        self.sblbl1.setStyleSheet('border: 0; color:  black; background: yellow;')
         self.sblbl1.setText("        ")
         self.sblbl2 = QLabel("")
         self.sblbl2.setFont(self.statusbar_font)
