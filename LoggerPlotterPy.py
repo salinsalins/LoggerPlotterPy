@@ -13,7 +13,7 @@ import zipfile
 import time
 import gc
 
-from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame
+from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame, QAction, QMenu
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import qApp
 from PyQt5.QtWidgets import QFileDialog
@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QLabel
 from PyQt5 import uic, QtCore
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
@@ -134,7 +134,7 @@ class MainWindow(QMainWindow):
         # header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(QHeaderView.ResizeToContents)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(0)
-        # header.sectionDoubleClicked.connect(self.test)
+        header.sectionDoubleClicked.connect(self.test)
         self.tableWidget_3.setStyleSheet("""
                 QTableView {
                     gridline-color: black;
@@ -179,13 +179,39 @@ class MainWindow(QMainWindow):
         print(APPLICATION_NAME + APPLICATION_VERSION + ' started')
         # restore settings
         self.restore_settings()
+
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
+        #self.tableWidget_3.customContextMenuRequested.connect(self.openMenu)
+        #self.tableWidget_3.setContextMenuPolicy(Qt.ActionsContextMenu)
+        #quitAction = QAction("Quit", None)
+        #quitAction.triggered.connect(self.test)
+        #self.tableWidget_3.addAction(quitAction)
+
         # read data files
         self.parse_folder()
 
+    def openMenu(self, n):
+        menu = QMenu()
+        quitAction = menu.addAction("Hide")
+        cursor = QtGui.QCursor()
+        position = cursor.pos()
+        #position = self.tableWidget_3.mapFromGlobal(position)
+        #action = menu.exec_(self.tableWidget_3.mapToGlobal(position))
+        action = menu.exec_(position)
+        if action == quitAction:
+            #print("Hide")
+            excluded = self.plainTextEdit_3.toPlainText()
+            t = self.tableWidget_3.horizontalHeaderItem(n).text()
+            excluded += '\n' + t
+            self.plainTextEdit_3.setPlainText(excluded)
+            self.tableWidget_3.hideColumn(n)
+            #qApp.quit()
+
     def test(self, a):
-        print('test', a)
+        #h = self.tableWidget_3.horizontalHeader()
+        #print('test', a)
+        self.openMenu(a)
 
     def refresh_on(self):
         self.refresh_flag = True
