@@ -306,6 +306,7 @@ class MainWindow(QMainWindow):
             for p in extra_plots:
                 if p.strip() != "":
                     try:
+                        s = Signal(name='undefined')
                         result = eval(p)
                         if isinstance(result, Signal):
                             s = result
@@ -318,7 +319,6 @@ class MainWindow(QMainWindow):
                                 s.name = key
                         elif len(result) == 2:
                             if isinstance(result[1], Signal):
-                                s = Signal(name='undefined')
                                 s = result[1]
                                 s.name = result[0]
                         self.signal_list.append(s)
