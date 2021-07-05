@@ -271,7 +271,7 @@ class MainWindow(QMainWindow):
                     return sg
             return None
 
-        # self.logger.debug('Entry')
+        self.logger.debug('Entry')
         t0 = time.time()
         gc.collect()
         try:
@@ -1118,16 +1118,16 @@ class DataFile:
             return signal
         signal.x = numpy.zeros(n, dtype=float)
         signal.y = numpy.zeros(n, dtype=float)
-        ii = 0
-        for ln in lines:
+        for ii, ln in enumerate(lines):
             xy = ln.split(b'; ')
             try:
                 signal.x[ii] = float(xy[0].replace(b',', b'.'))
                 signal.y[ii] = float(xy[1].replace(b',', b'.'))
             except:
-                self.logger.log(logging.ERROR, "Wrong data for signal %s" % signal_name)
-            ii += 1
-        # read parameters        
+                signal.x[ii] = float('nan')
+                signal.y[ii] = float('nan')
+                self.logger.debug( "Wrong data in line %s for %s", ii, signal_name)
+        # read parameters
         signal.params = {}
         lines = pbuf.split(spltch)
         for ln in lines:
