@@ -70,8 +70,8 @@ APPLICATION_VERSION = '_4_5'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
-CELL_BOLD_FONT = QFont('Open Sans Bold', weight=QFont.Bold)
-CELL_NORMAL_FONT = QFont('Open Sans', weight=QFont.Normal)
+CELL_FONT_BOLD = QFont('Open Sans Bold', weight=QFont.Bold)
+CELL_FONT_NORMAL = QFont('Open Sans', weight=QFont.Normal)
 
 # Configure logging
 logger = config_logger(level=logging.INFO)
@@ -571,9 +571,9 @@ class MainWindow(QMainWindow):
                         elif thr < 0.0:
                             flag = abs(v1 - v) > -thr
                         if flag:
-                            item.setFont(CELL_BOLD_FONT)
+                            item.setFont(CELL_FONT_BOLD)
                         else:
-                            item.setFont(CELL_NORMAL_FONT)
+                            item.setFont(CELL_FONT_NORMAL)
                     self.tableWidget_3.setItem(row, n, item)
                     n += 1
             # enable table widget update events
