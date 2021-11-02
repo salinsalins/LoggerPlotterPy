@@ -278,17 +278,18 @@ class MainWindow(QMainWindow):
             # if selection is empty
             if len(self.tableWidget_3.selectedRanges()) < 1:
                 return
+            # top row of the selection
             row_s = self.tableWidget_3.selectedRanges()[0].topRow()
             # if selected the same row
             if self.last_selection == row_s:
                 return
             # different row selected
-            self.logger.log(logging.DEBUG, 'Selection changed to row %i' % row_s)
+            self.logger.debug('Selection changed to row %i', row_s)
             if row_s < 0:
                 return
             folder = os.path.dirname(self.log_file_name)
             zip_file_name = self.log_table.column("File")[row_s]
-            self.logger.log(logging.DEBUG, 'Using zip File %s' % zip_file_name)
+            self.logger.debug('Using zip File %s', zip_file_name)
             # read zip file listing
             self.data_file = DataFile(zip_file_name, folder=folder)
             # read signals from zip file
