@@ -155,11 +155,11 @@ class MainWindow(QMainWindow):
         self.statusbar_font = QFont('Open Sans', 14)
         self.statusBar().setFont(self.statusbar_font)
         # another widgets for status bar
-        self.sblbl1 = QLabel("")
+        self.sblbl1 = QLabel("**:**:**")
         self.sblbl1.setFont(self.statusbar_font)
         self.sblbl1.setStyleSheet('border: 0; color:  black; background: yellow;')
-        self.sblbl1.setText("        ")
-        self.sblbl2 = QLabel("")
+        self.sblbl1.setText("**:**:**")
+        self.sblbl2 = QLabel("**:**:**")
         self.sblbl2.setFont(self.statusbar_font)
         # add widgets to status bar
         self.statusBar().reformat()
@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
                 axes = mplw.canvas.ax
                 axes.clear()
                 # plot previous line
-                if self.checkBox_2.isChecked():
+                if self.checkBox_2.isChecked() and self.last_selection >= 0:
                     for s1 in self.old_signal_list:
                         if s1.name == s.name:
                             axes.plot(s1.x, s1.y, color=self.previous_color)
@@ -422,9 +422,10 @@ class MainWindow(QMainWindow):
                 #self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
                 last_sel_time = self.log_table.column("Time")[self.last_selection]
                 self.sblbl1.setText(last_sel_time)
-                self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+                # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+                self.sblbl2.setText('File: %s' % self.log_file_name)
             else:
-                self.sblbl1.setText("        ")
+                self.sblbl1.setText("**:**:**")
                 self.sblbl2.setText('File: %s' % self.log_file_name)
             self.last_selection = row_s
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
