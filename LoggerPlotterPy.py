@@ -147,30 +147,30 @@ class MainWindow(QMainWindow):
         self.statusbar_font = QFont('Open Sans', 14)
         self.statusBar().setFont(self.statusbar_font)
         # clock label at status bar
-        self.clock = QLabel(" ")
+        self.sb_clock = QLabel(" ")
         self.clock_font = QFont('Open Sans Bold', 16, weight=QFont.Bold)
-        self.clock.setFont(self.clock_font)
+        self.sb_clock.setFont(self.clock_font)
         # previous shot time at status bar
-        self.sblbl1 = QLabel("**:**:**")
+        self.sb_prev_shot_time = QLabel("**:**:**")
         # self.sblbl1.setFixedWidth(100)
-        self.sblbl1.setFont(self.statusbar_font)
-        self.sblbl1.setStyleSheet('border: 0; color:  black; background: yellow;')
-        self.sblbl1.setText("**:**:**")
-        self.sblbl1.setVisible(False)
+        self.sb_prev_shot_time.setFont(self.statusbar_font)
+        self.sb_prev_shot_time.setStyleSheet('border: 0; color:  black; background: yellow;')
+        self.sb_prev_shot_time.setText("**:**:**")
+        self.sb_prev_shot_time.setVisible(False)
         # message with log file name at status bar
-        self.sblbl2 = QLabel("")
-        self.sblbl2.setFont(self.statusbar_font)
+        self.sb_text = QLabel("")
+        self.sb_text.setFont(self.statusbar_font)
         # add widgets to status bar
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0; background-color: #FFF8DC;')
         self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
-        self.statusBar().addWidget(self.sblbl1)
+        self.statusBar().addWidget(self.sb_prev_shot_time)
         self.statusBar().addWidget(VLine())  # <---
-        self.statusBar().addWidget(self.sblbl2)
+        self.statusBar().addWidget(self.sb_text)
         self.statusBar().addWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(VLine())  # <---
-        self.statusBar().addPermanentWidget(self.clock)
-        self.sblbl2.setText("Starting...")
+        self.statusBar().addPermanentWidget(self.sb_clock)
+        self.sb_text.setText("Starting...")
         # self.statusBar().showMessage('Starting...')
 
         # default settings
@@ -430,14 +430,14 @@ class MainWindow(QMainWindow):
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
                 # self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
                 last_sel_time = self.log_table.column("Time")[self.last_selection]
-                self.sblbl1.setVisible(True)
-                self.sblbl1.setText(last_sel_time)
+                self.sb_prev_shot_time.setVisible(True)
+                self.sb_prev_shot_time.setText(last_sel_time)
                 # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
-                self.sblbl2.setText('File: %s' % self.log_file_name)
+                self.sb_text.setText('File: %s' % self.log_file_name)
             else:
-                self.sblbl1.setVisible(False)
-                self.sblbl1.setText("**:**:**")
-                self.sblbl2.setText('File: %s' % self.log_file_name)
+                self.sb_prev_shot_time.setVisible(False)
+                self.sb_prev_shot_time.setText("**:**:**")
+                self.sb_text.setText('File: %s' % self.log_file_name)
             self.last_selection = row_s
         except:
             self.logger.warning('Exception in tableSelectionChanged')
@@ -510,7 +510,7 @@ class MainWindow(QMainWindow):
             if file_name is None:
                 return
             # self.statusBar().showMessage('Reading %s' % file_name)
-            self.sblbl2.setText('Reading %s' % file_name)
+            self.sb_text.setText('Reading %s' % file_name)
             self.logger.debug('Reading log file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
@@ -599,7 +599,7 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.logger.debug('Exception:', exc_info=True)
         # self.statusBar().showMessage('File: %s' % file_name)
-        self.sblbl2.setText('File: %s' % file_name)
+        self.sb_text.setText('File: %s' % file_name)
         return
 
     def save_settings(self, folder='', file_name=CONFIG_FILE):
@@ -761,7 +761,7 @@ class MainWindow(QMainWindow):
     def timer_handler(self):
         # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')
-        self.clock.setText(t)
+        self.sb_clock.setText(t)
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
             return
