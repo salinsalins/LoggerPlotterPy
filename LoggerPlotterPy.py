@@ -105,7 +105,6 @@ class MainWindow(QMainWindow):
         self.columns = []
         self.new_shot = True
 
-        # initial actions
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # Configure logging
@@ -144,19 +143,22 @@ class MainWindow(QMainWindow):
             """)
         # brushes, colors, fonts
         self.yellow_brush = QBrush(QColor('#FFFF00'))
-        self.clock_font = QFont('Open Sans Bold', 16, weight=QFont.Bold)
-        self.statusbar_font = QFont('Open Sans', 14)
-        # clock label at status bar
-        self.clock = QLabel(" ")
-        self.clock.setFont(self.clock_font)
+        # status bar
         self.statusbar_font = QFont('Open Sans', 14)
         self.statusBar().setFont(self.statusbar_font)
-        # another widgets for status bar
+        # clock label at status bar
+        self.clock = QLabel(" ")
+        self.clock_font = QFont('Open Sans Bold', 16, weight=QFont.Bold)
+        self.clock.setFont(self.clock_font)
+        # previous shot time at status bar
         self.sblbl1 = QLabel("**:**:**")
+        # self.sblbl1.setFixedWidth(100)
         self.sblbl1.setFont(self.statusbar_font)
         self.sblbl1.setStyleSheet('border: 0; color:  black; background: yellow;')
         self.sblbl1.setText("**:**:**")
-        self.sblbl2 = QLabel("**:**:**")
+        self.sblbl1.setVisible(False)
+        # message with log file name at status bar
+        self.sblbl2 = QLabel("")
         self.sblbl2.setFont(self.statusbar_font)
         # add widgets to status bar
         self.statusBar().reformat()
@@ -428,10 +430,12 @@ class MainWindow(QMainWindow):
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
                 # self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
                 last_sel_time = self.log_table.column("Time")[self.last_selection]
+                self.sblbl1.setVisible(True)
                 self.sblbl1.setText(last_sel_time)
                 # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
                 self.sblbl2.setText('File: %s' % self.log_file_name)
             else:
+                self.sblbl1.setVisible(False)
                 self.sblbl1.setText("**:**:**")
                 self.sblbl2.setText('File: %s' % self.log_file_name)
             self.last_selection = row_s
