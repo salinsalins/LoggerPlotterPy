@@ -5,38 +5,34 @@ Created on Jul 2, 2017
 @author: sanin
 """
 
-import os.path
-import sys
+import gc
 import json
 import logging
-import zipfile
+import os.path
+import sys
 import time
-import gc
+import zipfile
 
-from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame, QAction, QMenu
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import qApp
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtWidgets import QTableWidgetItem
-from PyQt5.QtWidgets import QTableWidget
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import QLabel
-from PyQt5 import uic, QtCore
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtCore import QPoint
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QColor
-from PyQt5.QtGui import QBrush
-from PyQt5.QtGui import QFont
 import PyQt5.QtGui as QtGui
-
 import numpy
+from PyQt5 import uic
+from PyQt5.QtCore import QPoint
+from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QBrush
+from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame, QMenu
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import qApp
 
 np = numpy
-#from mplwidget import MplWidget
+# from mplwidget import MplWidget
 from pyqtgraphdget import MplWidget
-
-import imports
 
 
 def config_logger(name=__name__, level=logging.DEBUG):
@@ -58,8 +54,9 @@ def timeit(method):
         result = method(*args, **kw)
         te = time.time()
         if te - ts > 0.01:
-            print('%r %2.2f sec' % (method.__name__, te-ts))
+            print('%r %2.2f sec' % (method.__name__, te - ts))
         return result
+
     return timed
 
 
@@ -172,7 +169,7 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(self.clock)
         self.sblbl2.setText("Starting...")
-        #self.statusBar().showMessage('Starting...')
+        # self.statusBar().showMessage('Starting...')
 
         # default settings
         self.set_default_settings()
@@ -182,11 +179,11 @@ class MainWindow(QMainWindow):
 
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
-        #self.tableWidget_3.customContextMenuRequested.connect(self.openMenu)
-        #self.tableWidget_3.setContextMenuPolicy(Qt.ActionsContextMenu)
-        #quitAction = QAction("Quit", None)
-        #quitAction.triggered.connect(self.test)
-        #self.tableWidget_3.addAction(quitAction)
+        # self.tableWidget_3.customContextMenuRequested.connect(self.openMenu)
+        # self.tableWidget_3.setContextMenuPolicy(Qt.ActionsContextMenu)
+        # quitAction = QAction("Quit", None)
+        # quitAction.triggered.connect(self.test)
+        # self.tableWidget_3.addAction(quitAction)
 
         # read data files
         self.parse_folder()
@@ -196,21 +193,21 @@ class MainWindow(QMainWindow):
         quitAction = menu.addAction("Hide")
         cursor = QtGui.QCursor()
         position = cursor.pos()
-        #position = self.tableWidget_3.mapFromGlobal(position)
-        #action = menu.exec_(self.tableWidget_3.mapToGlobal(position))
+        # position = self.tableWidget_3.mapFromGlobal(position)
+        # action = menu.exec_(self.tableWidget_3.mapToGlobal(position))
         action = menu.exec_(position)
         if action == quitAction:
-            #print("Hide")
+            # print("Hide")
             excluded = self.plainTextEdit_3.toPlainText()
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
             excluded += '\n' + t
             self.plainTextEdit_3.setPlainText(excluded)
             self.tableWidget_3.hideColumn(n)
-            #qApp.quit()
+            # qApp.quit()
 
     def test(self, a):
-        #h = self.tableWidget_3.horizontalHeader()
-        #print('test', a)
+        # h = self.tableWidget_3.horizontalHeader()
+        # print('test', a)
         self.openMenu(a)
 
     def refresh_on(self):
@@ -352,7 +349,7 @@ class MainWindow(QMainWindow):
                         ordered_signals.append(p)
             self.signals = ordered_signals
             # plot signals
-            self.logger.debug('Plot signals begin %s', time.time()-t0)
+            self.logger.debug('Plot signals begin %s', time.time() - t0)
             layout = self.scrollAreaWidgetContents_3.layout()
             jj = 0
             col = 0
@@ -429,7 +426,7 @@ class MainWindow(QMainWindow):
                 if w:
                     w.deleteLater()
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
-                #self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
+                # self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
                 last_sel_time = self.log_table.column("Time")[self.last_selection]
                 self.sblbl1.setText(last_sel_time)
                 # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
@@ -444,7 +441,7 @@ class MainWindow(QMainWindow):
         finally:
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.new_shot = False
-            self.logger.debug('Plot signals end %s', time.time()-t0)
+            self.logger.debug('Plot signals end %s', time.time() - t0)
 
     def file_selection_changed(self, m):
         self.logger.debug('Selection changed to %s' % str(m))
@@ -508,7 +505,7 @@ class MainWindow(QMainWindow):
                 file_name = self.log_file_name
             if file_name is None:
                 return
-            #self.statusBar().showMessage('Reading %s' % file_name)
+            # self.statusBar().showMessage('Reading %s' % file_name)
             self.sblbl2.setText('Reading %s' % file_name)
             self.logger.debug('Reading log file %s', file_name)
             # get extra columns
@@ -597,7 +594,7 @@ class MainWindow(QMainWindow):
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.logger.debug('Exception:', exc_info=True)
-        #self.statusBar().showMessage('File: %s' % file_name)
+        # self.statusBar().showMessage('File: %s' % file_name)
         self.sblbl2.setText('File: %s' % file_name)
         return
 
@@ -647,6 +644,7 @@ class MainWindow(QMainWindow):
                 attr(self.conf[name])
             except:
                 pass
+
         full_name = os.path.join(str(folder), file_name)
         try:
             with open(full_name, 'r') as configfile:
@@ -781,7 +779,7 @@ class VLine(QFrame):
     # a simple VLine, like the one you get from designer
     def __init__(self):
         super(VLine, self).__init__()
-        self.setFrameShape(self.VLine|self.Sunken)
+        self.setFrameShape(self.VLine | self.Sunken)
 
 
 class LogTable:
@@ -1136,7 +1134,7 @@ class DataFile:
             except:
                 signal.x[ii] = float('nan')
                 signal.y[ii] = float('nan')
-                self.logger.debug( "Wrong data in line %s for %s", ii, signal_name)
+                self.logger.debug("Wrong data in line %s for %s", ii, signal_name)
         # read parameters
         signal.params = {}
         lines = pbuf.split(spltch)
@@ -1227,10 +1225,10 @@ if __name__ == '__main__':
     # create the GUI application
     app = QApplication(sys.argv)
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
-    #app.setHighDpiScaleFactorRoundingPolicy(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    #app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
-    #app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
-    #app.setAttribute(QtCore.Qt.AA_Use96Dpi)
+    # app.setHighDpiScaleFactorRoundingPolicy(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    # app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+    # app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
+    # app.setAttribute(QtCore.Qt.AA_Use96Dpi)
     # instantiate the main window
     dmw = MainWindow()
     app.aboutToQuit.connect(dmw.on_quit)
