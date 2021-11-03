@@ -263,7 +263,23 @@ class MainWindow(QMainWindow):
         # change selection and fire callback
         self.comboBox_2.setCurrentIndex(i)
 
-    @timeit
+    def get_selected_row(self, widget=None):
+        if widget is None:
+            widget = self.tableWidget_3
+        rng = widget.selectedRanges()
+        # if selection is empty
+        if len(rng) < 1:
+            return -1
+        # top row of the selection
+        row_s = rng[0].topRow()
+        # if selected the same row
+        if self.last_selection == row_s:
+            return -1
+        # different row selected
+        self.logger.debug('Selection changed to row %i', row_s)
+        return row_s
+
+    # @timeit
     def table_selection_changed(self):
         def sig(name):
             for sg in self.signal_list:
@@ -274,40 +290,24 @@ class MainWindow(QMainWindow):
         self.logger.debug('Entry')
         t0 = time.time()
         gc.collect()
+        self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
         try:
-            # if selection is empty
-            if len(self.tableWidget_3.selectedRanges()) < 1:
-                return
-            # top row of the selection
-            row_s = self.tableWidget_3.selectedRanges()[0].topRow()
-            # if selected the same row
-            if self.last_selection == row_s:
-                return
-            # different row selected
-            self.logger.debug('Selection changed to row %i', row_s)
+            row_s = self.get_selected_row(self.tableWidget_3)
             if row_s < 0:
                 return
+            # read signals from zip file
             folder = os.path.dirname(self.log_file_name)
             zip_file_name = self.log_table.column("File")[row_s]
             self.logger.debug('Using zip File %s', zip_file_name)
-            # read zip file listing
             self.data_file = DataFile(zip_file_name, folder=folder)
-            # read signals from zip file
             self.old_signal_list = self.signal_list
             self.signal_list = self.data_file.read_all_signals()
-            # reorder plots according to columns order in the table
-            self.signals = []
-            for c in self.columns:
-                for s in self.signal_list:
-                    if s.name == c:
-                        self.signals.append(self.signal_list.index(s))
-                        break
             # add extra plots from plainTextEdit_4
             extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
             for p in extra_plots:
                 if p.strip() != "":
                     try:
-                        s = Signal(name='undefined')
+                        s = None
                         result = eval(p)
                         if isinstance(result, Signal):
                             s = result
@@ -322,12 +322,22 @@ class MainWindow(QMainWindow):
                             if isinstance(result[1], Signal):
                                 s = result[1]
                                 s.name = result[0]
-                        self.signal_list.append(s)
-                        self.signals.append(self.signal_list.index(s))
+                        if s is not None:
+                            self.signal_list.append(s)
+                            self.signals.append(s)
                     except:
                         self.logger.info('Plot eval() error in %s' % p)
                         self.logger.debug('Exception:', exc_info=True)
-            # reorder signals to plot order and exclude not necessary
+            ## build signal name list
+            # signal_name_list = [s.name for s in self.signal_list]
+            # reorder plots according to columns order in the table
+            self.signals = []
+            for c in self.columns:
+                for s in self.signal_list:
+                    if s.name == c:
+                        self.signals.append(self.signal_list.index(s))
+                        break
+            # reorder plots according to plot_order and excluded_plots
             plot_order = self.plainTextEdit_7.toPlainText().split('\n')
             excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
             ordered_signals = []
@@ -343,7 +353,6 @@ class MainWindow(QMainWindow):
             self.signals = ordered_signals
             # plot signals
             self.logger.debug('Plot signals begin %s', time.time()-t0)
-            self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
             layout = self.scrollAreaWidgetContents_3.layout()
             jj = 0
             col = 0
@@ -429,14 +438,13 @@ class MainWindow(QMainWindow):
                 self.sblbl1.setText("**:**:**")
                 self.sblbl2.setText('File: %s' % self.log_file_name)
             self.last_selection = row_s
-            self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
-            self.logger.debug('Plot signals end %s', time.time()-t0)
         except:
-            self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
-            self.logger.log(logging.WARNING, 'Exception in tableSelectionChanged')
+            self.logger.warning('Exception in tableSelectionChanged')
             self.logger.debug('Exception:', exc_info=True)
         finally:
+            self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.new_shot = False
+            self.logger.debug('Plot signals end %s', time.time()-t0)
 
     def file_selection_changed(self, m):
         self.logger.debug('Selection changed to %s' % str(m))
