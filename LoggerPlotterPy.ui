@@ -908,14 +908,6 @@ File</string>
     <string>Plot</string>
    </property>
   </action>
-  <action name="actionLog">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Log</string>
-   </property>
-  </action>
   <action name="actionParameters">
    <property name="checkable">
     <bool>true</bool>

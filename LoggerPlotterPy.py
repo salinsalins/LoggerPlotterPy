@@ -61,9 +61,9 @@ def timeit(method):
 
 
 ORGANIZATION_NAME = 'BINP'
-APPLICATION_NAME = 'LoggerPlotterPy'
-APPLICATION_NAME_SHORT = APPLICATION_NAME
-APPLICATION_VERSION = '_4_5'
+APPLICATION_NAME = 'Plotter for Signals '
+APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
+APPLICATION_VERSION = 'v.4.5'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
@@ -126,11 +126,18 @@ class MainWindow(QMainWindow):
         self.actionAbout.triggered.connect(self.show_about)
         # Additional configuration
         self.setWindowIcon(QtGui.QIcon('icon.png'))
+        self.setWindowTitle(APPLICATION_NAME + APPLICATION_VERSION)
         header = self.tableWidget_3.horizontalHeader()
         # header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(QHeaderView.ResizeToContents)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(0)
-        header.sectionDoubleClicked.connect(self.test)
+
+        # header right click menu
+        #self.right_click_menu = QMenu()
+        #self.hide_action = self.right_click_menu.addAction("Hide")
+        header.sectionClicked.connect(self.test)
+        #header.sectionDoubleClicked.connect(self.test)
+
         self.tableWidget_3.setStyleSheet("""
                 QTableView {
                     gridline-color: black;
@@ -190,34 +197,33 @@ class MainWindow(QMainWindow):
         # read data files
         self.parse_folder()
 
-    def openMenu(self, n):
-        menu = QMenu()
-        quitAction = menu.addAction("Hide")
+    def open_right_click_menu(self, n):
         cursor = QtGui.QCursor()
         position = cursor.pos()
-        # position = self.tableWidget_3.mapFromGlobal(position)
-        # action = menu.exec_(self.tableWidget_3.mapToGlobal(position))
+        menu = QMenu()
+        quit_action = menu.addAction("Hide")
         action = menu.exec_(position)
-        if action == quitAction:
+        if action == quit_action:
             # print("Hide")
             excluded = self.plainTextEdit_3.toPlainText()
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
-            excluded += '\n' + t
+            if t not in excluded:
+                excluded += '\n' + t
             self.plainTextEdit_3.setPlainText(excluded)
             self.tableWidget_3.hideColumn(n)
-            # qApp.quit()
 
-    def test(self, a):
+    def test(self, a, *args):
+        # print('test', a, args)
         # h = self.tableWidget_3.horizontalHeader()
-        # print('test', a)
-        self.openMenu(a)
+        if a > 0:
+            self.open_right_click_menu(a)
 
     def refresh_on(self):
         self.refresh_flag = True
 
     def show_about(self):
-        QMessageBox.information(self, 'About', APPLICATION_NAME + ' Version ' + APPLICATION_VERSION +
-                                '\nShow saved shot logs and plot traces.', QMessageBox.Ok)
+        QMessageBox.information(self, 'About', APPLICATION_NAME + APPLICATION_VERSION +
+                                '\nShows saved shot logs and plot traces.', QMessageBox.Ok)
 
     def show_plot_pane(self):
         self.stackedWidget.setCurrentIndex(0)
