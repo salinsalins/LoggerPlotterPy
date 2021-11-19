@@ -135,6 +135,7 @@ class MainWindow(QMainWindow):
         # header right click menu
         #self.right_click_menu = QMenu()
         #self.hide_action = self.right_click_menu.addAction("Hide")
+        #header.clicked.connect(self.test)
         header.sectionClicked.connect(self.test)
         #header.sectionDoubleClicked.connect(self.test)
 
@@ -213,8 +214,10 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.hideColumn(n)
 
     def test(self, a, *args):
-        # print('test', a, args)
+        print('test', a, args)
         # h = self.tableWidget_3.horizontalHeader()
+        #mouse_state = app.mouseButtons()
+        #print(int(mouse_state))
         if a > 0:
             self.open_right_click_menu(a)
 

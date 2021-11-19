@@ -275,6 +275,9 @@
                         <attribute name="horizontalHeaderDefaultSectionSize">
                          <number>100</number>
                         </attribute>
+                        <attribute name="horizontalHeaderHighlightSections">
+                         <bool>true</bool>
+                        </attribute>
                         <attribute name="horizontalHeaderMinimumSectionSize">
                          <number>35</number>
                         </attribute>
