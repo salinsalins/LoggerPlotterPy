@@ -61,9 +61,9 @@ def timeit(method):
 
 
 ORGANIZATION_NAME = 'BINP'
-APPLICATION_NAME = 'Plotter for Signals '
+APPLICATION_NAME = 'Plotter for Signals'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = 'v.4.5'
+APPLICATION_VERSION = '4.5'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
@@ -135,8 +135,8 @@ class MainWindow(QMainWindow):
         # header right click menu
         #self.right_click_menu = QMenu()
         #self.hide_action = self.right_click_menu.addAction("Hide")
-        #header.clicked.connect(self.test)
-        header.sectionClicked.connect(self.test)
+        header.clicked.connect(self.test)
+        #header.sectionClicked.connect(self.test)
         #header.sectionDoubleClicked.connect(self.test)
 
         self.tableWidget_3.setStyleSheet("""
@@ -183,7 +183,7 @@ class MainWindow(QMainWindow):
 
         # default settings
         self.set_default_settings()
-        print(APPLICATION_NAME + APPLICATION_VERSION + ' started')
+        print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
         # restore settings
         self.restore_settings()
 
@@ -202,7 +202,7 @@ class MainWindow(QMainWindow):
         cursor = QtGui.QCursor()
         position = cursor.pos()
         menu = QMenu()
-        quit_action = menu.addAction("Hide")
+        quit_action = menu.addAction("Hide column")
         action = menu.exec_(position)
         if action == quit_action:
             # print("Hide")
@@ -218,8 +218,8 @@ class MainWindow(QMainWindow):
         # h = self.tableWidget_3.horizontalHeader()
         #mouse_state = app.mouseButtons()
         #print(int(mouse_state))
-        if a > 0:
-            self.open_right_click_menu(a)
+        # if a > 0:
+        #    self.open_right_click_menu(a)
 
     def refresh_on(self):
         self.refresh_flag = True
@@ -824,7 +824,7 @@ class LogTable:
         self.file_size = os.path.getsize(fn)
         # split buf to lines
         lines = buf.split('\n')
-        self.logger.debug('%d lines in %s' % (len(lines), self.file_name))
+        self.logger.debug('%d lines red from %s' % (len(lines), self.file_name))
         self.file_lines = len(lines)
         # loop for lines
         for line in lines:
@@ -846,7 +846,7 @@ class LogTable:
         flds[0] = "Time=" + tm
         # add row to table
         self.add_row()
-        # iterate for key=value pairs
+        # iterate rest fields for key=value pairs
         for fld in flds:
             kv = fld.split("=")
             key = kv[0].strip()
