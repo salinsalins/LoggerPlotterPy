@@ -881,7 +881,7 @@ class LogTable:
                             self.values[j][row] = float(value)
                             self.units[j][row] = str(units)
                     except:
-                        self.logger.log(logging.INFO, 'Column eval() error in \n   %s' % column)
+                        self.logger.info('eval() error in %s', column)
                         self.logger.debug('Exception:', exc_info=True)
 
     def refresh(self, extra_cols):
