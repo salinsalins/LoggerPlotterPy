@@ -212,8 +212,7 @@ class MainWindow(QMainWindow):
             # print("Hide")
             excluded = self.plainTextEdit_3.toPlainText()
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
-            if t not in excluded:
-                excluded += '\n' + t
+            excluded += '\n' + t
             self.plainTextEdit_3.setPlainText(excluded)
             self.tableWidget_3.hideColumn(n)
 
