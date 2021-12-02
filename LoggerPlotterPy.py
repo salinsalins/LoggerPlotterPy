@@ -211,11 +211,11 @@ class MainWindow(QMainWindow):
         if action == quit_action:
             # print("Hide")
             excluded = self.plainTextEdit_3.toPlainText()
-            # t = self.tableWidget_3.horizontalHeaderItem(n).text()
-            # if t not in excluded:
-            #     excluded += '\n' + t
-            # self.plainTextEdit_3.setPlainText(excluded)
-            # self.tableWidget_3.hideColumn(n)
+            t = self.tableWidget_3.horizontalHeaderItem(n).text()
+            if t not in excluded:
+                excluded += '\n' + t
+            self.plainTextEdit_3.setPlainText(excluded)
+            self.tableWidget_3.hideColumn(n)
 
     def test(self, a, *args):
         #i = self.tableWidget_3.horizontalHeader().currentIndex()
