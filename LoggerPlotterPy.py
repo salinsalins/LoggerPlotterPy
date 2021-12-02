@@ -13,6 +13,7 @@ import sys
 import time
 import zipfile
 
+import PyQt5
 import PyQt5.QtGui as QtGui
 import numpy
 from PyQt5 import uic
@@ -135,9 +136,10 @@ class MainWindow(QMainWindow):
         # header right click menu
         #self.right_click_menu = QMenu()
         #self.hide_action = self.right_click_menu.addAction("Hide")
-        header.clicked.connect(self.test)
         #header.sectionClicked.connect(self.test)
         #header.sectionDoubleClicked.connect(self.test)
+        header.setContextMenuPolicy(PyQt5.QtCore.Qt.CustomContextMenu)
+        header.customContextMenuRequested.connect(self.test)
 
         self.tableWidget_3.setStyleSheet("""
                 QTableView {
@@ -199,27 +201,31 @@ class MainWindow(QMainWindow):
         self.parse_folder()
 
     def open_right_click_menu(self, n):
+        #print('menu', n)
         cursor = QtGui.QCursor()
         position = cursor.pos()
+        #position = n
         menu = QMenu()
         quit_action = menu.addAction("Hide column")
         action = menu.exec_(position)
         if action == quit_action:
             # print("Hide")
             excluded = self.plainTextEdit_3.toPlainText()
-            t = self.tableWidget_3.horizontalHeaderItem(n).text()
-            if t not in excluded:
-                excluded += '\n' + t
-            self.plainTextEdit_3.setPlainText(excluded)
-            self.tableWidget_3.hideColumn(n)
+            # t = self.tableWidget_3.horizontalHeaderItem(n).text()
+            # if t not in excluded:
+            #     excluded += '\n' + t
+            # self.plainTextEdit_3.setPlainText(excluded)
+            # self.tableWidget_3.hideColumn(n)
 
     def test(self, a, *args):
-        print('test', a, args)
+        #i = self.tableWidget_3.horizontalHeader().currentIndex()
+        #print('test', a, args)
         # h = self.tableWidget_3.horizontalHeader()
         #mouse_state = app.mouseButtons()
         #print(int(mouse_state))
-        # if a > 0:
-        #    self.open_right_click_menu(a)
+        n = self.tableWidget_3.columnAt(a.x())
+        if n > 0:
+            self.open_right_click_menu(n)
 
     def refresh_on(self):
         self.refresh_flag = True
