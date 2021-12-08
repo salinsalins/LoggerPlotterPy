@@ -5,10 +5,11 @@ Created on 16 april 2021
 '''
 
 import pyqtgraph
-pg = pyqtgraph
 from pyqtgraph.Qt import QtCore
 
-#pyqtgraph.setConfigOption('background', '#1d648d')
+# pg = pyqtgraph
+
+# pyqtgraph.setConfigOption('background', '#1d648d')
 pyqtgraph.setConfigOption('background', 'w')
 pyqtgraph.setConfigOption('foreground', 'k')
 pyqtgraph.setConfigOption('antialias', True)
@@ -20,7 +21,7 @@ class CustomViewBox(pyqtgraph.ViewBox):
         pyqtgraph.ViewBox.__init__(self, *args, **kwds)
         self.setMouseMode(self.RectMode)
         self.setBackgroundColor('#1d648da0')
-        #self.setBorder(pen=('green', 5))
+        # self.setBorder(pen=('green', 5))
 
     # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
@@ -40,8 +41,8 @@ class CustomViewBox(pyqtgraph.ViewBox):
         ev.ignore()
 
     def clearScaleHistory(self):
-        self.axHistory = [] # maintain a history of zoom locations
-        self.axHistoryPointer = -1 # pointer into the history. Allows forward/backward movement, not just "undo"
+        self.axHistory = []  # maintain a history of zoom locations
+        self.axHistoryPointer = -1  # pointer into the history. Allows forward/backward movement, not just "undo"
 
 
 class MplWidget(pyqtgraph.PlotWidget):
@@ -53,8 +54,8 @@ class MplWidget(pyqtgraph.PlotWidget):
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
         self.getPlotItem().showGrid(True, True)
-        #self.getPlotItem().getAxis('left').setBackgroundColor('w')
-        #pyqtgraph.GridItem().setPen('k')
+        # self.getPlotItem().getAxis('left').setBackgroundColor('w')
+        # pyqtgraph.GridItem().setPen('k')
 
     def clearScaleHistory(self):
         self.getPlotItem().vb.clearScaleHistory()
@@ -63,8 +64,8 @@ class MplWidget(pyqtgraph.PlotWidget):
 class MplAdapter:
     def __init__(self, item):
         self.item = item
-        #self.plot_item_count = 0
-        #super().__init__()
+        # self.plot_item_count = 0
+        # super().__init__()
         pass
 
     def grid(self, val=True):

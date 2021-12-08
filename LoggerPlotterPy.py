@@ -33,7 +33,7 @@ from PyQt5.QtWidgets import qApp
 
 np = numpy
 # from mplwidget import MplWidget
-from pyqtgraphdget import MplWidget
+from pyqtgraphwidget import MplWidget
 
 
 def config_logger(name=__name__, level=logging.DEBUG):
@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
         # read data files
         self.parse_folder()
 
-    def open_right_click_menu(self, n):
+    def table_header_right_click_menu(self, n):
         #print('menu', n)
         cursor = QtGui.QCursor()
         position = cursor.pos()
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
         #print(int(mouse_state))
         n = self.tableWidget_3.columnAt(a.x())
         if n > 0:
-            self.open_right_click_menu(n)
+            self.table_header_right_click_menu(n)
 
     def refresh_on(self):
         self.refresh_flag = True
