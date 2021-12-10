@@ -1240,6 +1240,11 @@ class Config:
 if __name__ == '__main__':
     if len(sys.argv) >= 2:
         CONFIG_FILE = sys.argv[1]
+    # import matplotlib
+    # matplotlib.rcParams['path.simplify'] = True
+    # matplotlib.rcParams['path.simplify_threshold'] = 1.0
+    # import matplotlib.style as mplstyle
+    # mplstyle.use('fast')
     # create the GUI application
     app = QApplication(sys.argv)
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"

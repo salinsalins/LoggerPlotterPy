@@ -4,6 +4,7 @@ Created on 31 мая 2017 г.
 
 @author: Sanin
 '''
+
 # import matplotlib
 # matplotlib.rcParams['path.simplify'] = True
 # matplotlib.rcParams['path.simplify_threshold'] = 1.0
