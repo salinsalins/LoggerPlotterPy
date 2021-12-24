@@ -62,7 +62,7 @@ def timeit(method):
 
 
 ORGANIZATION_NAME = 'BINP'
-APPLICATION_NAME = 'Plotter for Signals'
+APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
 APPLICATION_VERSION = '4.5'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
@@ -207,14 +207,26 @@ class MainWindow(QMainWindow):
         #position = n
         menu = QMenu()
         quit_action = menu.addAction("Hide column")
+        if n < self.tableWidget_3.columnCount() - 1:
+            right_action = menu.addAction("Move right")
+        else:
+            right_action = None
+        if n > 1:
+            left_action = menu.addAction("Move left")
+        else:
+            left_action = None
         action = menu.exec_(position)
         if action == quit_action:
-            # print("Hide")
+            # print("Hide", n)
             excluded = self.plainTextEdit_3.toPlainText()
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
             excluded += '\n' + t
             self.plainTextEdit_3.setPlainText(excluded)
             self.tableWidget_3.hideColumn(n)
+        if action == left_action:
+            print("Move Left", n)
+        if action == right_action:
+            print("Move Right", n)
 
     def test(self, a, *args):
         #i = self.tableWidget_3.horizontalHeader().currentIndex()
@@ -491,9 +503,11 @@ class MainWindow(QMainWindow):
         included = self.plainTextEdit_2.toPlainText().split('\n')
         excluded = self.plainTextEdit_3.toPlainText().split('\n')
         columns = []
+        # first columns from included
         for t in included:
             if t in self.log_table.headers:
                 columns.append(self.log_table.headers.index(t))
+        # next columns remained in headers if not in excluded
         for t in self.log_table.headers:
             if t not in excluded and t not in columns:
                 columns.append(self.log_table.headers.index(t))
@@ -514,7 +528,7 @@ class MainWindow(QMainWindow):
                 result.append(t)
         return result
 
-    @timeit
+    # @timeit
     def parse_folder(self, file_name=None):
         self.new_shot = True
         self.last_selection = -1
@@ -771,7 +785,7 @@ class MainWindow(QMainWindow):
             pass
         return a
 
-    @timeit
+    # @timeit
     def timer_handler(self):
         # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')

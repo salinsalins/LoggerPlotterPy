@@ -36,8 +36,9 @@ class MyChart(QMainWindow):
 
         N = 1000000
         data = np.random.random(N)
+        datay = np.random.random(N)
         for i in range(N):
-            series.append(i, data[i])
+            series.append(datay[i], data[i])
 
         # creating chart object
         chart = QChart()
@@ -88,11 +89,11 @@ class MyChart(QMainWindow):
         axisX.setLinePen(axisPen)
         axisY.setLinePen(axisPen)
 
-        axixBrush = QBrush(Qt.white)
+        axixBrush = QBrush(Qt.black)
         axisX.setLabelsBrush(axixBrush)
         axisY.setLabelsBrush(axixBrush)
 
-        axisX.setRange(0, 300)
+        axisX.setRange(0, 1)
         # axisX.append('low', 10)
         # axisX.append('medium', 20)
         # axisX.append('high', 30)
@@ -102,8 +103,8 @@ class MyChart(QMainWindow):
         # axisY.append('average', 20)
         # axisY.append('fast', 30)
 
-        axisX.setGridLineVisible(False)
-        axisY.setGridLineVisible(False)
+        # axisX.setGridLineVisible(False)
+        # axisY.setGridLineVisible(False)
 
         chart.addAxis(axisX, Qt.AlignBottom)
         chart.addAxis(axisY, Qt.AlignLeft)
