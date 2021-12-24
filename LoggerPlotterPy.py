@@ -314,12 +314,12 @@ class MainWindow(QMainWindow):
 
         self.logger.debug('Entry')
         t0 = time.time()
+        row_s = self.get_selected_row(self.tableWidget_3)
+        if row_s < 0:
+            return
         gc.collect()
         self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
         try:
-            row_s = self.get_selected_row(self.tableWidget_3)
-            if row_s < 0:
-                return
             # read signals from zip file
             folder = os.path.dirname(self.log_file_name)
             zip_file_name = self.log_table.column("File")[row_s]
@@ -333,29 +333,23 @@ class MainWindow(QMainWindow):
                 if p.strip() != "":
                     try:
                         s = None
-                        result = eval(p)
+                        result = eval(p.strip())
                         if isinstance(result, Signal):
                             s = result
                         elif len(result) == 3:
                             key, x_val, y_val = result
                             if key != '':
-                                s = Signal(name='undefined')
-                                s.x = x_val
-                                s.y = y_val
-                                s.name = key
+                                s = Signal(x_val, y_val, name=key)
                         elif len(result) == 2:
                             if isinstance(result[1], Signal):
                                 s = result[1]
                                 s.name = result[0]
                         if s is not None:
                             self.signal_list.append(s)
-                            self.signals.append(s)
                     except:
                         self.logger.info('Plot eval() error in %s' % p)
                         self.logger.debug('Exception:', exc_info=True)
-            ## build signal name list
-            # signal_name_list = [s.name for s in self.signal_list]
-            # reorder plots according to columns order in the table
+            # build signals index list
             self.signals = []
             for c in self.columns:
                 for s in self.signal_list:
@@ -385,7 +379,7 @@ class MainWindow(QMainWindow):
             col_count = 3
             for c in self.signals:
                 s = self.signal_list[c]
-                # Use existing plot widgets or add new
+                # Use existing plot widgets or create new
                 if jj < layout.count():
                     # use existing plot widget
                     mplw = layout.itemAt(jj).widget()
@@ -437,7 +431,7 @@ class MainWindow(QMainWindow):
                 axes.set_ylabel(s.name + ', ' + s.unit)
                 # axes.legend(loc='best')
                 # Show plot
-                mplw.canvas.draw()
+                # mplw.canvas.draw()
                 try:
                     if self.new_shot and self.checkBox_3.isChecked():
                         mplw.clearScaleHistory()
