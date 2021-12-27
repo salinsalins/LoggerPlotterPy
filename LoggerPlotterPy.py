@@ -230,12 +230,14 @@ class MainWindow(QMainWindow):
             self.columns[n - 1] = self.columns[n]
             self.columns[n] = s
             self.fill_table_widget()
+            self.last_columns = self.columns.copy()
         if action == right_action:
             # print("Move Right", n)
             s = self.columns[n + 1]
             self.columns[n + 1] = self.columns[n]
             self.columns[n] = s
             self.fill_table_widget()
+            self.last_columns = self.columns.copy()
 
     def test(self, a, *args):
         # i = self.tableWidget_3.horizontalHeader().currentIndex()
@@ -501,8 +503,15 @@ class MainWindow(QMainWindow):
             return
         if self.log_file_name != new_log_file:
             self.log_file_name = new_log_file
+            # clear signal list
             self.signal_list = []
+            # clear last columns list
+            self.last_columns = []
+            self.read_local_config()
             self.parse_folder()
+
+    def read_local_config(self):
+        pass
 
     def log_level_index_changed(self, m: int) -> None:
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
@@ -669,12 +678,6 @@ class MainWindow(QMainWindow):
             return False
 
     def restore_settings(self, folder='', file_name=CONFIG_FILE):
-        def conf2attr(attr, name):
-            try:
-                attr(self.conf[name])
-            except:
-                pass
-
         full_name = os.path.join(str(folder), file_name)
         try:
             with open(full_name, 'r') as configfile:
@@ -700,6 +703,8 @@ class MainWindow(QMainWindow):
                 print(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1])
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
                 #print(self.pos().x(), self.pos().y())
+                self.first_x = self.conf['main_window']['position'][0]
+                self.first_y = self.conf['main_window']['position'][1]
             # colors
             try:
                 self.trace_color = config['colors']['trace']
@@ -1256,6 +1261,7 @@ class Config:
 
 
 if __name__ == '__main__':
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
     if len(sys.argv) >= 2:
         CONFIG_FILE = sys.argv[1]
     # import matplotlib
@@ -1265,20 +1271,21 @@ if __name__ == '__main__':
     # mplstyle.use('fast')
     # create the GUI application
     app = QApplication(sys.argv)
-    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
     # app.setHighDpiScaleFactorRoundingPolicy(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     # app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
     # app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
     # app.setAttribute(QtCore.Qt.AA_Use96Dpi)
     # instantiate the main window
     dmw = MainWindow()
+    # connect quit processing code
     app.aboutToQuit.connect(dmw.on_quit)
-    # show it
+    # show main window
     dmw.show()
     # defile and start timer task
     timer = QTimer()
     timer.timeout.connect(dmw.timer_handler)
     timer.start(1000)
-    # start the Qt main loop execution, exiting from this script
-    # with the same return code of Qt application
-    sys.exit(app.exec_())
+    # start the Qt main loop execution,
+    exec_result = app.exec_()
+    # exiting from this script with the same return code of Qt application
+    sys.exit(exec_result)
