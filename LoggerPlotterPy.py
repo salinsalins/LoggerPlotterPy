@@ -787,7 +787,7 @@ class MainWindow(QMainWindow):
 
     # @timeit
     def timer_handler(self):
-        print(self.pos().x(), self.pos().y())
+        # print(self.pos().x(), self.pos().y())
         # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
