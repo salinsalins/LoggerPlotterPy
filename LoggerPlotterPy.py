@@ -228,13 +228,13 @@ class MainWindow(QMainWindow):
             s = self.columns[n - 1]
             self.columns[n - 1] = self.columns[n]
             self.columns[n] = s
-            self.fill_log_table()
+            self.fill_table_widget()
         if action == right_action:
             # print("Move Right", n)
             s = self.columns[n + 1]
             self.columns[n + 1] = self.columns[n]
             self.columns[n] = s
-            self.fill_log_table()
+            self.fill_table_widget()
 
     def test(self, a, *args):
         # i = self.tableWidget_3.horizontalHeader().currentIndex()
@@ -604,18 +604,17 @@ class MainWindow(QMainWindow):
         timer.stop()
 
     def sort_columns(self):
-        # create sorted displayed columns list
         included = self.plainTextEdit_2.toPlainText().split('\n')
         excluded = self.plainTextEdit_3.toPlainText().split('\n')
         columns = []
-        # first columns from included
+        # add included columns if present
         for t in included:
             if t in self.log_table.headers:
-                columns.append(self.log_table.headers.index(t))
-        # next columns remained in headers if not in excluded
+                columns.append(t)
+        # add other columns if not excluded
         for t in self.log_table.headers:
             if t not in excluded and t not in columns:
-                columns.append(self.log_table.headers.index(t))
+                columns.append(t)
         return columns
 
     @staticmethod
@@ -653,18 +652,18 @@ class MainWindow(QMainWindow):
                 return
             self.log_file_name = self.log_table.file_name
             # Create sorted displayed columns list
-            self.included = self.plainTextEdit_2.toPlainText().split('\n')
-            self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
-            self.columns = []
-            # add included columns if present
-            for t in self.included:
-                if t in self.log_table.headers:
-                    self.columns.append(t)
-            # add other columns if not excluded
-            for t in self.log_table.headers:
-                if t not in self.excluded and t not in self.columns:
-                    self.columns.append(t)
-            self.fill_log_table()
+            self.columns = self.sort_columns()
+            # self.included = self.plainTextEdit_2.toPlainText().split('\n')
+            # self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
+            # # add included columns if present
+            # for t in self.included:
+            #     if t in self.log_table.headers:
+            #         self.columns.append(t)
+            # # add other columns if not excluded
+            # for t in self.log_table.headers:
+            #     if t not in self.excluded and t not in self.columns:
+            #         self.columns.append(t)
+            self.fill_table_widget()
             # # disable table widget update events
             # self.tableWidget_3.setUpdatesEnabled(False)
             # self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
@@ -736,7 +735,7 @@ class MainWindow(QMainWindow):
         self.sb_text.setText('File: %s' % file_name)
         return
 
-    def fill_log_table(self):
+    def fill_table_widget(self):
         # disable table widget update events
         self.tableWidget_3.setUpdatesEnabled(False)
         self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
