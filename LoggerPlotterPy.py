@@ -134,10 +134,10 @@ class MainWindow(QMainWindow):
         header.setSectionResizeMode(0)
 
         # header right click menu
-        #self.right_click_menu = QMenu()
-        #self.hide_action = self.right_click_menu.addAction("Hide")
-        #header.sectionClicked.connect(self.test)
-        #header.sectionDoubleClicked.connect(self.test)
+        # self.right_click_menu = QMenu()
+        # self.hide_action = self.right_click_menu.addAction("Hide")
+        # header.sectionClicked.connect(self.test)
+        # header.sectionDoubleClicked.connect(self.test)
         header.setContextMenuPolicy(PyQt5.QtCore.Qt.CustomContextMenu)
         header.customContextMenuRequested.connect(self.test)
 
@@ -201,10 +201,10 @@ class MainWindow(QMainWindow):
         self.parse_folder()
 
     def table_header_right_click_menu(self, n):
-        #print('menu', n)
+        # print('menu', n)
         cursor = QtGui.QCursor()
         position = cursor.pos()
-        #position = n
+        # position = n
         menu = QMenu()
         quit_action = menu.addAction("Hide column")
         if n < self.tableWidget_3.columnCount() - 1:
@@ -229,11 +229,11 @@ class MainWindow(QMainWindow):
             print("Move Right", n)
 
     def test(self, a, *args):
-        #i = self.tableWidget_3.horizontalHeader().currentIndex()
-        #print('test', a, args)
+        # i = self.tableWidget_3.horizontalHeader().currentIndex()
+        # print('test', a, args)
         # h = self.tableWidget_3.horizontalHeader()
-        #mouse_state = app.mouseButtons()
-        #print(int(mouse_state))
+        # mouse_state = app.mouseButtons()
+        # print(int(mouse_state))
         n = self.tableWidget_3.columnAt(a.x())
         if n > 0:
             self.table_header_right_click_menu(n)
@@ -312,7 +312,7 @@ class MainWindow(QMainWindow):
                     return sg
             return None
 
-        self.logger.debug('Entry')
+        self.logger.debug('Entry -----------------')
         t0 = time.time()
         row_s = self.get_selected_row(self.tableWidget_3)
         if row_s < 0:
@@ -327,6 +327,7 @@ class MainWindow(QMainWindow):
             self.data_file = DataFile(zip_file_name, folder=folder)
             self.old_signal_list = self.signal_list
             self.signal_list = self.data_file.read_all_signals()
+            self.logger.debug('Read signals end %s', time.time() - t0)
             # add extra plots from plainTextEdit_4
             extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
             for p in extra_plots:
@@ -349,6 +350,7 @@ class MainWindow(QMainWindow):
                     except:
                         self.logger.info('Plot eval() error in %s' % p)
                         self.logger.debug('Exception:', exc_info=True)
+            self.logger.debug('Extra signals calc. end %s', time.time() - t0)
             # build signals index list
             self.signals = []
             for c in self.columns:
@@ -371,6 +373,7 @@ class MainWindow(QMainWindow):
                         ordered_signals.append(p)
             self.signals = ordered_signals
             # plot signals
+            t1 = time.time()
             self.logger.debug('Plot signals begin %s', time.time() - t0)
             layout = self.scrollAreaWidgetContents_3.layout()
             jj = 0
@@ -465,7 +468,104 @@ class MainWindow(QMainWindow):
         finally:
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.new_shot = False
+            self.logger.debug('Plot signals time %s', time.time() - t1)
             self.logger.debug('Plot signals end %s', time.time() - t0)
+
+    def plot_signals(self, signals=None):
+        if signals is None:
+            signals = self.signals
+        # plot signals
+        t0 = time.time()
+        self.logger.debug('Plot signals begin')
+        layout = self.scrollAreaWidgetContents_3.layout()
+        jj = 0
+        col = 0
+        row = 0
+        col_count = 3
+        for c in signals:
+            s = self.signal_list[c]
+            # Use existing plot widgets or create new
+            if jj < layout.count():
+                # use existing plot widget
+                mplw = layout.itemAt(jj).widget()
+            else:
+                # create new plot widget
+                mplw = MplWidget(height=300, width=300)
+                mplw.ntb.setIconSize(QSize(18, 18))
+                mplw.ntb.setFixedSize(300, 24)
+                layout.addWidget(mplw, row, col)
+            col += 1
+            if col >= col_count:
+                col = 0
+                row += 1
+            # Show toolbar
+            if self.checkBox_1.isChecked():
+                mplw.ntb.show()
+            else:
+                mplw.ntb.hide()
+            # get axes
+            axes = mplw.canvas.ax
+            axes.clear()
+            # plot previous line
+            if self.checkBox_2.isChecked() and self.last_selection >= 0:
+                for s1 in self.old_signal_list:
+                    if s1.name == s.name:
+                        axes.plot(s1.x, s1.y, color=self.previous_color)
+                        break
+            # plot main line
+            axes.plot(s.x, s.y, color=self.trace_color)
+            # plot 'mark' highlight
+            if 'mark' in s.marks:
+                m1 = s.marks['mark'][0]
+                m2 = m1 + s.marks['mark'][1]
+                axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.mark_color)
+            # Plot 'zero' highlight
+            if 'zero' in s.marks:
+                m1 = s.marks['zero'][0]
+                m2 = m1 + s.marks['zero'][1]
+                axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.zero_color)
+            # Decorate the plot
+            axes.grid(True)
+            axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
+            if b"xlabel" in s.params:
+                axes.set_xlabel(s.params[b"xlabel"].decode('ascii'))
+            elif "xlabel" in s.params:
+                axes.set_xlabel(s.params["xlabel"].decode('ascii'))
+            else:
+                axes.set_xlabel('Time, ms')
+            axes.set_ylabel(s.name + ', ' + s.unit)
+            # axes.legend(loc='best')
+            # Show plot
+            # mplw.canvas.draw()
+            try:
+                if self.new_shot and self.checkBox_3.isChecked():
+                    mplw.clearScaleHistory()
+                    mplw.autoRange()
+            except:
+                pass
+            jj += 1
+        # Remove unused plot widgets
+        while jj < layout.count():
+            item = layout.takeAt(layout.count() - 1)
+            if not item:
+                continue
+            w = item.widget()
+            if w:
+                w.deleteLater()
+        self.logger.debug('Plot signals end %s', time.time() - t0)
+
+    def update_status_bar(self):
+        if self.checkBox_2.isChecked() and self.last_selection >= 0:
+            # self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
+            last_sel_time = self.log_table.column("Time")[self.last_selection]
+            self.sb_prev_shot_time.setVisible(True)
+            self.sb_prev_shot_time.setText(last_sel_time)
+            # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+            self.sb_text.setText('File: %s' % self.log_file_name)
+        else:
+            self.sb_prev_shot_time.setVisible(False)
+            self.sb_prev_shot_time.setText("**:**:**")
+            self.sb_text.setText('File: %s' % self.log_file_name)
 
     def file_selection_changed(self, m):
         self.logger.debug('Selection changed to %s' % str(m))
