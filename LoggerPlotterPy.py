@@ -104,6 +104,7 @@ class MainWindow(QMainWindow):
         self.included = []
         self.excluded = []
         self.columns = []
+        self.last_columns = []
         self.new_shot = True
 
         # Load the UI
@@ -511,6 +512,7 @@ class MainWindow(QMainWindow):
 
     def on_quit(self):
         # save global settings
+        # print(self.pos().x(), self.pos().y())
         self.save_settings()
         timer.stop()
 
@@ -518,30 +520,18 @@ class MainWindow(QMainWindow):
         included = self.plainTextEdit_2.toPlainText().split('\n')
         excluded = self.plainTextEdit_3.toPlainText().split('\n')
         columns = []
+        for t in self.last_columns:
+            if t in self.log_table.headers and t not in excluded:
+                columns.append(t)
         # add included columns if present
         for t in included:
-            if t in self.log_table.headers:
+            if t in self.log_table.headers and t not in columns:
                 columns.append(t)
         # add other columns if not excluded
         for t in self.log_table.headers:
             if t not in excluded and t not in columns:
                 columns.append(t)
         return columns
-
-    @staticmethod
-    def sort_list(initial, included=None, excluded=None):
-        if included is None:
-            included = []
-        if excluded is None:
-            excluded = []
-        result = []
-        for t in included:
-            if t in initial:
-                result.append(t)
-        for t in initial:
-            if t not in excluded and t not in result:
-                result.append(t)
-        return result
 
     # @timeit
     def parse_folder(self, file_name=None):
@@ -649,6 +639,7 @@ class MainWindow(QMainWindow):
             # save window size and position
             p = self.pos()
             s = self.size()
+            print(self.pos().x(), self.pos().y())
             self.conf['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
             self.conf['folder'] = self.log_file_name
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in
@@ -706,7 +697,9 @@ class MainWindow(QMainWindow):
             # Restore window size and position
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
+                print(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1])
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
+                #print(self.pos().x(), self.pos().y())
             # colors
             try:
                 self.trace_color = config['colors']['trace']
@@ -794,6 +787,7 @@ class MainWindow(QMainWindow):
 
     # @timeit
     def timer_handler(self):
+        print(self.pos().x(), self.pos().y())
         # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
