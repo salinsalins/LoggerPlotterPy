@@ -382,96 +382,7 @@ class MainWindow(QMainWindow):
                         ordered_signals.append(p)
             self.signals = ordered_signals
             self.plot_signals()
-            # # plot signals
-            # t1 = time.time()
-            # self.logger.debug('Plot signals begin %s', time.time() - t0)
-            # layout = self.scrollAreaWidgetContents_3.layout()
-            # jj = 0
-            # col = 0
-            # row = 0
-            # col_count = 3
-            # for c in self.signals:
-            #     s = self.signal_list[c]
-            #     # Use existing plot widgets or create new
-            #     if jj < layout.count():
-            #         # use existing plot widget
-            #         mplw = layout.itemAt(jj).widget()
-            #     else:
-            #         # create new plot widget
-            #         mplw = MplWidget(height=300, width=300)
-            #         mplw.ntb.setIconSize(QSize(18, 18))
-            #         mplw.ntb.setFixedSize(300, 24)
-            #         layout.addWidget(mplw, row, col)
-            #     col += 1
-            #     if col >= col_count:
-            #         col = 0
-            #         row += 1
-            #     # Show toolbar
-            #     if self.checkBox_1.isChecked():
-            #         mplw.ntb.show()
-            #     else:
-            #         mplw.ntb.hide()
-            #     # get axes
-            #     axes = mplw.canvas.ax
-            #     axes.clear()
-            #     # plot previous line
-            #     if self.checkBox_2.isChecked() and self.last_selection >= 0:
-            #         for s1 in self.old_signal_list:
-            #             if s1.name == s.name:
-            #                 axes.plot(s1.x, s1.y, color=self.previous_color)
-            #                 break
-            #     # plot main line
-            #     axes.plot(s.x, s.y, color=self.trace_color)
-            #     # plot 'mark' highlight
-            #     if 'mark' in s.marks:
-            #         m1 = s.marks['mark'][0]
-            #         m2 = m1 + s.marks['mark'][1]
-            #         axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.mark_color)
-            #     # Plot 'zero' highlight
-            #     if 'zero' in s.marks:
-            #         m1 = s.marks['zero'][0]
-            #         m2 = m1 + s.marks['zero'][1]
-            #         axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.zero_color)
-            #     # Decorate the plot
-            #     axes.grid(True)
-            #     axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
-            #     if b"xlabel" in s.params:
-            #         axes.set_xlabel(s.params[b"xlabel"].decode('ascii'))
-            #     elif "xlabel" in s.params:
-            #         axes.set_xlabel(s.params["xlabel"].decode('ascii'))
-            #     else:
-            #         axes.set_xlabel('Time, ms')
-            #     axes.set_ylabel(s.name + ', ' + s.unit)
-            #     # axes.legend(loc='best')
-            #     # Show plot
-            #     # mplw.canvas.draw()
-            #     try:
-            #         if self.new_shot and self.checkBox_3.isChecked():
-            #             mplw.clearScaleHistory()
-            #             mplw.autoRange()
-            #     except:
-            #         pass
-            #     jj += 1
-            # # Remove unused plot widgets
-            # while jj < layout.count():
-            #     item = layout.takeAt(layout.count() - 1)
-            #     if not item:
-            #         continue
-            #     w = item.widget()
-            #     if w:
-            #         w.deleteLater()
             self.update_status_bar()
-            # if self.checkBox_2.isChecked() and self.last_selection >= 0:
-            #     # self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
-            #     last_sel_time = self.log_table.column("Time")[self.last_selection]
-            #     self.sb_prev_shot_time.setVisible(True)
-            #     self.sb_prev_shot_time.setText(last_sel_time)
-            #     # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
-            #     self.sb_text.setText('File: %s' % self.log_file_name)
-            # else:
-            #     self.sb_prev_shot_time.setVisible(False)
-            #     self.sb_prev_shot_time.setText("**:**:**")
-            #     self.sb_text.setText('File: %s' % self.log_file_name)
             self.last_selection = row_s
         except:
             self.logger.warning('Exception in tableSelectionChanged')
@@ -653,86 +564,11 @@ class MainWindow(QMainWindow):
             self.log_file_name = self.log_table.file_name
             # Create sorted displayed columns list
             self.columns = self.sort_columns()
-            # self.included = self.plainTextEdit_2.toPlainText().split('\n')
-            # self.excluded = self.plainTextEdit_3.toPlainText().split('\n')
-            # # add included columns if present
-            # for t in self.included:
-            #     if t in self.log_table.headers:
-            #         self.columns.append(t)
-            # # add other columns if not excluded
-            # for t in self.log_table.headers:
-            #     if t not in self.excluded and t not in self.columns:
-            #         self.columns.append(t)
             self.fill_table_widget()
-            # # disable table widget update events
-            # self.tableWidget_3.setUpdatesEnabled(False)
-            # self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
-            # # clear table widget
-            # self.tableWidget_3.setRowCount(0)
-            # self.tableWidget_3.setColumnCount(0)
-            # # refill table widget
-            # # insert columns
-            # cln = 0
-            # for column in self.columns:
-            #     self.tableWidget_3.insertColumn(cln)
-            #     self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
-            #     cln += 1
-            # # insert and fill rows
-            # # numbers = self.columns.copy
-            # # formats = self.columns.copy
-            # # for i in range(len(self.columns)):
-            # #     numbers[i] = self.log_table.find_column(self.columns[i])
-            # #     fmt = config['format'][self.log_table.headers[i]]
-            # #     formats[i] = self.log_table.find_column(self.columns[i])
-            # for row in range(self.log_table.rows):
-            #     self.tableWidget_3.insertRow(row)
-            #     n = 0
-            #     for column in self.columns:
-            #         col = self.log_table.find_column(column)
-            #         try:
-            #             fmt = config['format'][self.log_table.headers[col]]
-            #             txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
-            #         except:
-            #             txt = self.log_table.data[col][row]
-            #         item = QTableWidgetItem(txt)
-            #         # mark changed values
-            #         if row > 0:
-            #             v = self.log_table.values[col][row]
-            #             if v is None:
-            #                 v = 0.0
-            #             v1 = self.log_table.values[col][row - 1]
-            #             if v1 is None:
-            #                 v1 = 0.0
-            #             thr = 0.03
-            #             try:
-            #                 thr = config['thresholds'][self.log_table.headers[col]]
-            #             except:
-            #                 pass
-            #             flag = True
-            #             if thr > 0.0:
-            #                 flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
-            #             elif thr < 0.0:
-            #                 flag = abs(v1 - v) > -thr
-            #             if flag:
-            #                 item.setFont(CELL_FONT_BOLD)
-            #             else:
-            #                 item.setFont(CELL_FONT_NORMAL)
-            #         self.tableWidget_3.setItem(row, n, item)
-            #         n += 1
-            # # enable table widget update events
-            # self.tableWidget_3.setUpdatesEnabled(True)
-            # self.tableWidget_3.resizeColumnsToContents()
-            # self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-            # # select last row of widget -> tableSelectionChanged will be fired
-            # self.last_selection = -1
-            # self.tableWidget_3.scrollToBottom()
-            # self.tableWidget_3.setFocus()
-            # self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.logger.debug('Exception:', exc_info=True)
-        # self.statusBar().showMessage('File: %s' % file_name)
-        self.sb_text.setText('File: %s' % file_name)
+        self.update_status_bar()
         return
 
     def fill_table_widget(self):
