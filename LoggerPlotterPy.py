@@ -224,13 +224,17 @@ class MainWindow(QMainWindow):
             self.plainTextEdit_3.setPlainText(excluded)
             self.tableWidget_3.hideColumn(n)
         if action == left_action:
-            print("Move Left", n)
+            # print("Move Left", n)
             s = self.columns[n - 1]
             self.columns[n - 1] = self.columns[n]
             self.columns[n] = s
             self.fill_log_table()
         if action == right_action:
-            print("Move Right", n)
+            # print("Move Right", n)
+            s = self.columns[n + 1]
+            self.columns[n + 1] = self.columns[n]
+            self.columns[n] = s
+            self.fill_log_table()
 
     def test(self, a, *args):
         # i = self.tableWidget_3.horizontalHeader().currentIndex()
