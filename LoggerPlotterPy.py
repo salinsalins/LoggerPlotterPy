@@ -225,10 +225,10 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.hideColumn(n)
         if action == left_action:
             print("Move Left", n)
-            # s = self.signals[n - 1]
-            # self.signals[n - 1] = self.signals[n]
-            # self.signals[n] = s
-            # self.plot_signals()
+            s = self.columns[n - 1]
+            self.columns[n - 1] = self.columns[n]
+            self.columns[n] = s
+            self.fill_log_table()
         if action == right_action:
             print("Move Right", n)
 
@@ -660,76 +660,143 @@ class MainWindow(QMainWindow):
             for t in self.log_table.headers:
                 if t not in self.excluded and t not in self.columns:
                     self.columns.append(t)
-            # disable table widget update events
-            self.tableWidget_3.setUpdatesEnabled(False)
-            self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
-            # clear table widget
-            self.tableWidget_3.setRowCount(0)
-            self.tableWidget_3.setColumnCount(0)
-            # refill table widget
-            # insert columns
-            cln = 0
-            for column in self.columns:
-                self.tableWidget_3.insertColumn(cln)
-                self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
-                cln += 1
-            # insert and fill rows
-            # numbers = self.columns.copy
-            # formats = self.columns.copy
-            # for i in range(len(self.columns)):
-            #     numbers[i] = self.log_table.find_column(self.columns[i])
-            #     fmt = config['format'][self.log_table.headers[i]]
-            #     formats[i] = self.log_table.find_column(self.columns[i])
-            for row in range(self.log_table.rows):
-                self.tableWidget_3.insertRow(row)
-                n = 0
-                for column in self.columns:
-                    col = self.log_table.find_column(column)
-                    try:
-                        fmt = config['format'][self.log_table.headers[col]]
-                        txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
-                    except:
-                        txt = self.log_table.data[col][row]
-                    item = QTableWidgetItem(txt)
-                    # mark changed values
-                    if row > 0:
-                        v = self.log_table.values[col][row]
-                        if v is None:
-                            v = 0.0
-                        v1 = self.log_table.values[col][row - 1]
-                        if v1 is None:
-                            v1 = 0.0
-                        thr = 0.03
-                        try:
-                            thr = config['thresholds'][self.log_table.headers[col]]
-                        except:
-                            pass
-                        flag = True
-                        if thr > 0.0:
-                            flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
-                        elif thr < 0.0:
-                            flag = abs(v1 - v) > -thr
-                        if flag:
-                            item.setFont(CELL_FONT_BOLD)
-                        else:
-                            item.setFont(CELL_FONT_NORMAL)
-                    self.tableWidget_3.setItem(row, n, item)
-                    n += 1
-            # enable table widget update events
-            self.tableWidget_3.setUpdatesEnabled(True)
-            self.tableWidget_3.resizeColumnsToContents()
-            self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-            # select last row of widget -> tableSelectionChanged will be fired
-            self.last_selection = -1
-            self.tableWidget_3.scrollToBottom()
-            self.tableWidget_3.setFocus()
-            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+            self.fill_log_table()
+            # # disable table widget update events
+            # self.tableWidget_3.setUpdatesEnabled(False)
+            # self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
+            # # clear table widget
+            # self.tableWidget_3.setRowCount(0)
+            # self.tableWidget_3.setColumnCount(0)
+            # # refill table widget
+            # # insert columns
+            # cln = 0
+            # for column in self.columns:
+            #     self.tableWidget_3.insertColumn(cln)
+            #     self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
+            #     cln += 1
+            # # insert and fill rows
+            # # numbers = self.columns.copy
+            # # formats = self.columns.copy
+            # # for i in range(len(self.columns)):
+            # #     numbers[i] = self.log_table.find_column(self.columns[i])
+            # #     fmt = config['format'][self.log_table.headers[i]]
+            # #     formats[i] = self.log_table.find_column(self.columns[i])
+            # for row in range(self.log_table.rows):
+            #     self.tableWidget_3.insertRow(row)
+            #     n = 0
+            #     for column in self.columns:
+            #         col = self.log_table.find_column(column)
+            #         try:
+            #             fmt = config['format'][self.log_table.headers[col]]
+            #             txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
+            #         except:
+            #             txt = self.log_table.data[col][row]
+            #         item = QTableWidgetItem(txt)
+            #         # mark changed values
+            #         if row > 0:
+            #             v = self.log_table.values[col][row]
+            #             if v is None:
+            #                 v = 0.0
+            #             v1 = self.log_table.values[col][row - 1]
+            #             if v1 is None:
+            #                 v1 = 0.0
+            #             thr = 0.03
+            #             try:
+            #                 thr = config['thresholds'][self.log_table.headers[col]]
+            #             except:
+            #                 pass
+            #             flag = True
+            #             if thr > 0.0:
+            #                 flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
+            #             elif thr < 0.0:
+            #                 flag = abs(v1 - v) > -thr
+            #             if flag:
+            #                 item.setFont(CELL_FONT_BOLD)
+            #             else:
+            #                 item.setFont(CELL_FONT_NORMAL)
+            #         self.tableWidget_3.setItem(row, n, item)
+            #         n += 1
+            # # enable table widget update events
+            # self.tableWidget_3.setUpdatesEnabled(True)
+            # self.tableWidget_3.resizeColumnsToContents()
+            # self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
+            # # select last row of widget -> tableSelectionChanged will be fired
+            # self.last_selection = -1
+            # self.tableWidget_3.scrollToBottom()
+            # self.tableWidget_3.setFocus()
+            # self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.logger.debug('Exception:', exc_info=True)
         # self.statusBar().showMessage('File: %s' % file_name)
         self.sb_text.setText('File: %s' % file_name)
         return
+
+    def fill_log_table(self):
+        # disable table widget update events
+        self.tableWidget_3.setUpdatesEnabled(False)
+        self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
+        # clear table widget
+        self.tableWidget_3.setRowCount(0)
+        self.tableWidget_3.setColumnCount(0)
+        # refill table widget
+        # insert columns
+        cln = 0
+        for column in self.columns:
+            self.tableWidget_3.insertColumn(cln)
+            self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
+            cln += 1
+        # insert and fill rows
+        # numbers = self.columns.copy
+        # formats = self.columns.copy
+        # for i in range(len(self.columns)):
+        #     numbers[i] = self.log_table.find_column(self.columns[i])
+        #     fmt = config['format'][self.log_table.headers[i]]
+        #     formats[i] = self.log_table.find_column(self.columns[i])
+        for row in range(self.log_table.rows):
+            self.tableWidget_3.insertRow(row)
+            n = 0
+            for column in self.columns:
+                col = self.log_table.find_column(column)
+                try:
+                    fmt = config['format'][self.log_table.headers[col]]
+                    txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
+                except:
+                    txt = self.log_table.data[col][row]
+                item = QTableWidgetItem(txt)
+                # mark changed values
+                if row > 0:
+                    v = self.log_table.values[col][row]
+                    if v is None:
+                        v = 0.0
+                    v1 = self.log_table.values[col][row - 1]
+                    if v1 is None:
+                        v1 = 0.0
+                    thr = 0.03
+                    try:
+                        thr = config['thresholds'][self.log_table.headers[col]]
+                    except:
+                        pass
+                    flag = True
+                    if thr > 0.0:
+                        flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
+                    elif thr < 0.0:
+                        flag = abs(v1 - v) > -thr
+                    if flag:
+                        item.setFont(CELL_FONT_BOLD)
+                    else:
+                        item.setFont(CELL_FONT_NORMAL)
+                self.tableWidget_3.setItem(row, n, item)
+                n += 1
+        # enable table widget update events
+        self.tableWidget_3.setUpdatesEnabled(True)
+        self.tableWidget_3.resizeColumnsToContents()
+        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
+        # select last row of widget -> tableSelectionChanged will be fired
+        self.last_selection = -1
+        self.tableWidget_3.scrollToBottom()
+        self.tableWidget_3.setFocus()
+        self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
 
     def save_settings(self, folder='', file_name=CONFIG_FILE):
         def attr2conf(attr, name):
@@ -959,9 +1026,9 @@ class LogTable:
         # Split line to fields
         fields = line.split("; ")
         # First field "date time" should be longer than 18 symbols
-        if len(fields[0]) < 19:
+        if len(fields) < 2 or len(fields[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.info('Wrong date/time format in "%s", line skipped' % fields[0])
+            self.logger.info('Wrong data format in "%s", line skipped' % fields[0])
             return
         # split time and date
         tm = fields[0].split(" ")[1].strip()
