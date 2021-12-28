@@ -8,6 +8,7 @@ Created on Jul 2, 2017
 import gc
 import json
 import logging
+import math
 import os.path
 import sys
 import time
@@ -596,8 +597,10 @@ class MainWindow(QMainWindow):
             n = 0
             for column in self.columns:
                 col = self.log_table.find_column(column)
+                if col < 0:
+                    continue
                 try:
-                    fmt = config['format'][self.log_table.headers[col]]
+                    fmt = self.config['format'][column]
                     txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
                 except:
                     txt = self.log_table.data[col][row]
@@ -605,21 +608,19 @@ class MainWindow(QMainWindow):
                 # mark changed values
                 if row > 0:
                     v = self.log_table.values[col][row]
-                    if v is None:
-                        v = 0.0
                     v1 = self.log_table.values[col][row - 1]
-                    if v1 is None:
-                        v1 = 0.0
-                    thr = 0.03
-                    try:
-                        thr = config['thresholds'][self.log_table.headers[col]]
-                    except:
-                        pass
                     flag = True
-                    if thr > 0.0:
-                        flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
-                    elif thr < 0.0:
-                        flag = abs(v1 - v) > -thr
+                    if math.isnan(v) or math.isnan(v1):
+                        flag = False
+                    else:
+                        try:
+                            thr = config['thresholds'][column]
+                        except:
+                            thr = 0.03
+                        if thr > 0.0:
+                            flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
+                        elif thr < 0.0:
+                            flag = abs(v1 - v) > -thr
                     if flag:
                         item.setFont(CELL_FONT_BOLD)
                     else:
