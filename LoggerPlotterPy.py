@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
         position = cursor.pos()
         # position = n
         menu = QMenu()
-        quit_action = menu.addAction("Hide column")
+        hide_action = menu.addAction("Hide column")
         if n < self.tableWidget_3.columnCount() - 1:
             right_action = menu.addAction("Move right")
         else:
@@ -220,27 +220,40 @@ class MainWindow(QMainWindow):
         action = menu.exec_(position)
         if action is None:
             return
-        if action == quit_action:
+        if action == hide_action:
             # print("Hide", n)
-            excluded = self.plainTextEdit_3.toPlainText()
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
-            excluded += '\n' + t
-            self.plainTextEdit_3.setPlainText(excluded)
+            text = self.plainTextEdit_2.toPlainText()
+            text = text.replace(t, '')
+            text = text.replace('\n\n', '\n')
+            self.plainTextEdit_2.setPlainText(text)
+            text = self.plainTextEdit_3.toPlainText()
+            self.plainTextEdit_3.setPlainText(text + t + '\n')
             self.tableWidget_3.hideColumn(n)
         if n > 1 and action == left_action:
             # print("Move Left", n)
-            s = self.columns[n - 1]
-            self.columns[n - 1] = self.columns[n]
-            self.columns[n] = s
+            t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
+            t2 = self.tableWidget_3.horizontalHeaderItem(n-1).text()
+            text = self.plainTextEdit_2.toPlainText()
+            text = text.replace(t1, '****')
+            text = text.replace(t2, t1)
+            text = text.replace('****', t2)
+            self.plainTextEdit_2.setPlainText(text)
+            self.columns = self.sort_columns()
             self.fill_table_widget()
-            self.last_columns = self.columns.copy()
+            self.tableWidget_3.selectRow(self.last_selection)
         if n < self.tableWidget_3.columnCount() - 1 and action == right_action:
             # print("Move Right", n)
-            s = self.columns[n + 1]
-            self.columns[n + 1] = self.columns[n]
-            self.columns[n] = s
+            t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
+            t2 = self.tableWidget_3.horizontalHeaderItem(n+1).text()
+            text = self.plainTextEdit_2.toPlainText()
+            text = text.replace(t1, '****')
+            text = text.replace(t2, t1)
+            text = text.replace('****', t2)
+            self.plainTextEdit_2.setPlainText(text)
+            self.columns = self.sort_columns()
             self.fill_table_widget()
-            self.last_columns = self.columns.copy()
+            self.tableWidget_3.selectRow(self.last_selection)
 
     def test(self, a, *args):
         # i = self.tableWidget_3.horizontalHeader().currentIndex()
@@ -366,35 +379,34 @@ class MainWindow(QMainWindow):
                         self.logger.info('Plot eval() error in %s' % p)
                         self.logger.debug('Exception:', exc_info=True)
             self.logger.debug('Extra signals calc. end %s', time.time() - t0)
-            # build signals index list
-            self.signals = []
-            for c in self.columns:
-                for s in self.signal_list:
-                    if s.name == c:
-                        self.signals.append(self.signal_list.index(s))
-                        break
             # reorder plots according to plot_order and excluded_plots
             plot_order = self.plainTextEdit_7.toPlainText().split('\n')
-            excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
+            # excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
+            hidden_plots = []
             ordered_signals = []
             for p in plot_order:
                 for s in self.signal_list:
                     if s.name == p:
                         ordered_signals.append(self.signal_list.index(s))
                         break
-            for p in self.signals:
-                if p not in ordered_signals:
-                    if self.signal_list[p].name not in excluded_plots:
-                        ordered_signals.append(p)
+            # build list of hidden plots
+            for s in self.signal_list:
+                if self.signal_list.index(s) not in ordered_signals:
+                    hidden_plots.append(s.name)
+            text = ''
+            for t in hidden_plots:
+                text += t
+                text += '\n'
+            self.plainTextEdit_6.setPlainText(text)
             self.signals = ordered_signals
             self.plot_signals()
             self.update_status_bar()
-            self.last_selection = row_s
         except:
             self.logger.warning('Exception in tableSelectionChanged')
             self.logger.debug('Exception:', exc_info=True)
         finally:
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
+            self.last_selection = row_s
             self.new_shot = False
             # self.logger.debug('Plot signals time %s', time.time() - t1)
             self.logger.debug('Exit ------ %s', time.time() - t0)
@@ -511,6 +523,8 @@ class MainWindow(QMainWindow):
             # clear last columns list
             self.last_columns = []
             self.read_local_config()
+            self.new_shot = True
+            self.last_selection = -1
             self.parse_folder()
 
     def read_local_config(self):
@@ -530,25 +544,31 @@ class MainWindow(QMainWindow):
 
     def sort_columns(self):
         included = self.plainTextEdit_2.toPlainText().split('\n')
-        excluded = self.plainTextEdit_3.toPlainText().split('\n')
+        #excluded = self.plainTextEdit_3.toPlainText().split('\n')
+        hidden = []
         columns = []
-        for t in self.last_columns:
-            if t in self.log_table.headers and t not in excluded:
-                columns.append(t)
         # add included columns if present
         for t in included:
             if t in self.log_table.headers and t not in columns:
                 columns.append(t)
-        # add other columns if not excluded
+        # create hidden columns list
         for t in self.log_table.headers:
-            if t not in excluded and t not in columns:
-                columns.append(t)
+            if t not in columns:
+                hidden.append(t)
+        # sort hidden list
+        hidden.sort()
+        # set hidden columns text
+        text = ''
+        for t in hidden:
+            text += t
+            text += '\n'
+        self.plainTextEdit_3.setPlainText(text)
         return columns
 
     # @timeit
     def parse_folder(self, file_name=None):
-        self.new_shot = True
-        self.last_selection = -1
+        # self.new_shot = True
+        # self.last_selection = -1
         try:
             if file_name is None:
                 file_name = self.log_file_name
@@ -567,6 +587,10 @@ class MainWindow(QMainWindow):
             # Create sorted displayed columns list
             self.columns = self.sort_columns()
             self.fill_table_widget()
+            # select last row of widget -> tableSelectionChanged will be fired
+            self.last_selection = -1
+            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+
         except:
             self.logger.log(logging.WARNING, 'Exception in parseFolder')
             self.logger.debug('Exception:', exc_info=True)
@@ -627,11 +651,8 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.setUpdatesEnabled(True)
         self.tableWidget_3.resizeColumnsToContents()
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-        # select last row of widget -> tableSelectionChanged will be fired
-        self.last_selection = -1
         self.tableWidget_3.scrollToBottom()
         self.tableWidget_3.setFocus()
-        self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
 
     def save_settings(self, folder='', file_name=CONFIG_FILE):
         def attr2conf(attr, name):
