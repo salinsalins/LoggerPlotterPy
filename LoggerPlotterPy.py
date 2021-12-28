@@ -218,6 +218,8 @@ class MainWindow(QMainWindow):
         else:
             left_action = None
         action = menu.exec_(position)
+        if action is None:
+            return
         if action == quit_action:
             # print("Hide", n)
             excluded = self.plainTextEdit_3.toPlainText()
@@ -225,14 +227,14 @@ class MainWindow(QMainWindow):
             excluded += '\n' + t
             self.plainTextEdit_3.setPlainText(excluded)
             self.tableWidget_3.hideColumn(n)
-        if action == left_action:
+        if n > 1 and action == left_action:
             # print("Move Left", n)
             s = self.columns[n - 1]
             self.columns[n - 1] = self.columns[n]
             self.columns[n] = s
             self.fill_table_widget()
             self.last_columns = self.columns.copy()
-        if action == right_action:
+        if n < self.tableWidget_3.columnCount() - 1 and action == right_action:
             # print("Move Right", n)
             s = self.columns[n + 1]
             self.columns[n + 1] = self.columns[n]
@@ -586,12 +588,6 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
             cln += 1
         # insert and fill rows
-        # numbers = self.columns.copy
-        # formats = self.columns.copy
-        # for i in range(len(self.columns)):
-        #     numbers[i] = self.log_table.find_column(self.columns[i])
-        #     fmt = config['format'][self.log_table.headers[i]]
-        #     formats[i] = self.log_table.find_column(self.columns[i])
         for row in range(self.log_table.rows):
             self.tableWidget_3.insertRow(row)
             n = 0
