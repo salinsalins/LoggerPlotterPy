@@ -700,11 +700,7 @@ class MainWindow(QMainWindow):
             # Restore window size and position
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
-                # print(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1])
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
-                #print(self.pos().x(), self.pos().y())
-                self.first_x = self.conf['main_window']['position'][0]
-                self.first_y = self.conf['main_window']['position'][1]
             # colors
             try:
                 self.trace_color = config['colors']['trace']
@@ -791,7 +787,6 @@ class MainWindow(QMainWindow):
         return a
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-        # print(self.pos().x(), self.pos().y())
         self.save_settings()
         a0.accept()
 
@@ -902,6 +897,31 @@ class LogTable:
                 u = ''
             self.units[j][self.rows - 1] = u
 
+    def add_row(self):
+        for item in self.data:
+            item.append("")
+        for item in self.values:
+            item.append(float('nan'))
+        for item in self.units:
+            item.append("")
+        self.rows += 1
+
+    def add_column(self, col_name):
+        if col_name is None or col_name == '':
+            return -1
+        # skip if column exists
+        if col_name in self.headers:
+            return self.headers.index(col_name)
+        self.headers.append(col_name)
+        new_col = [""] * self.rows
+        self.data.append(new_col)
+        new_col = [float('nan')] * self.rows
+        self.values.append(new_col)
+        new_col = [""] * self.rows
+        self.units.append(new_col)
+        self.columns += 1
+        return self.headers.index(col_name)
+
     def add_extra_columns(self, extra_cols):
         for row in range(self.rows):
             for column in extra_cols:
@@ -943,15 +963,6 @@ class LogTable:
         except:
             self.logger.warning('Error refreshing %s' % self.file_name)
 
-    def add_row(self):
-        for item in self.data:
-            item.append("")
-        for item in self.values:
-            item.append(0.0)
-        for item in self.units:
-            item.append("")
-        self.rows += 1
-
     def remove_row(self, row):
         for item in self.data:
             del item[row]
@@ -965,7 +976,11 @@ class LogTable:
         try:
             if isinstance(col, str):
                 return self.headers.index(col)
-            return int(col)
+            icol = int(col)
+            if 0 <= icol < self.columns:
+                return icol
+            else:
+                return -1
         except:
             return -1
 
@@ -979,78 +994,70 @@ class LogTable:
         del self.headers[coln]
         self.columns -= 1
 
-    def item(self, *args):
-        if len(args) >= 2:
-            col = args[1]
-            row = args[0]
-        else:
+    def row_col(self, *args):
+        if isinstance(args[0], str):
             col = args[0]
             row = -1
+        else:
+            col = args[1]
+            row = int(args[0])
         coln = self.column_number(col)
-        if coln < 0:
-            return ''
-        return self.data[coln][row]
+        if coln < 0 or row < -1 or coln > self.columns - 1 or row > self.rows - 1:
+            raise ValueError('Log Table index out of bounds (%s, %s)' % (row, col))
+        return row, coln
 
-    def value(self, *args):
-        if len(args) >= 2:
-            col = args[1]
-            row = args[0]
-        else:
-            col = args[0]
-            row = -1
-        coln = self.column_number(col)
+    def data_item(self, *args):
         try:
-            return self.values[coln][row]
+            row, col = self.row_col(*args)
+            return self.data[col][row]
+        except:
+            return ''
+
+    def value_item(self, *args):
+        try:
+            row, col = self.row_col(*args)
+            return self.values[col][row]
         except:
             return float('nan')
 
-    def get_item(self, row, col):
-        return self.item(row, col)
+    def unit_item(self, *args):
+        try:
+            row, col = self.row_col(*args)
+            return self.units[col][row]
+        except:
+            return ''
 
-    def set_item(self, row: int, col, value: str):
-        coln = self.column_number(col)
-        if coln < 0:
-            return False
-        if row < 0 or row > len(self.data[coln]) - 1:
-            return False
-        self.data[coln][row] = value
-        vu = value.split(" ")
+    def get_item(self, *args):
         try:
+            row, col = self.row_col(*args)
+            return self.data[col][row], self.values[col][row], self.units[col][row]
+        except:
+            return ('', float('nan'), '')
+
+    def set_item(self, *args):
+        try:
+            row, col = self.row_col(*args)
+            vu = str(args[2]).split(" ")
             v = float(vu[0].strip().replace(',', '.'))
+            if len(vu) > 1:
+                u = vu[1].strip()
+            else:
+                u = ''
+            self.data[col][row] = str(args[2])
+            self.values[col][row] = v
+            self.units[col][row] = u
+            return True
         except:
-            v = float('nan')
-        self.values[coln][row] = v
-        try:
-            u = vu[1].strip()
-        except:
-            u = ''
-        self.units[coln][row] = u
-        return True
+            return False
 
     def column(self, col):
         coln = self.column_number(col)
-        if coln < 0:
+        if coln < 0 or coln > self.columns - 1:
             return None
         return self.data[coln]
 
     def row(self, r):
-        return [self.data[n][r] for n in range(len(self.headers))]
-
-    def add_column(self, col_name):
-        if col_name is None or col_name == '':
-            return -1
-        # skip if column exists
-        if col_name in self.headers:
-            return self.headers.index(col_name)
-        self.headers.append(col_name)
-        new_col = [""] * self.rows
-        self.data.append(new_col)
-        new_col = [float('nan')] * self.rows
-        self.values.append(new_col)
-        new_col = [""] * self.rows
-        self.units.append(new_col)
-        self.columns += 1
-        return self.headers.index(col_name)
+        return [self.data[n][r] for n in range(self.columns)]
 
     def find_column(self, col_name):
         try:
@@ -1263,9 +1270,6 @@ class Config:
 
     def __getitem__(self, item):
         return self.data[item]
-
-def move_event(a, *args, **kwargs):
-    print(a.pos().x(), a.pos().y())
 
 if __name__ == '__main__':
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
