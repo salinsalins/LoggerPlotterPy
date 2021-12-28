@@ -648,7 +648,7 @@ class MainWindow(QMainWindow):
             # save window size and position
             p = self.pos()
             s = self.size()
-            print(self.pos().x(), self.pos().y())
+            #print(self.pos().x(), self.pos().y())
             self.conf['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
             self.conf['folder'] = self.log_file_name
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in
@@ -700,7 +700,7 @@ class MainWindow(QMainWindow):
             # Restore window size and position
             if 'main_window' in self.conf:
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
-                print(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1])
+                # print(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1])
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
                 #print(self.pos().x(), self.pos().y())
                 self.first_x = self.conf['main_window']['position'][0]
@@ -789,6 +789,11 @@ class MainWindow(QMainWindow):
         if os.path.isfile('filename.txt'):
             pass
         return a
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        # print(self.pos().x(), self.pos().y())
+        self.save_settings()
+        a0.accept()
 
     # @timeit
     def timer_handler(self):
@@ -1259,6 +1264,8 @@ class Config:
     def __getitem__(self, item):
         return self.data[item]
 
+def move_event(a, *args, **kwargs):
+    print(a.pos().x(), a.pos().y())
 
 if __name__ == '__main__':
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
@@ -1278,7 +1285,7 @@ if __name__ == '__main__':
     # instantiate the main window
     dmw = MainWindow()
     # connect quit processing code
-    app.aboutToQuit.connect(dmw.on_quit)
+    # app.aboutToQuit.connect(dmw.on_quit)
     # show main window
     dmw.show()
     # defile and start timer task
