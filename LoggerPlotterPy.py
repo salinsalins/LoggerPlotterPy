@@ -1038,6 +1038,9 @@ class LogTable:
         except:
             return float('nan')
 
+    def value(self, *args):
+        return self.value_item(*args)
+
     def unit_item(self, *args):
         try:
             row, col = self.row_col(*args)
