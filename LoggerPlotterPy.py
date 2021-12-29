@@ -72,6 +72,7 @@ class MainWindow(QMainWindow):
         self.conf = {}
         self.refresh_flag = False
         self.last_selection = -1
+        self.current_selection = -1
         self.signal_list = []
         self.old_signal_list = []
         self.signals = []
@@ -317,6 +318,7 @@ class MainWindow(QMainWindow):
             return
         gc.collect()
         self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
+        self.last_selection = self.current_selection
         try:
             # read signals from zip file
             folder = os.path.dirname(self.log_file_name)
@@ -378,6 +380,7 @@ class MainWindow(QMainWindow):
         finally:
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.last_selection = row_s
+            self.current_selection = row_s
             self.new_shot = False
             # self.logger.debug('Plot signals time %s', time.time() - t1)
             self.logger.debug('Exit ------ %s', time.time() - t0)
@@ -559,7 +562,7 @@ class MainWindow(QMainWindow):
                 self.columns = self.sort_columns()
                 self.fill_table_widget()
                 # select last row of widget -> tableSelectionChanged will be fired
-                self.last_selection = -1
+                # self.last_selection = -1
                 self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
             else:
                 # read file to buf
@@ -568,7 +571,7 @@ class MainWindow(QMainWindow):
                 n = self.log_table.append(buf[self.old_size:], extra_cols=self.extra_cols)
                 self.fill_table_widget(n)
                 # select last row of widget -> tableSelectionChanged will be fired
-                self.last_selection = -1
+                # self.last_selection = -1
                 self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
         except:
             TangoUtils.log_exception('Exception in parseFolder')
