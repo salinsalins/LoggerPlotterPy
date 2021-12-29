@@ -349,7 +349,7 @@ class MainWindow(QMainWindow):
                         if s is not None:
                             self.signal_list.append(s)
                     except:
-                        TangoUtils.log_exception('Plot eval() error in %s' % p)
+                        TangoUtils.log_exception(self, 'Plot eval() error in %s' % p)
             self.logger.debug('Extra signals calc. end %s', time.time() - t0)
             # reorder plots according to plot_order and excluded_plots
             plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -375,8 +375,7 @@ class MainWindow(QMainWindow):
             self.plot_signals()
             self.update_status_bar()
         except:
-            self.logger.warning('Exception in tableSelectionChanged')
-            self.logger.debug('Exception:', exc_info=True)
+            TangoUtils.log_exception(self, 'Exception in tableSelectionChanged')
         finally:
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.last_selection = row_s
@@ -574,7 +573,7 @@ class MainWindow(QMainWindow):
                 # self.last_selection = -1
                 self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
         except:
-            TangoUtils.log_exception('Exception in parseFolder')
+            TangoUtils.log_exception(self, 'Exception in parseFolder')
         self.update_status_bar()
         return
 
@@ -873,6 +872,7 @@ class LogTable:
         self.file_lines += len(lines)
         # loop for lines
         n = 0
+        self.keys_with_errors = []
         for line in lines:
             if self.decode_line(line):
                 n += 1
@@ -906,10 +906,13 @@ class LogTable:
             vu = val.split(" ")
             try:
                 v = float(vu[0].strip().replace(',', '.'))
+                if key in self.keys_with_errors:
+                    self.keys_with_errors.remove(key)
             except:
                 v = float('nan')
-                if key != 'Time' and key != 'File':
+                if key != 'Time' and key != 'File' and key not in self.keys_with_errors:
                     self.logger.debug('Non float value in "%s"' % field)
+                    self.keys_with_errors.append(key)
             self.values[j][self.rows - 1] = v
             # units
             try:
@@ -960,7 +963,7 @@ class LogTable:
                             self.columns_with_error.remove(column)
                     except:
                         if column not in self.columns_with_error:
-                            TangoUtils.log_exception('eval() error in %s', column)
+                            TangoUtils.log_exception(self.logger, 'eval() error in %s', column)
                         self.columns_with_error.append(column)
         for column in self.columns_with_error:
             self.logger.info('Can not create column for %s', column)
@@ -1252,16 +1255,18 @@ class DataFile:
         dx = signal.x[1] - signal.x[0]
         for k in signal.params:
             if k.endswith(b"_start"):
+                mnt = k.replace(b"_start", b'').decode('ascii')
+                mlt = k.replace(b"_start", b'_length')
                 try:
                     ms = int((float(signal.params[k].replace(b',', b'.')) - x0) / dx)
-                    ml = int(float(signal.params[k.replace(b"_start", b'_length')].replace(b',', b'.')) / dx)
+                    ml = int(float(signal.params[mlt].replace(b',', b'.')) / dx)
                     ml = min(len(signal.y) - ms, ml)
                     if ml <= 0 or ms < 0:
-                        raise Exception('Wrong slice for mark ' + k.replace(b"_start", b''))
-                    mv = signal.y[ms:ms + ml].mean()
-                    signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
+                        raise Exception('Wrong slice for mark %s %s:%s' % (mnt, ms, ml+ms))
+                    mv = signal.y[ms : ms + ml].mean()
+                    signal.marks[mnt] = (ms, ml, mv)
                 except:
-                    TangoUtils.log_exception('Mark %s value can not be computed for %s' % (k, signal_name))
+                    TangoUtils.log_exception(self, 'Mark %s value can not be computed for %s' % (k, signal_name))
         # zero mark
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
