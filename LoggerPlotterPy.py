@@ -826,6 +826,7 @@ class VLine(QFrame):
 
 class LogTable:
     def __init__(self, file_name: str, folder: str = "", extra_cols=None, logger=None):
+        self.columns_with_error = []
         if extra_cols is None:
             extra_cols = []
         if logger is None:
@@ -944,6 +945,7 @@ class LogTable:
         return self.headers.index(col_name)
 
     def add_extra_columns(self, extra_cols):
+        self.columns_with_error = []
         for row in range(self.rows):
             for column in extra_cols:
                 if column.strip() != "":
@@ -954,9 +956,14 @@ class LogTable:
                             self.data[j][row] = str(value) + ' ' + str(units)
                             self.values[j][row] = float(value)
                             self.units[j][row] = str(units)
+                        if column in self.columns_with_error:
+                            self.columns_with_error.remove(column)
                     except:
-                        self.logger.info('eval() error in %s', column)
-                        self.logger.debug('Exception:', exc_info=True)
+                        if column not in self.columns_with_error:
+                            TangoUtils.log_exception('eval() error in %s', column)
+                        self.columns_with_error.append(column)
+        for column in self.columns_with_error:
+            self.logger.info('Can not create column for %s', column)
 
     def refresh(self, extra_cols):
         try:
