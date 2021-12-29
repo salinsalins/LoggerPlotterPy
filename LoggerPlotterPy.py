@@ -329,10 +329,11 @@ class MainWindow(QMainWindow):
             # add extra plots from plainTextEdit_4
             extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
             for p in extra_plots:
-                if p.strip() != "":
+                p = p.strip()
+                if p != "":
                     try:
                         s = None
-                        result = eval(p.strip())
+                        result = eval(p)
                         if isinstance(result, Signal):
                             s = result
                         elif len(result) == 3:
@@ -346,8 +347,7 @@ class MainWindow(QMainWindow):
                         if s is not None:
                             self.signal_list.append(s)
                     except:
-                        self.logger.info('Plot eval() error in %s' % p)
-                        self.logger.debug('Exception:', exc_info=True)
+                        TangoUtils.log_exception('Plot eval() error in %s' % p)
             self.logger.debug('Extra signals calc. end %s', time.time() - t0)
             # reorder plots according to plot_order and excluded_plots
             plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -363,6 +363,7 @@ class MainWindow(QMainWindow):
             for s in self.signal_list:
                 if self.signal_list.index(s) not in ordered_signals:
                     hidden_plots.append(s.name)
+            hidden_plots.sort()
             text = ''
             for t in hidden_plots:
                 text += t
