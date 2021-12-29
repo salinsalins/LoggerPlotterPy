@@ -535,7 +535,7 @@ class MainWindow(QMainWindow):
         return columns
 
     # @TangoUtils.timeit
-    def parse_folder(self, file_name=None):
+    def parse_folder(self, file_name=None, append=False):
         # self.new_shot = True
         # self.last_selection = -1
         try:
@@ -548,27 +548,37 @@ class MainWindow(QMainWindow):
             self.logger.debug('Reading log file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-            # read log file content to logTable
-            self.log_table = LogTable(file_name, extra_cols=self.extra_cols)
-            if self.log_table.file_name is None:
-                return
-            self.log_file_name = self.log_table.file_name
-            # Create sorted displayed columns list
-            self.columns = self.sort_columns()
-            self.fill_table_widget()
-            # select last row of widget -> tableSelectionChanged will be fired
-            self.last_selection = -1
-            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+            if not append:
+                # read log file content to logTable
+                self.log_table = LogTable(file_name, extra_cols=self.extra_cols)
+                if self.log_table.file_name is None:
+                    return
+                self.log_file_name = self.log_table.file_name
+                # Create sorted displayed columns list
+                self.columns = self.sort_columns()
+                self.fill_table_widget()
+                # select last row of widget -> tableSelectionChanged will be fired
+                self.last_selection = -1
+                self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+            else:
+                # read file to buf
+                with open(self.log_file_name, "r") as stream:
+                    buf = stream.read()
+                n = self.log_table.append(buf[self.old_size:], extra_cols=self.extra_cols)
+                self.fill_table_widget(n)
+                # select last row of widget -> tableSelectionChanged will be fired
+                self.last_selection = -1
+                self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
         except:
             TangoUtils.log_exception('Exception in parseFolder')
         self.update_status_bar()
         return
 
-    def fill_table_widget(self, append=False):
+    def fill_table_widget(self, append=-1):
         # disable table widget update events
         self.tableWidget_3.setUpdatesEnabled(False)
         self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
-        if not append:
+        if append < 0:
             # clear table widget
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
@@ -579,8 +589,12 @@ class MainWindow(QMainWindow):
                 self.tableWidget_3.insertColumn(cln)
                 self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
                 cln += 1
+            row_range = range(self.log_table.rows)
+        else:
+            row_range = range(append, self.log_table.rows)
+
         # insert and fill rows
-        for row in range(self.log_table.rows):
+        for row in row_range:
             self.tableWidget_3.insertRow(row)
             n = 0
             for column in self.columns:
@@ -836,15 +850,16 @@ class LogTable:
             return
         self.file_name = fn
         self.file_size = os.path.getsize(fn)
-        # split buf to lines
-        lines = buf.split('\n')
-        self.logger.debug('%d lines red from %s' % (len(lines), self.file_name))
-        self.file_lines = len(lines)
-        # loop for lines
-        for line in lines:
-            self.decode_line(line)
-        # add extra columns
-        self.add_extra_columns(extra_cols)
+        self.file_lines = 0
+        self.append(buf, extra_cols)
+        # lines = buf.split('\n')
+        # self.logger.debug('%d lines red from %s' % (len(lines), self.file_name))
+        # self.file_lines = len(lines)
+        # # loop for lines
+        # for line in lines:
+        #     self.decode_line(line)
+        # # add extra columns
+        # self.add_extra_columns(extra_cols)
 
     def append(self, buf, extra_cols=None):
         if extra_cols is None:
