@@ -42,7 +42,7 @@ import TangoUtils
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '4.5'
+APPLICATION_VERSION = '5.1'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
@@ -559,27 +559,26 @@ class MainWindow(QMainWindow):
             # select last row of widget -> tableSelectionChanged will be fired
             self.last_selection = -1
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
-
         except:
-            self.logger.log(logging.WARNING, 'Exception in parseFolder')
-            self.logger.debug('Exception:', exc_info=True)
+            TangoUtils.log_exception('Exception in parseFolder')
         self.update_status_bar()
         return
 
-    def fill_table_widget(self):
+    def fill_table_widget(self, append=False):
         # disable table widget update events
         self.tableWidget_3.setUpdatesEnabled(False)
         self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
-        # clear table widget
-        self.tableWidget_3.setRowCount(0)
-        self.tableWidget_3.setColumnCount(0)
-        # refill table widget
-        # insert columns
-        cln = 0
-        for column in self.columns:
-            self.tableWidget_3.insertColumn(cln)
-            self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
-            cln += 1
+        if not append:
+            # clear table widget
+            self.tableWidget_3.setRowCount(0)
+            self.tableWidget_3.setColumnCount(0)
+            # refill table widget
+            # insert columns
+            cln = 0
+            for column in self.columns:
+                self.tableWidget_3.insertColumn(cln)
+                self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
+                cln += 1
         # insert and fill rows
         for row in range(self.log_table.rows):
             self.tableWidget_3.insertRow(row)
@@ -824,6 +823,7 @@ class LogTable:
         self.file_lines = -1
         self.rows = 0
         self.columns = 0
+        self.rows_appended = 0
         # Full file name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn):
@@ -846,6 +846,19 @@ class LogTable:
             self.decode_line(line)
         # add extra columns
         self.add_extra_columns(extra_cols)
+
+    def append(self, buf, extra_cols=None):
+        if extra_cols is None:
+            extra_cols = []
+        lines = buf.split('\n')
+        # loop for lines
+        for line in lines:
+            self.decode_line(line)
+        # add extra columns
+        self.add_extra_columns(extra_cols)
+        self.file_lines += len(lines)
+        self.logger.debug('%d lines appended' % len(lines))
+        return len(lines)
 
     def decode_line(self, line):
         # Split line to fields
