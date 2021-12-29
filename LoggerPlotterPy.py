@@ -823,7 +823,6 @@ class LogTable:
         self.file_lines = -1
         self.rows = 0
         self.columns = 0
-        self.rows_appended = 0
         # Full file name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn):
@@ -851,14 +850,16 @@ class LogTable:
         if extra_cols is None:
             extra_cols = []
         lines = buf.split('\n')
+        self.file_lines += len(lines)
         # loop for lines
+        n = 0
         for line in lines:
-            self.decode_line(line)
+            if self.decode_line(line):
+                n += 1
         # add extra columns
         self.add_extra_columns(extra_cols)
-        self.file_lines += len(lines)
-        self.logger.debug('%d lines appended' % len(lines))
-        return len(lines)
+        self.logger.debug('%d of %d lines appended' % (n, len(lines)))
+        return n
 
     def decode_line(self, line):
         # Split line to fields
