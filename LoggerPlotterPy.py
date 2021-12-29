@@ -36,30 +36,7 @@ np = numpy
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
 
-
-def config_logger(name=__name__, level=logging.DEBUG):
-    lgr = logging.getLogger(name)
-    if not lgr.hasHandlers():
-        lgr.propagate = False
-        lgr.setLevel(level)
-        f_str = '%(asctime)s,%(msecs)03d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
-        log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(log_formatter)
-        lgr.addHandler(console_handler)
-    return lgr
-
-
-def timeit(method):
-    def timed(*args, **kw):
-        ts = time.time()
-        result = method(*args, **kw)
-        te = time.time()
-        if te - ts > 0.01:
-            print('%r %2.2f sec' % (method.__name__, te - ts))
-        return result
-
-    return timed
+import TangoUtils
 
 
 ORGANIZATION_NAME = 'BINP'
@@ -73,7 +50,7 @@ CELL_FONT_BOLD = QFont('Open Sans Bold', weight=QFont.Bold)
 CELL_FONT_NORMAL = QFont('Open Sans', weight=QFont.Normal)
 
 # Configure logging
-logger = config_logger(level=logging.INFO)
+logger = TangoUtils.config_logger(level=logging.INFO)
 
 # Global configuration dictionary
 config = {}
@@ -127,22 +104,19 @@ class MainWindow(QMainWindow):
         self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
         self.actionAbout.triggered.connect(self.show_about)
-        # Additional configuration
+        # windows icon
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.setWindowTitle(APPLICATION_NAME + APPLICATION_VERSION)
+
+        # table: header
         header = self.tableWidget_3.horizontalHeader()
         # header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(QHeaderView.ResizeToContents)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(0)
-
-        # header right click menu
-        # self.right_click_menu = QMenu()
-        # self.hide_action = self.right_click_menu.addAction("Hide")
-        # header.sectionClicked.connect(self.test)
-        # header.sectionDoubleClicked.connect(self.test)
+        # table: header right click menu
         header.setContextMenuPolicy(PyQt5.QtCore.Qt.CustomContextMenu)
         header.customContextMenuRequested.connect(self.test)
-
+        # table: style tuning
         self.tableWidget_3.setStyleSheet("""
                 QTableView {
                     gridline-color: black;
@@ -153,12 +127,14 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
+
         # brushes, colors, fonts
-        self.yellow_brush = QBrush(QColor('#FFFF00'))
-        # status bar
+        # self.yellow_brush = QBrush(QColor('#FFFF00'))
+
+        # status bar: font
         self.statusbar_font = QFont('Open Sans', 14)
         self.statusBar().setFont(self.statusbar_font)
-        # clock label at status bar
+        # status bar: clock label
         self.sb_clock = QLabel(" ")
         self.clock_font = QFont('Open Sans Bold', 16, weight=QFont.Bold)
         self.sb_clock.setFont(self.clock_font)
@@ -169,10 +145,10 @@ class MainWindow(QMainWindow):
         self.sb_prev_shot_time.setStyleSheet('border: 0; color:  black; background: yellow;')
         self.sb_prev_shot_time.setText("**:**:**")
         self.sb_prev_shot_time.setVisible(False)
-        # message with log file name at status bar
+        # status bar: message with log file name
         self.sb_text = QLabel("")
         self.sb_text.setFont(self.statusbar_font)
-        # add widgets to status bar
+        # status bar: add widgets
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0; background-color: #FFF8DC;')
         self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
@@ -183,7 +159,6 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(self.sb_clock)
         self.sb_text.setText("Starting...")
-        # self.statusBar().showMessage('Starting...')
 
         # default settings
         self.set_default_settings()
@@ -193,11 +168,6 @@ class MainWindow(QMainWindow):
 
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
-        # self.tableWidget_3.customContextMenuRequested.connect(self.openMenu)
-        # self.tableWidget_3.setContextMenuPolicy(Qt.ActionsContextMenu)
-        # quitAction = QAction("Quit", None)
-        # quitAction.triggered.connect(self.test)
-        # self.tableWidget_3.addAction(quitAction)
 
         # read data files
         self.parse_folder()
@@ -233,7 +203,7 @@ class MainWindow(QMainWindow):
         if n > 1 and action == left_action:
             # print("Move Left", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
-            t2 = self.tableWidget_3.horizontalHeaderItem(n-1).text()
+            t2 = self.tableWidget_3.horizontalHeaderItem(n - 1).text()
             text = self.plainTextEdit_2.toPlainText()
             text = text.replace(t1, '****')
             text = text.replace(t2, t1)
@@ -245,7 +215,7 @@ class MainWindow(QMainWindow):
         if n < self.tableWidget_3.columnCount() - 1 and action == right_action:
             # print("Move Right", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
-            t2 = self.tableWidget_3.horizontalHeaderItem(n+1).text()
+            t2 = self.tableWidget_3.horizontalHeaderItem(n + 1).text()
             text = self.plainTextEdit_2.toPlainText()
             text = text.replace(t1, '****')
             text = text.replace(t2, t1)
@@ -332,7 +302,7 @@ class MainWindow(QMainWindow):
         self.logger.debug('Selection changed to row %i', row_s)
         return row_s
 
-    # @timeit
+    # @TangoUtils.timeit
     def table_selection_changed(self):
         def sig(name):
             for sg in self.signal_list:
@@ -544,10 +514,9 @@ class MainWindow(QMainWindow):
 
     def sort_columns(self):
         included = self.plainTextEdit_2.toPlainText().split('\n')
-        #excluded = self.plainTextEdit_3.toPlainText().split('\n')
         hidden = []
         columns = []
-        # add included columns if present
+        # add from included
         for t in included:
             if t in self.log_table.headers and t not in columns:
                 columns.append(t)
@@ -565,7 +534,7 @@ class MainWindow(QMainWindow):
         self.plainTextEdit_3.setPlainText(text)
         return columns
 
-    # @timeit
+    # @TangoUtils.timeit
     def parse_folder(self, file_name=None):
         # self.new_shot = True
         # self.last_selection = -1
@@ -666,7 +635,7 @@ class MainWindow(QMainWindow):
             # save window size and position
             p = self.pos()
             s = self.size()
-            #print(self.pos().x(), self.pos().y())
+            # print(self.pos().x(), self.pos().y())
             self.conf['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
             self.conf['folder'] = self.log_file_name
             self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in
@@ -843,7 +812,7 @@ class LogTable:
         if extra_cols is None:
             extra_cols = []
         if logger is None:
-            self.logger = config_logger()
+            self.logger = TangoUtils.config_logger()
         else:
             self.logger = logger
         self.data = [[], ]
@@ -1163,7 +1132,7 @@ class Signal:
 class DataFile:
     def __init__(self, file_name, folder=""):
         # self.logger = logging.getLogger(__name__)
-        self.logger = config_logger()
+        self.logger = TangoUtils.config_logger()
         self.file_name = None
         self.files = []
         self.signals = []
@@ -1251,8 +1220,7 @@ class DataFile:
                     mv = signal.y[ms:ms + ml].mean()
                     signal.marks[k.replace(b"_start", b'').decode('ascii')] = (ms, ml, mv)
                 except:
-                    self.logger.log(logging.WARNING, 'Mark %s value can not be computed for %s' % (k, signal_name))
-                    self.logger.debug('Exception:', exc_info=True)
+                    TangoUtils.log_exception('Mark %s value can not be computed for %s' % (k, signal_name))
         # zero mark
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
@@ -1291,6 +1259,7 @@ class Config:
 
     def __getitem__(self, item):
         return self.data[item]
+
 
 if __name__ == '__main__':
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
