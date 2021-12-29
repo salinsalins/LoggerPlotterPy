@@ -868,7 +868,7 @@ class LogTable:
         if len(fields) < 2 or len(fields[0]) < 19:
             # Wrong line format, skip to next line
             self.logger.info('Wrong data format in "%s", line skipped' % fields[0])
-            return
+            return False
         # split time and date
         tm = fields[0].split(" ")[1].strip()
         # preserve only time
@@ -897,6 +897,7 @@ class LogTable:
             except:
                 u = ''
             self.units[j][self.rows - 1] = u
+        return True
 
     def add_row(self):
         for item in self.data:
