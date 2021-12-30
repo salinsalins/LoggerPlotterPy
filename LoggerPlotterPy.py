@@ -536,13 +536,15 @@ class MainWindow(QMainWindow):
     @staticmethod
     def from_params(name, source, default=''):
         try:
-            key = name.decode('ascii')
-            if key in source:
-                return source[key].decode('ascii')
-            key = name.encode()
-            if key in source:
-                return source[key].decode('ascii')
-            return default
+            if name in source:
+                result = source[name]
+            elif isinstance(name, str):
+                result = source[name.encode()]
+            elif isinstance(name, bytes):
+                result = source[name.decode('ascii')]
+            if isinstance(result, bytes):
+                result = result.decode('ascii')
+            return result
         except:
             return default
 
