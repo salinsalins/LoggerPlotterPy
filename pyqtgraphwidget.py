@@ -88,8 +88,8 @@ class MplAdapter:
         self.item.plot(x, y, pen={'color': color, 'width': 2})
 
     def clear(self):
-        self.item.clear()
         self.item.getPlotItem().vb.clearScaleHistory()
+        self.item.clear()
 
     def clearScaleHistory(self):
         self.item.getPlotItem().vb.clearScaleHistory()

@@ -474,7 +474,8 @@ class MainWindow(QMainWindow):
             # Show plot
             # mplw.canvas.draw()
             try:
-                if self.new_shot and self.checkBox_3.isChecked():
+                # if self.new_shot and self.checkBox_3.isChecked():
+                if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
                     mplw.autoRange()
             except:
@@ -1291,9 +1292,11 @@ class DataFile:
 
                     mark_start_value = float(signal.params[k].replace(b',', b'.'))
                     mark_length_value = float(signal.params[mark_length].replace(b',', b'.'))
-                    index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_start_value+mark_length_value))
+                    index = numpy.where(numpy.logical_and(signal.x >= mark_start_value,
+                                                          signal.x <= mark_start_value+mark_length_value))
+                    index = index[0]
                     mark_value = signal.y[index].mean()
-                    signal.marks[mark_name] = (int(index[0][0]), int(index[0][-1]-index[0][0])+1, mark_value)
+                    signal.marks[mark_name] = (int(index[0]), int(index[-1]-index[0])+1, mark_value)
                 except:
                     TangoUtils.log_exception(self, 'Mark %s value can not be computed for %s' % (k, signal_name))
         # zero mark
