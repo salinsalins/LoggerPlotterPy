@@ -511,7 +511,7 @@ class MainWindow(QMainWindow):
                 default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
             axes.set_title(self.from_params('title', s.params, default_title))
             axes.set_xlabel(self.from_params('xlabel', s.params, 'Time, ms'))
-            axes.set_ylabel(self.from_params('ylabel', s.params, s.name + ', ' + s.unit))
+            axes.set_ylabel(self.from_params('ylabel', s.params, '%s, %s' % (s.name, s.unit)))
             # axes.legend(loc='best')
             # Show plot
             # mplw.canvas.draw()
