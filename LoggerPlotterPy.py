@@ -351,27 +351,28 @@ class MainWindow(QMainWindow):
                     except:
                         TangoUtils.log_exception(self, 'Plot eval() error in %s' % p)
             self.logger.debug('Extra signals calc. end %s', time.time() - t0)
-            # reorder plots according to plot_order and excluded_plots
-            plot_order = self.plainTextEdit_7.toPlainText().split('\n')
-            # excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
-            hidden_plots = []
-            ordered_signals = []
-            for p in plot_order:
-                for s in self.signal_list:
-                    if s.name == p:
-                        ordered_signals.append(self.signal_list.index(s))
-                        break
-            # build list of hidden plots
-            for s in self.signal_list:
-                if self.signal_list.index(s) not in ordered_signals:
-                    hidden_plots.append(s.name)
-            hidden_plots.sort()
-            text = ''
-            for t in hidden_plots:
-                text += t
-                text += '\n'
-            self.plainTextEdit_6.setPlainText(text)
-            self.signals = ordered_signals
+            # # reorder plots according to plot_order and excluded_plots
+            # plot_order = self.plainTextEdit_7.toPlainText().split('\n')
+            # # excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
+            # hidden_plots = []
+            # ordered_signals = []
+            # for p in plot_order:
+            #     for s in self.signal_list:
+            #         if s.name == p:
+            #             ordered_signals.append(self.signal_list.index(s))
+            #             break
+            # # build list of hidden plots
+            # for s in self.signal_list:
+            #     if self.signal_list.index(s) not in ordered_signals:
+            #         hidden_plots.append(s.name)
+            # hidden_plots.sort()
+            # text = ''
+            # for t in hidden_plots:
+            #     text += t
+            #     text += '\n'
+            # self.plainTextEdit_6.setPlainText(text)
+            # self.signals = ordered_signals
+            self.signals = self.sort_plots()
             self.plot_signals()
             self.update_status_bar()
         except:
@@ -383,6 +384,28 @@ class MainWindow(QMainWindow):
             self.new_shot = False
             # self.logger.debug('Plot signals time %s', time.time() - t1)
             self.logger.debug('Exit ------ %s', time.time() - t0)
+
+    def sort_plots(self):
+        plot_order = self.plainTextEdit_7.toPlainText().split('\n')
+        # excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
+        hidden_plots = []
+        ordered_signals = []
+        for p in plot_order:
+            for s in self.signal_list:
+                if s.name == p:
+                    ordered_signals.append(self.signal_list.index(s))
+                    break
+        # build list of hidden plots
+        for s in self.signal_list:
+            if self.signal_list.index(s) not in ordered_signals:
+                hidden_plots.append(s.name)
+        hidden_plots.sort()
+        text = ''
+        for t in hidden_plots:
+            text += t
+            text += '\n'
+        self.plainTextEdit_6.setPlainText(text)
+        return ordered_signals
 
     def plot_signals(self, signals=None):
         if signals is None:
@@ -1108,7 +1131,7 @@ class LogTable:
 
 class Signal:
     def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params=None, name='empty',
-                 unit='', scale=1.0, value=0.0, marks=None):
+                 unit='', scale=1.0, value=float('nan'), marks=None):
         if params is None:
             params = {}
         if marks is None:
@@ -1255,16 +1278,22 @@ class DataFile:
         dx = signal.x[1] - signal.x[0]
         for k in signal.params:
             if k.endswith(b"_start"):
-                mnt = k.replace(b"_start", b'').decode('ascii')
-                mlt = k.replace(b"_start", b'_length')
+                mark_name = k.replace(b"_start", b'').decode('ascii')
+                mark_length = k.replace(b"_start", b'_length')
                 try:
-                    ms = int((float(signal.params[k].replace(b',', b'.')) - x0) / dx)
-                    ml = int(float(signal.params[mlt].replace(b',', b'.')) / dx)
-                    ml = min(len(signal.y) - ms, ml)
-                    if ml <= 0 or ms < 0:
-                        raise Exception('Wrong slice for mark %s %s:%s' % (mnt, ms, ml+ms))
-                    mv = signal.y[ms : ms + ml].mean()
-                    signal.marks[mnt] = (ms, ml, mv)
+                    # ms = int((float(signal.params[k].replace(b',', b'.')) - x0) / dx)
+                    # ml = int(float(signal.params[mark_length].replace(b',', b'.')) / dx)
+                    # ml = min(len(signal.y) - ms, ml)
+                    # if ml <= 0 or ms < 0:
+                    #     raise Exception('Wrong slice for mark %s %s:%s' % (mark_name, ms, ml + ms))
+                    # mv = signal.y[ms : ms + ml].mean()
+                    # signal.marks[mark_name] = (ms, ml, mv)
+
+                    mark_start_value = float(signal.params[k].replace(b',', b'.'))
+                    mark_length_value = float(signal.params[mark_length].replace(b',', b'.'))
+                    index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_start_value+mark_length_value))
+                    mark_value = signal.y[index].mean()
+                    signal.marks[mark_name] = (int(index[0][0]), int(index[0][-1]-index[0][0])+1, mark_value)
                 except:
                     TangoUtils.log_exception(self, 'Mark %s value can not be computed for %s' % (k, signal_name))
         # zero mark
