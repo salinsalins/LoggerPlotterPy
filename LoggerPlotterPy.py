@@ -42,7 +42,7 @@ import TangoUtils
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '5.1'
+APPLICATION_VERSION = '6.0'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
@@ -309,7 +309,8 @@ class MainWindow(QMainWindow):
             for sg in self.signal_list:
                 if sg.name == name:
                     return sg
-            return None
+            raise ValueError('Signal %s not found' % name)
+            # return None
 
         self.logger.debug('Entry -----------------')
         t0 = time.time()
@@ -328,50 +329,30 @@ class MainWindow(QMainWindow):
             self.old_signal_list = self.signal_list
             self.signal_list = self.data_file.read_all_signals()
             self.logger.debug('Read signals end %s', time.time() - t0)
-            # add extra plots from plainTextEdit_4
-            extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
-            for p in extra_plots:
-                p = p.strip()
-                if p != "":
-                    try:
-                        s = None
-                        result = eval(p)
-                        if isinstance(result, Signal):
-                            s = result
-                        elif len(result) == 3:
-                            key, x_val, y_val = result
-                            if key != '':
-                                s = Signal(x_val, y_val, name=key)
-                        elif len(result) == 2:
-                            if isinstance(result[1], Signal):
-                                s = result[1]
-                                s.name = result[0]
-                        if s is not None:
-                            self.signal_list.append(s)
-                    except:
-                        TangoUtils.log_exception(self, 'Plot eval() error in %s' % p)
+            # # add extra plots from plainTextEdit_4
+            # extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
+            # for p in extra_plots:
+            #     p = p.strip()
+            #     if p != "":
+            #         try:
+            #             s = None
+            #             result = eval(p)
+            #             if isinstance(result, Signal):
+            #                 s = result
+            #             elif len(result) == 3:
+            #                 key, x_val, y_val = result
+            #                 if key != '':
+            #                     s = Signal(x_val, y_val, name=key)
+            #             elif len(result) == 2:
+            #                 if isinstance(result[1], Signal):
+            #                     s = result[1]
+            #                     s.name = result[0]
+            #             if s is not None:
+            #                 self.signal_list.append(s)
+            #         except:
+            #             TangoUtils.log_exception(self, 'Plot eval() error in %s' % p)
+            self.calculate_extra_plots()
             self.logger.debug('Extra signals calc. end %s', time.time() - t0)
-            # # reorder plots according to plot_order and excluded_plots
-            # plot_order = self.plainTextEdit_7.toPlainText().split('\n')
-            # # excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
-            # hidden_plots = []
-            # ordered_signals = []
-            # for p in plot_order:
-            #     for s in self.signal_list:
-            #         if s.name == p:
-            #             ordered_signals.append(self.signal_list.index(s))
-            #             break
-            # # build list of hidden plots
-            # for s in self.signal_list:
-            #     if self.signal_list.index(s) not in ordered_signals:
-            #         hidden_plots.append(s.name)
-            # hidden_plots.sort()
-            # text = ''
-            # for t in hidden_plots:
-            #     text += t
-            #     text += '\n'
-            # self.plainTextEdit_6.setPlainText(text)
-            # self.signals = ordered_signals
             self.signals = self.sort_plots()
             self.plot_signals()
             self.update_status_bar()
@@ -384,6 +365,68 @@ class MainWindow(QMainWindow):
             self.new_shot = False
             # self.logger.debug('Plot signals time %s', time.time() - t1)
             self.logger.debug('Exit ------ %s', time.time() - t0)
+
+    def calculate_extra_plots(self):
+        def sig(name):
+            for sg in self.signal_list:
+                if sg.name == name:
+                    return sg
+            raise ValueError('Signal %s not found' % name)
+            # return None
+
+        # add extra plots from plainTextEdit_4
+        extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
+        for p in extra_plots:
+            p = p.strip()
+            if p != "":
+                try:
+                    s = None
+                    result = eval(p)
+                    if isinstance(result, Signal):
+                        s = result
+                    elif isinstance(result, dict):
+                        key = result['name']
+                        x = result['x']
+                        y = result['y']
+                        if key != '':
+                            marks = None
+                            if 'marks' in result:
+                                marks = result['marks']
+                            params = None
+                            if 'params' in result:
+                                params = result['params']
+                            unit = ''
+                            if 'unit' in result:
+                                unit = result['unit']
+                            value = float('nan')
+                            if 'value' in result:
+                                value = result['value']
+                            s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
+                    elif isinstance(result, list) or isinstance(result, tuple):
+                        if len(result) >= 3:
+                            key, x_val, y_val = result[:3]
+                            if key != '':
+                                s = Signal(x_val, y_val, name=key)
+                        elif len(result) == 2:
+                            if isinstance(result[1], Signal):
+                                s = result[1]
+                                s.name = result[0]
+                    if s is not None:
+                        try:
+                            if math.isnan(s.value) and 'mark' in s.marks and 'zero' in s.marks:
+                                mark = s.marks['mark']
+                                mark_value = s.y[mark[0], mark[0]+mark[1]].mean()
+                                zero = s.marks['mark']
+                                zero_value = s.y[zero[0], zero[0]+zero[1]].mean()
+                                v = mark_value - zero_value
+                                s.value = v
+                        except:
+                            pass
+                        self.signal_list.append(s)
+                    else:
+                        self.logger.info('Can not calculate signal for %s', p)
+                except:
+                    TangoUtils.log_exception(self, 'Plot eval() error in %s' % p)
 
     def sort_plots(self):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -462,14 +505,13 @@ class MainWindow(QMainWindow):
                 axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.zero_color)
             # Decorate the plot
             axes.grid(True)
-            axes.set_title('{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit))
-            if b"xlabel" in s.params:
-                axes.set_xlabel(s.params[b"xlabel"].decode('ascii'))
-            elif "xlabel" in s.params:
-                axes.set_xlabel(s.params["xlabel"].decode('ascii'))
+            if math.isnan(s.value) or s.value is None:
+                default_title = s.name
             else:
-                axes.set_xlabel('Time, ms')
-            axes.set_ylabel(s.name + ', ' + s.unit)
+                default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
+            axes.set_title(self.from_params('title', s.params, default_title))
+            axes.set_xlabel(self.from_params('xlabel', s.params, 'Time, ms'))
+            axes.set_ylabel(self.from_params('ylabel', s.params, s.name + ', ' + s.unit))
             # axes.legend(loc='best')
             # Show plot
             # mplw.canvas.draw()
@@ -490,6 +532,19 @@ class MainWindow(QMainWindow):
             if w:
                 w.deleteLater()
         self.logger.debug('End %s', time.time() - t0)
+
+    @staticmethod
+    def from_params(name, source, default=''):
+        try:
+            key = name.decode('ascii')
+            if key in source:
+                return source[key].decode('ascii')
+            key = name.encode()
+            if key in source:
+                return source[key].decode('ascii')
+            return default
+        except:
+            return default
 
     def update_status_bar(self):
         if self.checkBox_2.isChecked() and self.last_selection >= 0:
@@ -1298,7 +1353,7 @@ class DataFile:
                     mark_value = signal.y[index].mean()
                     signal.marks[mark_name] = (int(index[0]), int(index[-1]-index[0])+1, mark_value)
                 except:
-                    TangoUtils.log_exception(self, 'Mark %s value can not be computed for %s' % (k, signal_name))
+                    TangoUtils.log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
         # zero mark
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
