@@ -42,12 +42,14 @@ import TangoUtils
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '6.0'
+APPLICATION_VERSION = '6.1'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
 CELL_FONT_BOLD = QFont('Open Sans Bold', weight=QFont.Bold)
 CELL_FONT_NORMAL = QFont('Open Sans', weight=QFont.Normal)
+WHITE = QtGui.QColor(255,255,255)
+YELLOW = QtGui.QColor(255,255,0)
 
 # Configure logging
 logger = TangoUtils.config_logger(level=logging.INFO)
@@ -321,6 +323,12 @@ class MainWindow(QMainWindow):
             return
         gc.collect()
         self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
+        try:
+            b = self.tableWidget_3.item(self.last_selection, 1).background()
+            self.tableWidget_3.item(self.last_selection, 0).setBackground(b)
+            a=0
+        except:
+            pass
         self.last_selection = self.current_selection
         try:
             # read signals from zip file
@@ -332,27 +340,6 @@ class MainWindow(QMainWindow):
             self.signal_list = self.data_file.read_all_signals()
             self.logger.debug('Read signals end %s', time.time() - t0)
             # # add extra plots from plainTextEdit_4
-            # extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
-            # for p in extra_plots:
-            #     p = p.strip()
-            #     if p != "":
-            #         try:
-            #             s = None
-            #             result = eval(p)
-            #             if isinstance(result, Signal):
-            #                 s = result
-            #             elif len(result) == 3:
-            #                 key, x_val, y_val = result
-            #                 if key != '':
-            #                     s = Signal(x_val, y_val, name=key)
-            #             elif len(result) == 2:
-            #                 if isinstance(result[1], Signal):
-            #                     s = result[1]
-            #                     s.name = result[0]
-            #             if s is not None:
-            #                 self.signal_list.append(s)
-            #         except:
-            #             TangoUtils.log_exception(self, 'Plot eval() error in %s' % p)
             self.calculate_extra_plots()
             self.logger.debug('Extra signals calc. end %s', time.time() - t0)
             self.signals = self.sort_plots()
@@ -362,7 +349,6 @@ class MainWindow(QMainWindow):
             TangoUtils.log_exception(self, 'Exception in tableSelectionChanged')
         finally:
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
-            self.last_selection = row_s
             self.current_selection = row_s
             self.new_shot = False
             # self.logger.debug('Plot signals time %s', time.time() - t1)
@@ -552,16 +538,15 @@ class MainWindow(QMainWindow):
 
     def update_status_bar(self):
         if self.checkBox_2.isChecked() and self.last_selection >= 0:
-            # self.tableWidget_3.item(self.last_selection, 0).setBackground(self.yellow_brush)
+            self.tableWidget_3.item(self.last_selection, 0).setBackground(YELLOW)
             last_sel_time = self.log_table.column("Time")[self.last_selection]
             self.sb_prev_shot_time.setVisible(True)
             self.sb_prev_shot_time.setText(last_sel_time)
             # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
-            self.sb_text.setText('File: %s' % self.log_file_name)
         else:
             self.sb_prev_shot_time.setVisible(False)
             self.sb_prev_shot_time.setText("**:**:**")
-            self.sb_text.setText('File: %s' % self.log_file_name)
+        self.sb_text.setText('File: %s' % self.log_file_name)
 
     def file_selection_changed(self, m):
         self.logger.debug('Selection changed to %s' % str(m))
