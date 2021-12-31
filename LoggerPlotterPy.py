@@ -350,7 +350,6 @@ class MainWindow(QMainWindow):
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.current_selection = row_s
             self.new_shot = False
-            # self.logger.debug('Plot signals time %s', time.time() - t1)
             self.logger.debug('Exit ------ %s', time.time() - t0)
 
     def calculate_extra_plots(self):
@@ -1207,7 +1206,7 @@ class Signal:
 
     def __add__(self, other):
         if isinstance(other, Signal):
-            args = self.justify(self, other)
+            args = justify(self, other)
             result = Signal(args[0].x, args[0].y + args[1].y)
             result.value = self.value + other.value
             result.name = self.name + '+' + other.name
@@ -1219,7 +1218,7 @@ class Signal:
 
     def __sub__(self, other):
         if isinstance(other, Signal):
-            args = self.justify(self, other)
+            args = justify(self, other)
             result = Signal(args[0].x, args[0].y - args[1].y)
             result.value = self.value - other.value
             result.name = self.name + '-' + other.name
@@ -1231,7 +1230,7 @@ class Signal:
 
     def __mul__(self, other):
         if isinstance(other, Signal):
-            args = self.justify(self, other)
+            args = justify(self, other)
             result = Signal(args[0].x, args[0].y * args[1].y)
             result.value = self.value * other.value
             result.name = self.name + '*' + other.name
@@ -1243,7 +1242,7 @@ class Signal:
 
     def __truediv__(self, other):
         if isinstance(other, Signal):
-            args = self.justify(self, other)
+            args = justify(self, other)
             result = Signal(args[0].x, args[0].y / args[1].y)
             result.value = self.value / other.value
             result.name = self.name + '/' + other.name
@@ -1253,23 +1252,37 @@ class Signal:
             result.value = self.value / other
         return result
 
-    @staticmethod
-    def justify(first, other):
-        if len(first.x) == len(other.x) and \
-                first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
-            return first, other
-        result = (Signal(), Signal())
-        xmin = max(first.x[0], other.x[0])
-        xmax = min(first.x[-1], other.x[-1])
-        if xmax <= xmin:
-            return result
-        n = min(len(first.x), len(other.x))
-        x = numpy.linspace(xmin, xmax, n)
+
+def justify(first: Signal, other: Signal):
+    if len(first.x) == len(other.x) and \
+            first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
+        return first, other
+    xmin = max(first.x[0], other.x[0])
+    xmax = min(first.x[-1], other.x[-1])
+    index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()
+    index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()
+    result = (first, other)
+    if len(first.x) >= len(other.x):
+        x = first.x[index1]
+        result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
         result[0].x = x
+        result[0].y = first.y[index1]
         result[1].x = x
-        result[0].y = numpy.interp(x, first.x, first.y)
-        result[1].y = numpy.interp(x, other.x, other.y)
-        return result
+    else:
+        x = first.x[index2]
+        result[0].y = numpy.interp(x, first.x[index1], first.y[index1])
+        result[0].x = x
+        result[1].y = other.y[index2]
+        result[1].x = x
+    # if xmax <= xmin:
+    #     return result
+    # n = min(len(first.x), len(other.x))
+    # x = numpy.linspace(xmin, xmax, n)
+    # result[0].x = x
+    # result[1].x = x
+    # result[0].y = numpy.interp(x, first.x, first.y)
+    # result[1].y = numpy.interp(x, other.x, other.y)
+    return result
 
 
 class DataFile:
