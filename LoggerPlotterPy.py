@@ -1227,7 +1227,8 @@ class Signal:
             result.name = self.name + '+' + other.name
         else:
             result = Signal(self.x, self.y + other)
-            # result.value = self.value + other
+            if isinstance(other, int) or isinstance(other, float):
+                result.value = self.value + other
         return result
 
     def __sub__(self, other):
@@ -1238,7 +1239,8 @@ class Signal:
             result.name = self.name + '-' + other.name
         else:
             result = Signal(self.x, self.y - other)
-            # result.value = self.value - other
+            if isinstance(other, int) or isinstance(other, float):
+                result.value = self.value - other
         return result
 
     def __mul__(self, other):
@@ -1249,6 +1251,8 @@ class Signal:
             result.name = self.name + '*' + other.name
         else:
             result = Signal(self.x, self.y * other)
+        if isinstance(other, int) or isinstance(other, float):
+            result.value = self.value * other
         return result
 
     def __truediv__(self, other):
@@ -1259,6 +1263,8 @@ class Signal:
             result.name = self.name + '/' + other.name
         else:
             result = Signal(self.x, self.y / other)
+        if isinstance(other, int) or isinstance(other, float):
+            result.value = self.value / other
         return result
 
     @staticmethod
