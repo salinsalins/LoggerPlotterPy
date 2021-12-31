@@ -306,20 +306,20 @@ class MainWindow(QMainWindow):
         self.logger.debug('Selection changed to row %i', row_s)
         return row_s
 
+    def sig(self, name):
+        for sg in self.signal_list:
+            if sg.name == name:
+                return sg
+        raise ValueError('Signal %s not found' % name)
+        # return None
+
     # @TangoUtils.timeit
     def table_selection_changed(self):
-        def sig(name):
-            for sg in self.signal_list:
-                if sg.name == name:
-                    return sg
-            raise ValueError('Signal %s not found' % name)
-            # return None
-
+        sig = self.sig
         self.logger.debug('Entry -----------------')
         t0 = time.time()
         row_s = self.get_selected_row(self.tableWidget_3)
         if row_s < 0:
-            # self.logger.debug('Selection unchanged')
             return
         gc.collect()
         self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
             self.old_signal_list = self.signal_list
             self.signal_list = self.data_file.read_all_signals()
             self.logger.debug('Read signals end %s', time.time() - t0)
-            # # add extra plots from plainTextEdit_4
+            # add extra plots from plainTextEdit_4
             self.calculate_extra_plots()
             self.logger.debug('Extra signals calc. end %s', time.time() - t0)
             self.signals = self.sort_plots()
