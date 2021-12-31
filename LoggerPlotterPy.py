@@ -1203,26 +1203,50 @@ class Signal:
         self.value = value
         self.marks = marks
 
+    def set_name(self, name: str):
+        self.name = name
+        return self
+
+    def set_marks(self, marks: dict):
+        self.marks = marks
+        return self
+
+    def set_value(self, value):
+        self.value = value
+        return self
+
+    def set_unit(self, unit: str):
+        self.unit = unit
+        return self
+
     def __add__(self, other):
         if isinstance(other, Signal):
             args = self.justify(self, other)
             result = Signal(args[0].x, args[0].y + args[1].y)
+            result.value = self.value + other.value
+            result.name = self.name + '+' + other.name
         else:
             result = Signal(self.x, self.y + other)
+            # result.value = self.value + other
         return result
 
     def __sub__(self, other):
         if isinstance(other, Signal):
             args = self.justify(self, other)
             result = Signal(args[0].x, args[0].y - args[1].y)
+            result.value = self.value - other.value
+            result.name = self.name + '-' + other.name
         else:
             result = Signal(self.x, self.y - other)
+            # result.value = self.value - other
         return result
 
     def __mul__(self, other):
         if isinstance(other, Signal):
             args = self.justify(self, other)
             result = Signal(args[0].x, args[0].y * args[1].y)
+            result.value = self.value * other.value
+            result.name = self.name + '*' + other.name
         else:
             result = Signal(self.x, self.y * other)
         return result
@@ -1231,6 +1255,8 @@ class Signal:
         if isinstance(other, Signal):
             args = self.justify(self, other)
             result = Signal(args[0].x, args[0].y / args[1].y)
+            result.value = self.value / other.value
+            result.name = self.name + '/' + other.name
         else:
             result = Signal(self.x, self.y / other)
         return result
