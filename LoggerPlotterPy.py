@@ -326,7 +326,6 @@ class MainWindow(QMainWindow):
         try:
             b = self.tableWidget_3.item(self.last_selection, 1).background()
             self.tableWidget_3.item(self.last_selection, 0).setBackground(b)
-            a=0
         except:
             pass
         self.last_selection = self.current_selection
