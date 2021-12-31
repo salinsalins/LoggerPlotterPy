@@ -298,7 +298,8 @@ class MainWindow(QMainWindow):
         row_s = rng[0].topRow()
         # if selected the same row
         if self.last_selection == row_s:
-            return -1
+            self.logger.debug('Selection unchanged')
+            return row_s
         # different row selected
         self.logger.debug('Selection changed to row %i', row_s)
         return row_s
@@ -316,6 +317,7 @@ class MainWindow(QMainWindow):
         t0 = time.time()
         row_s = self.get_selected_row(self.tableWidget_3)
         if row_s < 0:
+            # self.logger.debug('Selection unchanged')
             return
         gc.collect()
         self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
