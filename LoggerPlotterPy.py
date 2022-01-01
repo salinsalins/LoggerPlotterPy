@@ -36,7 +36,8 @@ np = numpy
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
 
-import TangoUtils
+from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
+#import TangoUtils
 
 
 ORGANIZATION_NAME = 'BINP'
@@ -52,7 +53,7 @@ WHITE = QtGui.QColor(255,255,255)
 YELLOW = QtGui.QColor(255,255,0)
 
 # Configure logging
-logger = TangoUtils.config_logger(level=logging.INFO)
+logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
 
 # Global configuration dictionary
 config = {}
@@ -345,7 +346,7 @@ class MainWindow(QMainWindow):
             self.plot_signals()
             self.update_status_bar()
         except:
-            TangoUtils.log_exception(self, 'Exception in tableSelectionChanged')
+            log_exception(self, 'Exception in tableSelectionChanged')
         finally:
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.current_selection = row_s
@@ -412,7 +413,7 @@ class MainWindow(QMainWindow):
                     else:
                         self.logger.info('Can not calculate signal for %s', p)
                 except:
-                    TangoUtils.log_exception(self, 'Plot eval() error in %s' % p)
+                    log_exception(self, 'Plot eval() error in %s' % p)
 
     def sort_plots(self):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -639,7 +640,7 @@ class MainWindow(QMainWindow):
                 # self.last_selection = -1
                 self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
         except:
-            TangoUtils.log_exception(self, 'Exception in parseFolder')
+            log_exception(self, 'Exception in parseFolder')
         self.update_status_bar()
         return
 
@@ -895,7 +896,7 @@ class LogTable:
         if extra_cols is None:
             extra_cols = []
         if logger is None:
-            self.logger = TangoUtils.config_logger()
+            self.logger = config_logger()
         else:
             self.logger = logger
         self.data = [[], ]
@@ -1029,7 +1030,7 @@ class LogTable:
                             self.columns_with_error.remove(column)
                     except:
                         if column not in self.columns_with_error:
-                            TangoUtils.log_exception(self.logger, 'eval() error in %s', column)
+                            log_exception(self.logger, 'eval() error in %s', column)
                         self.columns_with_error.append(column)
         for column in self.columns_with_error:
             self.logger.info('Can not create column for %s', column)
@@ -1288,7 +1289,7 @@ def justify(first: Signal, other: Signal):
 class DataFile:
     def __init__(self, file_name, folder=""):
         # self.logger = logging.getLogger(__name__)
-        self.logger = TangoUtils.config_logger()
+        self.logger = config_logger()
         self.file_name = None
         self.files = []
         self.signals = []
@@ -1386,7 +1387,7 @@ class DataFile:
                     mark_value = signal.y[index].mean()
                     signal.marks[mark_name] = (int(index[0]), int(index[-1]-index[0])+1, mark_value)
                 except:
-                    TangoUtils.log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
+                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
         # zero mark
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
