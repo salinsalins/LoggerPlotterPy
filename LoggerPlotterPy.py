@@ -1260,10 +1260,10 @@ def justify(first: Signal, other: Signal):
         return first, other
     xmin = max(first.x[0], other.x[0])
     xmax = min(first.x[-1], other.x[-1])
-    index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()
-    index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()
+    index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
+    index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
     result = (first, other)
-    if len(first.x) >= len(other.x):
+    if len(index1) >= len(index2):
         x = first.x[index1]
         result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
         result[0].x = x
