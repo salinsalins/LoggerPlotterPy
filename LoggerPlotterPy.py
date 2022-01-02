@@ -37,7 +37,8 @@ np = numpy
 from pyqtgraphwidget import MplWidget
 
 from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
-#import TangoUtils
+
+# import TangoUtils
 
 
 ORGANIZATION_NAME = 'BINP'
@@ -49,10 +50,10 @@ UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
 CELL_FONT_BOLD = QFont('Open Sans Bold', weight=QFont.Bold)
 CELL_FONT_NORMAL = QFont('Open Sans', weight=QFont.Normal)
-WHITE = QtGui.QColor(255,255,255)
-YELLOW = QtGui.QColor(255,255,0)
+WHITE = QtGui.QColor(255, 255, 255)
+YELLOW = QtGui.QColor(255, 255, 0)
 
-# Configure logging
+# global logger
 logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
 
 # Global configuration dictionary
@@ -61,15 +62,13 @@ config = {}
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
-        # Initialization of the superclass
         super().__init__(parent)
-        # class members definition
         # colors
         self.previous_color = '#ffff00'
         self.trace_color = '#00ff00'
         self.mark_color = '#ff0000'
         self.zero_color = '#0000ff'
-
+        #
         self.log_file_name = None
         self.root = None
         self.conf = {}
@@ -99,7 +98,7 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         self.plainTextEdit_2.textChanged.connect(self.refresh_on)
-        self.plainTextEdit_3.textChanged.connect(self.refresh_on)
+        # self.plainTextEdit_3.textChanged.connect(self.refresh_on)
         self.plainTextEdit_4.textChanged.connect(self.refresh_on)
         self.plainTextEdit_5.textChanged.connect(self.refresh_on)
         # Menu actions connection
@@ -402,9 +401,9 @@ class MainWindow(QMainWindow):
                         try:
                             if math.isnan(s.value) and 'mark' in s.marks and 'zero' in s.marks:
                                 mark = s.marks['mark']
-                                mark_value = s.y[mark[0], mark[0]+mark[1]].mean()
+                                mark_value = s.y[mark[0], mark[0] + mark[1]].mean()
                                 zero = s.marks['mark']
-                                zero_value = s.y[zero[0], zero[0]+zero[1]].mean()
+                                zero_value = s.y[zero[0], zero[0] + zero[1]].mean()
                                 v = mark_value - zero_value
                                 s.value = v
                         except:
@@ -1133,7 +1132,7 @@ class LogTable:
             row, col = self.row_col(*args)
             return self.data[col][row], self.values[col][row], self.units[col][row]
         except:
-            return ('', float('nan'), '')
+            return '', float('nan'), ''
 
     def set_item(self, *args):
         try:
@@ -1375,10 +1374,10 @@ class DataFile:
                     mark_start_value = float(signal.params[k].replace(b',', b'.'))
                     mark_length_value = float(signal.params[mark_length].replace(b',', b'.'))
                     index = numpy.where(numpy.logical_and(signal.x >= mark_start_value,
-                                                          signal.x <= mark_start_value+mark_length_value))
+                                                          signal.x <= mark_start_value + mark_length_value))
                     index = index[0]
                     mark_value = signal.y[index].mean()
-                    signal.marks[mark_name] = (int(index[0]), int(index[-1]-index[0])+1, mark_value)
+                    signal.marks[mark_name] = (int(index[0]), int(index[-1] - index[0]) + 1, mark_value)
                 except:
                     log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
         # zero mark
