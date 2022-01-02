@@ -1207,7 +1207,7 @@ class Signal:
 
     def __add__(self, other):
         if isinstance(other, Signal):
-            args = justify(self, other)
+            args = justify_signals(self, other)
             result = Signal(args[0].x, args[0].y + args[1].y)
             result.value = self.value + other.value
             result.name = self.name + '+' + other.name
@@ -1219,7 +1219,7 @@ class Signal:
 
     def __sub__(self, other):
         if isinstance(other, Signal):
-            args = justify(self, other)
+            args = justify_signals(self, other)
             result = Signal(args[0].x, args[0].y - args[1].y)
             result.value = self.value - other.value
             result.name = self.name + '-' + other.name
@@ -1231,7 +1231,7 @@ class Signal:
 
     def __mul__(self, other):
         if isinstance(other, Signal):
-            args = justify(self, other)
+            args = justify_signals(self, other)
             result = Signal(args[0].x, args[0].y * args[1].y)
             result.value = self.value * other.value
             result.name = self.name + '*' + other.name
@@ -1243,7 +1243,7 @@ class Signal:
 
     def __truediv__(self, other):
         if isinstance(other, Signal):
-            args = justify(self, other)
+            args = justify_signals(self, other)
             result = Signal(args[0].x, args[0].y / args[1].y)
             result.value = self.value / other.value
             result.name = self.name + '/' + other.name
@@ -1254,7 +1254,7 @@ class Signal:
         return result
 
 
-def justify(first: Signal, other: Signal):
+def justify_signals(first: Signal, other: Signal):
     if len(first.x) == len(other.x) and \
             first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
         return first, other
@@ -1262,27 +1262,20 @@ def justify(first: Signal, other: Signal):
     xmax = min(first.x[-1], other.x[-1])
     index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
     index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
-    result = (first, other)
+    result = (Signal(name=first.name, marks=first.marks, value=first.value),
+              Signal(name=other.name, marks=other.marks, value=other.value))
     if len(index1) >= len(index2):
-        x = first.x[index1]
+        x = first.x[index1].copy()
         result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
         result[0].x = x
-        result[0].y = first.y[index1]
+        result[0].y = first.y[index1].copy()
         result[1].x = x
     else:
-        x = first.x[index2]
+        x = first.x[index2].copy()
         result[0].y = numpy.interp(x, first.x[index1], first.y[index1])
         result[0].x = x
-        result[1].y = other.y[index2]
+        result[1].y = other.y[index2].copy()
         result[1].x = x
-    # if xmax <= xmin:
-    #     return result
-    # n = min(len(first.x), len(other.x))
-    # x = numpy.linspace(xmin, xmax, n)
-    # result[0].x = x
-    # result[1].x = x
-    # result[0].y = numpy.interp(x, first.x, first.y)
-    # result[1].y = numpy.interp(x, other.x, other.y)
     return result
 
 
