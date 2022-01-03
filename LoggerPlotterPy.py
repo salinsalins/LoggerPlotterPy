@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         self.zero_color = '#0000ff'
         #
         self.log_file_name = None
-        self.root = None
+        self.data_root = None
         self.conf = {}
         self.refresh_flag = False
         self.last_selection = -1
@@ -1279,9 +1279,11 @@ def justify_signals(first: Signal, other: Signal):
 
 
 class DataFile:
-    def __init__(self, file_name, folder=""):
-        # self.logger = logging.getLogger(__name__)
-        self.logger = config_logger()
+    def __init__(self, file_name, folder="", logger=None):
+        if logger is None:
+            self.logger = config_logger()
+        else:
+            self.logger = logger
         self.file_name = None
         self.files = []
         self.signals = []
@@ -1296,54 +1298,62 @@ class DataFile:
     def read_signal(self, signal_name: str) -> Signal:
         signal = Signal()
         if signal_name not in self.signals:
-            self.logger.log(logging.INFO, "No signal %s in the file %s" % (signal_name, self.file_name))
+            self.logger.info("No signal %s in the file %s" % (signal_name, self.file_name))
             return signal
         with zipfile.ZipFile(self.file_name, 'r') as zipobj:
             buf = zipobj.read(signal_name)
             param_name = signal_name.replace('chan', 'paramchan')
             pbuf = zipobj.read(param_name)
         if b'\r\n' in buf:
-            spltch = b"\r\n"
+            endline = b"\r\n"
         elif b'\n' in buf:
-            spltch = b"\n"
+            endline = b"\n"
         elif b'\r' in buf:
-            spltch = b"\r"
+            endline = b"\r"
         else:
             self.logger.warning("Incorrect data format for %s" % signal_name)
             return signal
-        lines = buf.split(spltch)
+        lines = buf.split(endline)
         n = len(lines)
         if n < 2:
             self.logger.warning("No data for %s" % signal_name)
             return signal
-        signal.x = numpy.zeros(n, dtype=float)
-        signal.y = numpy.zeros(n, dtype=float)
-        for ii, ln in enumerate(lines):
-            xy = ln.split(b'; ')
+        signal.x = numpy.zeros(n, dtype=numpy.float64)
+        signal.y = numpy.zeros(n, dtype=numpy.float64)
+        error_lines = False
+        for i, line in enumerate(lines):
+            xy = line.replace(b',', b'.').split(b'; ')
             try:
-                signal.x[ii] = float(xy[0].replace(b',', b'.'))
-                signal.y[ii] = float(xy[1].replace(b',', b'.'))
+                signal.x[i] = float(xy[0])
             except:
-                signal.x[ii] = float('nan')
-                signal.y[ii] = float('nan')
-                self.logger.debug("Wrong data in line %s for %s", ii, signal_name)
+                signal.x[i] = numpy.nan
+                error_lines = True
+            try:
+                signal.y[i] = float(xy[1])
+            except:
+                signal.y[i] = numpy.nan
+                error_lines = True
+        if error_lines:
+            self.logger.debug("Some lines with wrong data in %s", signal_name)
         # read parameters
         signal.params = {}
-        lines = pbuf.split(spltch)
-        for ln in lines:
-            if ln != b'':
-                kv = ln.split(b'=')
+        lines = pbuf.split(endline)
+        error_lines = False
+        for line in lines:
+            if line != b'':
+                kv = line.split(b'=')
                 if len(kv) >= 2:
                     signal.params[kv[0].strip()] = kv[1].strip()
                 else:
-                    self.logger.debug("Wrong parameter %s for %s" % (ln, signal_name))
+                    error_lines = True
+        if error_lines:
+            self.logger.debug("Wrong parameter for %s" % signal_name)
         # scale to units
-        if b'display_unit' in signal.params:
-            try:
-                signal.scale = float(signal.params[b'display_unit'])
-            except:
-                signal.scale = 1.0
-            signal.y *= signal.scale
+        try:
+            signal.scale = float(signal.params[b'display_unit'])
+        except:
+            signal.scale = 1.0
+        signal.y *= signal.scale
         # name of the signal
         if b"label" in signal.params:
             signal.name = signal.params[b"label"].decode('ascii')
@@ -1356,21 +1366,11 @@ class DataFile:
         else:
             signal.unit = ''
         # find marks
-        x0 = signal.x[0]
-        dx = signal.x[1] - signal.x[0]
         for k in signal.params:
             if k.endswith(b"_start"):
                 mark_name = k.replace(b"_start", b'').decode('ascii')
                 mark_length = k.replace(b"_start", b'_length')
                 try:
-                    # ms = int((float(signal.params[k].replace(b',', b'.')) - x0) / dx)
-                    # ml = int(float(signal.params[mark_length].replace(b',', b'.')) / dx)
-                    # ml = min(len(signal.y) - ms, ml)
-                    # if ml <= 0 or ms < 0:
-                    #     raise Exception('Wrong slice for mark %s %s:%s' % (mark_name, ms, ml + ms))
-                    # mv = signal.y[ms : ms + ml].mean()
-                    # signal.marks[mark_name] = (ms, ml, mv)
-
                     mark_start_value = float(signal.params[k].replace(b',', b'.'))
                     mark_length_value = float(signal.params[mark_length].replace(b',', b'.'))
                     index = numpy.where(numpy.logical_and(signal.x >= mark_start_value,
@@ -1380,7 +1380,7 @@ class DataFile:
                     signal.marks[mark_name] = (int(index[0]), int(index[-1] - index[0]) + 1, mark_value)
                 except:
                     log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
-        # zero mark
+        # calculate value
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
         else:
@@ -1388,7 +1388,7 @@ class DataFile:
         if 'mark' in signal.marks:
             signal.value = signal.marks["mark"][2] - zero
         else:
-            signal.value = 0.0
+            signal.value = float('nan')
         return signal
 
     def read_all_signals(self):
