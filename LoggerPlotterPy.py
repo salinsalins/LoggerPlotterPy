@@ -953,7 +953,7 @@ class LogTable:
         # First field "date time" should be longer than 18 symbols
         if len(fields) < 2 or len(fields[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.info('Wrong data format in "%s", line skipped' % fields[0])
+            self.logger.info('Wrong data format in "%s", line skipped' % line)
             return False
         # split time and date
         tm = fields[0].split(" ")[1].strip()
@@ -1371,14 +1371,16 @@ class DataFile:
                 mark_name = k.replace(b"_start", b'').decode('ascii')
                 mark_length = k.replace(b"_start", b'_length')
                 try:
-                    mark_start_value = float(signal.params[k].replace(b',', b'.'))
-                    mark_end_value = mark_start_value + float(signal.params[mark_length].replace(b',', b'.'))
-                    index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_end_value))
-                    index = index[0]
-                    mark_value = signal.y[index].mean()
-                    mark_start = int(index[0])
-                    mark_length = int(index[-1] - index[0]) + 1
-                    signal.marks[mark_name] = (mark_start, mark_length, mark_value)
+                    if signal.params[k] != b'':
+                        mark_start_value = float(signal.params[k].replace(b',', b'.'))
+                        mark_end_value = mark_start_value + float(signal.params[mark_length].replace(b',', b'.'))
+                        index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_end_value))
+                        index = index[0]
+                        if len(index) > 0:
+                            mark_value = signal.y[index].mean()
+                            mark_start = int(index[0])
+                            mark_length = int(index[-1] - index[0]) + 1
+                            signal.marks[mark_name] = (mark_start, mark_length, mark_value)
                 except:
                     log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
         # calculate value
