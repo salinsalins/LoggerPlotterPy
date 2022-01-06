@@ -953,7 +953,7 @@ class LogTable:
         # First field "date time" should be longer than 18 symbols
         if len(fields) < 2 or len(fields[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.info('Wrong data format in "%s", line skipped' % line)
+            self.logger.debug('Wrong data format in "%s", line skipped' % line)
             return False
         # split time and date
         tm = fields[0].split(" ")[1].strip()
