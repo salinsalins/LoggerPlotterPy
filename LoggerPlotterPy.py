@@ -1372,12 +1372,13 @@ class DataFile:
                 mark_length = k.replace(b"_start", b'_length')
                 try:
                     mark_start_value = float(signal.params[k].replace(b',', b'.'))
-                    mark_length_value = float(signal.params[mark_length].replace(b',', b'.'))
-                    index = numpy.where(numpy.logical_and(signal.x >= mark_start_value,
-                                                          signal.x <= mark_start_value + mark_length_value))
+                    mark_end_value = mark_start_value + float(signal.params[mark_length].replace(b',', b'.'))
+                    index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_end_value))
                     index = index[0]
                     mark_value = signal.y[index].mean()
-                    signal.marks[mark_name] = (int(index[0]), int(index[-1] - index[0]) + 1, mark_value)
+                    mark_start = int(index[0])
+                    mark_length = int(index[-1] - index[0]) + 1
+                    signal.marks[mark_name] = (mark_start, mark_length, mark_value)
                 except:
                     log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
         # calculate value

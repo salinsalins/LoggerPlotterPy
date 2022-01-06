@@ -157,7 +157,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>1356</width>
-                       <height>696</height>
+                       <height>675</height>
                       </rect>
                      </property>
                      <property name="sizePolicy">
@@ -457,7 +457,7 @@
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
                    </property>
-                   <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0,0,0,0,0,0">
+                   <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0,0,0,0,0,0,0">
                     <property name="spacing">
                      <number>3</number>
                     </property>
@@ -606,6 +606,19 @@
                        </property>
                       </item>
                      </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_4">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
                     </item>
                    </layout>
                   </widget>
@@ -833,7 +846,7 @@ File</string>
      <x>0</x>
      <y>0</y>
      <width>1383</width>
-     <height>23</height>
+     <height>34</height>
     </rect>
    </property>
    <property name="font">
