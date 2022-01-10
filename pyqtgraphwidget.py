@@ -85,7 +85,8 @@ class MplAdapter:
 
     def plot(self, x, y, color='#ffffff', width=1):
         self.item.plot(x, y, pen={'color': color, 'width': width})
-        #PlotCurveItem
+        # pci = pyqtgraph.PlotCurveItem(x, y, pen={'color': color, 'width': width})
+        # self.item.addItem(pci)
 
     def clear(self):
         self.item.getPlotItem().vb.clearScaleHistory()
