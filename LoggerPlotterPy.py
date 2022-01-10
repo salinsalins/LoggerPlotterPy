@@ -471,6 +471,16 @@ class MainWindow(QMainWindow):
             # get axes
             axes = mplw.canvas.ax
             axes.clear()
+            # Decorate the plot
+            axes.grid(True)
+            if math.isnan(s.value) or s.value is None:
+                default_title = s.name
+            else:
+                default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
+            axes.set_title(self.from_params('title', s.params, default_title))
+            axes.set_xlabel(self.from_params('xlabel', s.params, 'Time, ms'))
+            axes.set_ylabel(self.from_params('ylabel', s.params, '%s, %s' % (s.name, s.unit)))
+            # axes.legend(loc='best')
             # plot previous line
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
                 for s1 in self.old_signal_list:
@@ -489,16 +499,6 @@ class MainWindow(QMainWindow):
                 m1 = s.marks['zero'][0]
                 m2 = m1 + s.marks['zero'][1]
                 axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.zero_color)
-            # Decorate the plot
-            axes.grid(True)
-            if math.isnan(s.value) or s.value is None:
-                default_title = s.name
-            else:
-                default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
-            axes.set_title(self.from_params('title', s.params, default_title))
-            axes.set_xlabel(self.from_params('xlabel', s.params, 'Time, ms'))
-            axes.set_ylabel(self.from_params('ylabel', s.params, '%s, %s' % (s.name, s.unit)))
-            # axes.legend(loc='best')
             # Show plot
             # mplw.canvas.draw()
             try:
