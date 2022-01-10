@@ -859,8 +859,6 @@ class MainWindow(QMainWindow):
                 self.plainTextEdit_4.setPlainText(self.conf['extra_plot'])
             if 'extra_col' in self.conf:
                 self.plainTextEdit_5.setPlainText(self.conf['extra_col'])
-            if 'extra_col' in self.conf:
-                self.plainTextEdit_5.setPlainText(self.conf['extra_col'])
             if 'exclude_plots' in self.conf and hasattr(self, 'plainTextEdit_6'):
                 self.plainTextEdit_6.setPlainText(self.conf['exclude_plots'])
             if 'plot_order' in self.conf and hasattr(self, 'plainTextEdit_7'):
