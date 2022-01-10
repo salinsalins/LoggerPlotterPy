@@ -195,13 +195,26 @@ class MainWindow(QMainWindow):
             return
         if action == hide_action:
             # print("Hide", n)
+            # remove from shown columns list
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
             text = self.plainTextEdit_2.toPlainText()
-            text = text.replace(t, '')
+            t1 = '\n' + t
+            t2 = t + '\n'
+            t3 = t1 + '\n'
+            if t3 in text:
+                text = text.replace(t3, '\n')
+            elif text.startswith(t2):
+                text = text.replace(t2, '')
+            elif text.endswith(t1):
+                text = text.replace(t1, '')
+            else:
+                text = text.replace(t, '')
             text = text.replace('\n\n', '\n')
             self.plainTextEdit_2.setPlainText(text)
+            # add to hidden columns list (unsorted!)
             text = self.plainTextEdit_3.toPlainText()
             self.plainTextEdit_3.setPlainText(text + t + '\n')
+            # hide column
             self.tableWidget_3.hideColumn(n)
         if n > 1 and action == left_action:
             # print("Move Left", n)
