@@ -168,6 +168,7 @@ class MainWindow(QMainWindow):
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
         # restore settings
         self.restore_settings()
+        self.restore_local_settings()
 
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
@@ -262,6 +263,7 @@ class MainWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(0)
         self.actionPlot.setChecked(True)
         self.actionParameters.setChecked(False)
+        self.save_local_settings()
         self.save_settings()
         self.table_selection_changed()
         if self.refresh_flag:
@@ -570,7 +572,7 @@ class MainWindow(QMainWindow):
         self.sb_text.setText('File: %s' % self.log_file_name)
 
     def file_selection_changed(self, m):
-        self.logger.debug('Selection changed to %s' % str(m))
+        # self.logger.debug('Selection changed to %s' % str(m))
         if m < 0:
             return
         new_log_file = str(self.comboBox_2.currentText())
@@ -584,13 +586,53 @@ class MainWindow(QMainWindow):
             self.signal_list = []
             # clear last columns list
             self.last_columns = []
-            self.read_local_config()
+            self.restore_local_settings()
             self.new_shot = True
             self.last_selection = -1
             self.parse_folder()
 
-    def read_local_config(self):
-        pass
+    def get_data_folder(self):
+        if self.log_file_name is None:
+            data_folder = "./"
+        else:
+            data_folder = os.path.dirname(self.log_file_name)
+        return data_folder
+
+    def restore_local_settings(self):
+        full_name = os.path.join(self.get_data_folder(), CONFIG_FILE)
+        try:
+            with open(full_name, 'r') as configfile:
+                s = configfile.read()
+            conf = json.loads(s)
+            if 'included' in conf:
+                self.plainTextEdit_2.setPlainText(conf['included'])
+            if 'extra_plot' in conf:
+                self.plainTextEdit_4.setPlainText(conf['extra_plot'])
+            if 'extra_col' in conf:
+                self.plainTextEdit_5.setPlainText(conf['extra_col'])
+            if 'plot_order' in conf and hasattr(self, 'plainTextEdit_7'):
+                self.plainTextEdit_7.setPlainText(self.conf['plot_order'])
+            self.logger.info('Local configuration restored from %s' % full_name)
+            return True
+        except:
+            log_exception('Local configuration restore error from %s' % full_name)
+            return False
+
+    def save_local_settings(self):
+        conf = dict()
+        conf['included'] = self.conf['included']
+        conf['extra_plot'] = self.conf['extra_plot']
+        conf['extra_col'] = self.conf['extra_col']
+        conf['plot_order'] = self.conf['plot_order']
+        full_name = os.path.join(self.get_data_folder(), CONFIG_FILE)
+        try:
+            with open(full_name, 'w') as configfile:
+                configfile.write(json.dumps(conf, indent=4))
+            self.logger.info('Local configuration saved to %s' % full_name)
+            return True
+        except:
+            log_exception('Local configuration save error to %s' % full_name)
+            return False
 
     def log_level_index_changed(self, m: int) -> None:
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
@@ -601,6 +643,7 @@ class MainWindow(QMainWindow):
     def on_quit(self):
         # save global settings
         # print(self.pos().x(), self.pos().y())
+        self.save_local_settings()
         self.save_settings()
         timer.stop()
 
@@ -728,45 +771,40 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.scrollToBottom()
         self.tableWidget_3.setFocus()
 
-    def save_settings(self, folder='', file_name=CONFIG_FILE):
-        def attr2conf(attr, name):
-            try:
-                self.conf[name] = str(attr)
-            except:
-                pass
-
+    def save_settings(self, folder='', file_name=CONFIG_FILE, config=None):
+        if config is None:
+            config = self.conf
         full_name = os.path.join(str(folder), file_name)
         try:
             # save window size and position
             p = self.pos()
             s = self.size()
-            # print(self.pos().x(), self.pos().y())
-            self.conf['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
-            self.conf['folder'] = self.log_file_name
-            self.conf['history'] = [str(self.comboBox_2.itemText(count)) for count in
+            config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
+
+            config['folder'] = self.log_file_name
+            config['history'] = [str(self.comboBox_2.itemText(count)) for count in
                                     range(min(self.comboBox_2.count(), 10))]
-            self.conf['history_index'] = self.comboBox_2.currentIndex()
-            self.conf['log_level'] = self.logger.level
-            self.conf['included'] = str(self.plainTextEdit_2.toPlainText())
-            self.conf['excluded'] = str(self.plainTextEdit_3.toPlainText())
-            self.conf['cb_1'] = self.checkBox_1.isChecked()
-            self.conf['cb_2'] = self.checkBox_2.isChecked()
-            self.conf['cb_3'] = self.checkBox_3.isChecked()
-            self.conf['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
-            self.conf['extra_col'] = str(self.plainTextEdit_5.toPlainText())
-            attr2conf(self.plainTextEdit_6.toPlainText(), 'exclude_plots')
-            attr2conf(self.plainTextEdit_7.toPlainText(), 'plot_order')
-            if os.path.exists(full_name):
-                # try to read old config to confirm correct syntax
-                with open(full_name, 'r') as configfile:
-                    s = configfile.read()
+            config['history_index'] = self.comboBox_2.currentIndex()
+            config['log_level'] = self.logger.level
+            config['included'] = str(self.plainTextEdit_2.toPlainText())
+            config['excluded'] = str(self.plainTextEdit_3.toPlainText())
+            config['cb_1'] = self.checkBox_1.isChecked()
+            config['cb_2'] = self.checkBox_2.isChecked()
+            config['cb_3'] = self.checkBox_3.isChecked()
+            config['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
+            config['extra_col'] = str(self.plainTextEdit_5.toPlainText())
+            config['exclude_plots'] = str(self.plainTextEdit_6.toPlainText())
+            config['plot_order'] = str(self.plainTextEdit_7.toPlainText())
+            # if os.path.exists(full_name):
+            #     # try to read old config to confirm correct syntax
+            #     with open(full_name, 'r') as configfile:
+            #         s = configfile.read()
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s' % full_name)
             return True
         except:
-            self.logger.log(logging.WARNING, 'Configuration save error to %s' % full_name)
-            self.logger.debug('Exception:', exc_info=True)
+            log_exception('Configuration save error to %s' % full_name)
             return False
 
     def restore_settings(self, folder='', file_name=CONFIG_FILE):
@@ -879,6 +917,7 @@ class MainWindow(QMainWindow):
         return a
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.save_local_settings()
         self.save_settings()
         a0.accept()
 
