@@ -44,7 +44,7 @@ from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '6.1'
+APPLICATION_VERSION = '6.2'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
@@ -272,6 +272,8 @@ class MainWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(1)
         self.actionPlot.setChecked(False)
         self.actionParameters.setChecked(True)
+        self.sort_text_edit_widget(self.plainTextEdit_3)
+        self.sort_text_edit_widget(self.plainTextEdit_6)
 
     def select_log_file(self):
         """Opens a file select dialog"""
@@ -329,8 +331,8 @@ class MainWindow(QMainWindow):
     # @TangoUtils.timeit
     def table_selection_changed(self):
         sig = self.sig
-        self.logger.debug('Entry -----------------')
-        t0 = time.time()
+        # self.logger.debug('Entry -----------------')
+        # t0 = time.time()
         row_s = self.get_selected_row(self.tableWidget_3)
         if row_s < 0:
             return
@@ -350,10 +352,10 @@ class MainWindow(QMainWindow):
             self.data_file = DataFile(zip_file_name, folder=folder)
             self.old_signal_list = self.signal_list
             self.signal_list = self.data_file.read_all_signals()
-            self.logger.debug('Read signals end %s', time.time() - t0)
+            # self.logger.debug('Read signals end %s', time.time() - t0)
             # add extra plots from plainTextEdit_4
             self.calculate_extra_plots()
-            self.logger.debug('Extra signals calc. end %s', time.time() - t0)
+            # self.logger.debug('Extra signals calc. end %s', time.time() - t0)
             self.signals = self.sort_plots()
             self.plot_signals()
             self.update_status_bar()
@@ -363,7 +365,7 @@ class MainWindow(QMainWindow):
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.current_selection = row_s
             self.new_shot = False
-            self.logger.debug('Exit ------ %s', time.time() - t0)
+            # self.logger.debug('Exit ------ %s', time.time() - t0)
 
     def calculate_extra_plots(self):
         def sig(name):
@@ -423,23 +425,22 @@ class MainWindow(QMainWindow):
                             pass
                         self.signal_list.append(s)
                     else:
-                        self.logger.info('Can not calculate signal for %s', p)
+                        self.logger.info('Can not calculate signal for "%s ..."', p[:10])
                 except:
-                    log_exception(self, 'Plot eval() error in %s' % p)
+                    log_exception(self, 'Plot eval() error in "%s ..."' % p[:10])
 
     def sort_plots(self):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
-        # excluded_plots = self.plainTextEdit_6.toPlainText().split('\n')
         hidden_plots = []
-        ordered_signals = []
+        ordered_plots = []
         for p in plot_order:
             for s in self.signal_list:
                 if s.name == p:
-                    ordered_signals.append(self.signal_list.index(s))
+                    ordered_plots.append(self.signal_list.index(s))
                     break
         # build list of hidden plots
         for s in self.signal_list:
-            if self.signal_list.index(s) not in ordered_signals:
+            if self.signal_list.index(s) not in ordered_plots:
                 hidden_plots.append(s.name)
         hidden_plots.sort()
         text = ''
@@ -447,14 +448,24 @@ class MainWindow(QMainWindow):
             text += t
             text += '\n'
         self.plainTextEdit_6.setPlainText(text)
-        return ordered_signals
+        return ordered_plots
+
+    @staticmethod
+    def sort_text_edit_widget(widget):
+        sorted_text = widget.toPlainText().split('\n')
+        sorted_text.sort()
+        text = ''
+        for t in sorted_text:
+            if t != '':
+                text += t + '\n'
+        widget.setPlainText(text)
 
     def plot_signals(self, signals=None):
         if signals is None:
             signals = self.signals
         # plot signals
-        t0 = time.time()
-        self.logger.debug('Begin')
+        # t0 = time.time()
+        # self.logger.debug('Begin')
         layout = self.scrollAreaWidgetContents_3.layout()
         jj = 0
         col = 0
@@ -493,7 +504,6 @@ class MainWindow(QMainWindow):
             axes.set_title(self.from_params('title', s.params, default_title))
             axes.set_xlabel(self.from_params('xlabel', s.params, 'Time, ms'))
             axes.set_ylabel(self.from_params('ylabel', s.params, '%s, %s' % (s.name, s.unit)))
-            # axes.legend(loc='best')
             # plot previous line
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
                 for s1 in self.old_signal_list:
@@ -530,7 +540,7 @@ class MainWindow(QMainWindow):
             w = item.widget()
             if w:
                 w.deleteLater()
-        self.logger.debug('End %s', time.time() - t0)
+        # self.logger.debug('End %s', time.time() - t0)
 
     @staticmethod
     def from_params(name, source, default=''):
@@ -1042,10 +1052,10 @@ class LogTable:
                             self.columns_with_error.remove(column)
                     except:
                         if column not in self.columns_with_error:
-                            log_exception(self.logger, 'eval() error in %s', column)
-                        self.columns_with_error.append(column)
+                            log_exception(self.logger, 'eval() error in "%s ..."', column[:10], level=logging.INFO)
+                            self.columns_with_error.append(column)
         for column in self.columns_with_error:
-            self.logger.info('Can not create column for %s', column)
+            self.logger.warning('Can not create extra column for "%s ..."', column[:10])
 
     def refresh(self, extra_cols):
         try:
