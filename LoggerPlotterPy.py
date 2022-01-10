@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         header.setSectionResizeMode(0)
         # table: header right click menu
         header.setContextMenuPolicy(PyQt5.QtCore.Qt.CustomContextMenu)
-        header.customContextMenuRequested.connect(self.test)
+        header.customContextMenuRequested.connect(self.table_header_right_click_menu_wrap)
         # table: style tuning
         self.tableWidget_3.setStyleSheet("""
                 QTableView {
@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
         self.sb_clock = QLabel(" ")
         self.clock_font = QFont('Open Sans Bold', 16, weight=QFont.Bold)
         self.sb_clock.setFont(self.clock_font)
-        # previous shot time at status bar
+        # status bar: previous shot time
         self.sb_prev_shot_time = QLabel("**:**:**")
         # self.sblbl1.setFixedWidth(100)
         self.sb_prev_shot_time.setFont(self.statusbar_font)
@@ -228,7 +228,7 @@ class MainWindow(QMainWindow):
             self.fill_table_widget()
             self.tableWidget_3.selectRow(self.last_selection)
 
-    def test(self, a, *args):
+    def table_header_right_click_menu_wrap(self, a, *args):
         # i = self.tableWidget_3.horizontalHeader().currentIndex()
         # print('test', a, args)
         # h = self.tableWidget_3.horizontalHeader()
