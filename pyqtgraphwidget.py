@@ -66,7 +66,6 @@ class MplAdapter:
         self.item = item
         # self.plot_item_count = 0
         # super().__init__()
-        pass
 
     def grid(self, val=True):
         self.item.getPlotItem().showGrid(val, val)
@@ -84,8 +83,9 @@ class MplAdapter:
     def draw(self, val=''):
         pass
 
-    def plot(self, x, y, color='#ffffff'):
-        self.item.plot(x, y, pen={'color': color, 'width': 2})
+    def plot(self, x, y, color='#ffffff', width=1):
+        self.item.plot(x, y, pen={'color': color, 'width': width})
+        #PlotCurveItem
 
     def clear(self):
         self.item.getPlotItem().vb.clearScaleHistory()
