@@ -980,6 +980,7 @@ class LogTable:
         self.file_lines = -1
         self.rows = 0
         self.columns = 0
+        self.keys_with_errors = []
         # Full file name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn):
@@ -1098,32 +1099,6 @@ class LogTable:
                             self.columns_with_error.append(column)
         for column in self.columns_with_error:
             self.logger.warning('Can not create extra column for "%s ..."', column[:10])
-
-    def refresh(self, extra_cols):
-        try:
-            # if file size increased
-            new_size = os.path.getsize(self.file_name)
-            if new_size <= self.file_size:
-                return
-            # read file to buf
-            with open(self.file_name, "r") as stream:
-                buf = stream.read()
-            if len(buf) <= 0:
-                return
-            self.file_size = new_size
-            # split buf to lines
-            lines = buf.split('\n')
-            if len(lines) <= self.file_lines:
-                return
-            self.logger.debug('%d additional lines in %s' % (len(lines) - self.file_lines, self.file_name))
-            # Loop for added lines
-            for line in lines[self.file_lines:]:
-                self.decode_line(line)
-            self.file_lines = len(lines)
-            # Add extra columns
-            self.add_extra_columns(extra_cols)
-        except:
-            self.logger.warning('Error refreshing %s' % self.file_name)
 
     def remove_row(self, row):
         for item in self.data:
