@@ -44,7 +44,7 @@ from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '6.2'
+APPLICATION_VERSION = '6.3'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
@@ -192,7 +192,7 @@ class MainWindow(QMainWindow):
             left_action = menu.addAction("Move left")
         else:
             left_action = None
-        action = menu.exec_(position)
+        action = menu.exec(position)
         if action is None:
             return
         if action == hide_action:
@@ -229,7 +229,8 @@ class MainWindow(QMainWindow):
             self.plainTextEdit_2.setPlainText(text)
             self.columns = self.sort_columns()
             self.fill_table_widget()
-            self.tableWidget_3.selectRow(self.last_selection)
+            self.tableWidget_3.selectRow(self.current_selection)
+            self.change_background()
         if n < self.tableWidget_3.columnCount() - 1 and action == right_action:
             # print("Move Right", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
@@ -241,7 +242,8 @@ class MainWindow(QMainWindow):
             self.plainTextEdit_2.setPlainText(text)
             self.columns = self.sort_columns()
             self.fill_table_widget()
-            self.tableWidget_3.selectRow(self.last_selection)
+            self.tableWidget_3.selectRow(self.current_selection)
+            self.change_background()
 
     def table_header_right_click_menu_wrap(self, a, *args):
         # i = self.tableWidget_3.horizontalHeader().currentIndex()
@@ -334,36 +336,34 @@ class MainWindow(QMainWindow):
     # @TangoUtils.timeit
     def table_selection_changed(self):
         sig = self.sig
-        # self.logger.debug('Entry -----------------')
-        # t0 = time.time()
         row_s = self.get_selected_row(self.tableWidget_3)
         if row_s < 0:
             return
-        gc.collect()
-        self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
-        self.restore_background()
-        self.last_selection = self.current_selection
-        try:
-            # read signals from zip file
-            folder = os.path.dirname(self.log_file_name)
-            zip_file_name = self.log_table.column("File")[row_s]
-            self.logger.debug('Using zip File %s', zip_file_name)
-            self.data_file = DataFile(zip_file_name, folder=folder)
-            self.old_signal_list = self.signal_list
-            self.signal_list = self.data_file.read_all_signals()
-            # self.logger.debug('Read signals end %s', time.time() - t0)
-            # add extra plots from plainTextEdit_4
-            self.calculate_extra_plots()
-            # self.logger.debug('Extra signals calc. end %s', time.time() - t0)
-            self.signals = self.sort_plots()
-            self.plot_signals()
-            self.update_status_bar()
-        except:
-            log_exception(self, 'Exception in tableSelectionChanged')
-        finally:
-            self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
-            self.current_selection = row_s
-            # self.logger.debug('Exit ------ %s', time.time() - t0)
+        if self.current_selection != row_s:
+            gc.collect()
+            self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
+            self.tableWidget_3.setUpdatesEnabled(False)
+            self.restore_background()
+            self.last_selection = self.current_selection
+            try:
+                # read signals from zip file
+                folder = os.path.dirname(self.log_file_name)
+                zip_file_name = self.log_table.column("File")[row_s]
+                self.logger.debug('Using zip File %s', zip_file_name)
+                self.data_file = DataFile(zip_file_name, folder=folder)
+                self.old_signal_list = self.signal_list
+                self.signal_list = self.data_file.read_all_signals()
+                # add extra plots
+                self.calculate_extra_plots()
+                self.signals = self.sort_plots()
+                self.plot_signals()
+                self.update_status_bar()
+            except:
+                log_exception(self, 'Exception in tableSelectionChanged')
+            finally:
+                self.tableWidget_3.setUpdatesEnabled(True)
+                self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
+                self.current_selection = row_s
 
     def calculate_extra_plots(self):
         def sig(name):
@@ -556,12 +556,15 @@ class MainWindow(QMainWindow):
             return default
 
     def change_background(self, row=None, column=0, color=YELLOW):
-        if row is None:
-            row = self.last_selection
-        self.last_cell_background = self.tableWidget_3.item(row, column).background()
-        self.last_cell_row = row
-        self.last_cell_column = column
-        self.tableWidget_3.item(row, column).setBackground(color)
+        try:
+            if row is None:
+                row = self.last_selection
+            self.last_cell_background = self.tableWidget_3.item(row, column).background()
+            self.last_cell_row = row
+            self.last_cell_column = column
+            self.tableWidget_3.item(row, column).setBackground(color)
+        except:
+            pass
 
     def restore_background(self, row=None, column=None, color=None):
         try:
