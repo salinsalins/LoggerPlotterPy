@@ -701,6 +701,7 @@ class MainWindow(QMainWindow):
             if not append:
                 # read log file content to logTable
                 self.log_table = LogTable(file_name, extra_cols=self.extra_cols)
+                # self.last_selection = -1
                 if self.log_table.file_name is None:
                     return
                 self.log_file_name = self.log_table.file_name
@@ -955,6 +956,9 @@ class MainWindow(QMainWindow):
         self.new_size = os.path.getsize(self.log_file_name)
         if self.new_size <= self.old_size:
             return
+        if self.checkBox_4.isChecked():
+            self.restore_background()
+            self.last_selection = self.log_table.rows - 1
         self.parse_folder(append=True)
 
 
