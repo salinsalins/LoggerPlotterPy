@@ -98,11 +98,11 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         self.plainTextEdit_2.textChanged.connect(self.refresh_on)
-        # self.plainTextEdit_3.textChanged.connect(self.refresh_on)
         self.plainTextEdit_4.textChanged.connect(self.refresh_on)
         self.plainTextEdit_5.textChanged.connect(self.refresh_on)
+        self.plainTextEdit_7.textChanged.connect(self.refresh_on)
         # Menu actions connection
-        self.actionQuit.triggered.connect(qApp.quit)
+        self.actionQuit.triggered.connect(self.save_and_exit)
         self.actionOpen.triggered.connect(self.select_log_file)
         self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
@@ -110,7 +110,6 @@ class MainWindow(QMainWindow):
         # windows icon
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.setWindowTitle(APPLICATION_NAME + APPLICATION_VERSION)
-
         # table: header
         header = self.tableWidget_3.horizontalHeader()
         # header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
@@ -130,10 +129,8 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
-
         # brushes, colors, fonts
         # self.yellow_brush = QBrush(QColor('#FFFF00'))
-
         # status bar: font
         self.statusbar_font = QFont('Open Sans', 14)
         self.statusBar().setFont(self.statusbar_font)
@@ -918,6 +915,12 @@ class MainWindow(QMainWindow):
         self.save_local_settings()
         self.save_settings()
         a0.accept()
+
+    def save_and_exit(self) -> None:
+        self.save_local_settings()
+        self.save_settings()
+        qApp.exit()
+        # qApp.quit()
 
     # @timeit
     def timer_handler(self):
