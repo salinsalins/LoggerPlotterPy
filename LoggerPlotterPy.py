@@ -52,6 +52,7 @@ CELL_FONT_BOLD = QFont('Open Sans Bold', weight=QFont.Bold)
 CELL_FONT_NORMAL = QFont('Open Sans', weight=QFont.Normal)
 WHITE = QtGui.QColor(255, 255, 255)
 YELLOW = QtGui.QColor(255, 255, 0)
+GREEN = QtGui.QColor(0, 255, 0)
 
 # global logger
 logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
@@ -86,7 +87,10 @@ class MainWindow(QMainWindow):
         self.excluded = []
         self.columns = []
         self.last_columns = []
-        self.new_shot = True
+        self.last_cell_background = None
+        self.last_cell_row = None
+        self.last_cell_column = None
+        self.log_table = None
 
         # Load the UI
         uic.loadUi(UI_FILE, self)
@@ -337,11 +341,7 @@ class MainWindow(QMainWindow):
             return
         gc.collect()
         self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
-        try:
-            b = self.tableWidget_3.item(self.last_selection, 1).background()
-            self.tableWidget_3.item(self.last_selection, 0).setBackground(b)
-        except:
-            pass
+        self.restore_background()
         self.last_selection = self.current_selection
         try:
             # read signals from zip file
@@ -363,7 +363,6 @@ class MainWindow(QMainWindow):
         finally:
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
             self.current_selection = row_s
-            self.new_shot = False
             # self.logger.debug('Exit ------ %s', time.time() - t0)
 
     def calculate_extra_plots(self):
@@ -449,16 +448,6 @@ class MainWindow(QMainWindow):
         self.plainTextEdit_6.setPlainText(text)
         return ordered_plots
 
-    @staticmethod
-    def sort_text_edit_widget(widget):
-        sorted_text = widget.toPlainText().split('\n')
-        sorted_text.sort()
-        text = ''
-        for t in sorted_text:
-            if t != '':
-                text += t + '\n'
-        widget.setPlainText(text)
-
     def plot_signals(self, signals=None):
         if signals is None:
             signals = self.signals
@@ -542,6 +531,16 @@ class MainWindow(QMainWindow):
         # self.logger.debug('End %s', time.time() - t0)
 
     @staticmethod
+    def sort_text_edit_widget(widget):
+        sorted_text = widget.toPlainText().split('\n')
+        sorted_text.sort()
+        text = ''
+        for t in sorted_text:
+            if t != '':
+                text += t + '\n'
+        widget.setPlainText(text)
+
+    @staticmethod
     def from_params(name, source, default=''):
         try:
             if name in source:
@@ -556,9 +555,30 @@ class MainWindow(QMainWindow):
         except:
             return default
 
+    def change_background(self, row=None, column=0, color=YELLOW):
+        if row is None:
+            row = self.last_selection
+        self.last_cell_background = self.tableWidget_3.item(row, column).background()
+        self.last_cell_row = row
+        self.last_cell_column = column
+        self.tableWidget_3.item(row, column).setBackground(color)
+
+    def restore_background(self, row=None, column=None, color=None):
+        try:
+            if row is None:
+                row = self.last_cell_row
+            if column is None:
+                column = self.last_cell_column
+            if color is None:
+                color = self.last_cell_background
+            self.tableWidget_3.item(row, column).setBackground(color)
+        except:
+            pass
+
     def update_status_bar(self):
         if self.checkBox_2.isChecked() and self.last_selection >= 0:
-            self.tableWidget_3.item(self.last_selection, 0).setBackground(YELLOW)
+            self.change_background()
+            # self.tableWidget_3.item(self.last_selection, 0).setBackground(YELLOW)
             last_sel_time = self.log_table.column("Time")[self.last_selection]
             self.sb_prev_shot_time.setVisible(True)
             self.sb_prev_shot_time.setText(last_sel_time)
@@ -584,7 +604,6 @@ class MainWindow(QMainWindow):
             # clear last columns list
             self.last_columns = []
             self.restore_local_settings()
-            self.new_shot = True
             self.last_selection = -1
             self.parse_folder()
 
@@ -666,18 +685,14 @@ class MainWindow(QMainWindow):
         self.plainTextEdit_3.setPlainText(text)
         return columns
 
-    # @TangoUtils.timeit
     def parse_folder(self, file_name=None, append=False):
-        # self.new_shot = True
-        # self.last_selection = -1
         try:
             if file_name is None:
                 file_name = self.log_file_name
             if file_name is None:
                 return
-            # self.statusBar().showMessage('Reading %s' % file_name)
             self.sb_text.setText('Reading %s' % file_name)
-            self.logger.debug('Reading log file %s', file_name)
+            self.logger.debug('Reading data file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             if not append:
@@ -686,11 +701,10 @@ class MainWindow(QMainWindow):
                 if self.log_table.file_name is None:
                     return
                 self.log_file_name = self.log_table.file_name
-                # Create sorted displayed columns list
+                # Create displayed columns list
                 self.columns = self.sort_columns()
                 self.fill_table_widget()
                 # select last row of widget -> tableSelectionChanged will be fired
-                # self.last_selection = -1
                 self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
             else:
                 # read file to buf
@@ -699,7 +713,6 @@ class MainWindow(QMainWindow):
                 n = self.log_table.append(buf[self.old_size:], extra_cols=self.extra_cols)
                 self.fill_table_widget(n)
                 # select last row of widget -> tableSelectionChanged will be fired
-                # self.last_selection = -1
                 self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
         except:
             log_exception(self, 'Exception in parseFolder')
@@ -902,14 +915,14 @@ class MainWindow(QMainWindow):
             return True
         return False
 
-    def get_root(self):
-        a = os.path.dirname(self.log_file_name)
-        a = os.path.dirname(a)
-        a = os.path.dirname(a)
-        a = os.path.dirname(a)
-        if os.path.isfile('filename.txt'):
-            pass
-        return a
+    def get_data_root(self):
+        day = os.path.dirname(self.log_file_name)
+        month = os.path.dirname(day)
+        year = os.path.dirname(month)
+        root = os.path.dirname(year)
+        if not os.path.exists(root):
+            self.logger.debug('Data root does not exist')
+        return root
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.save_local_settings()
@@ -922,27 +935,24 @@ class MainWindow(QMainWindow):
         qApp.exit()
         # qApp.quit()
 
-    # @timeit
     def timer_handler(self):
-        # print(self.pos().x(), self.pos().y())
-        # self.logger.debug('Timer handler enter')
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
             return
-        # check if lock file exists
+        # check if data file locked
         if self.is_locked():
             return
-        # check if log file exists
+        # check if data file exists
         if not os.path.exists(self.log_file_name):
+            self.logger.debug('Data file does not exist')
             return
         self.old_size = self.log_table.file_size
         self.new_size = os.path.getsize(self.log_file_name)
         if self.new_size <= self.old_size:
             return
-        self.new_shot = True
-        self.parse_folder()
+        self.parse_folder(append=True)
 
 
 class VLine(QFrame):
@@ -973,26 +983,18 @@ class LogTable:
         # Full file name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn):
-            self.logger.info('File %s does not exist' % file_name)
+            self.logger.info('File %s does not exist' % fn)
             return
         # read file to buf
         with open(fn, "r") as stream:
             buf = stream.read()
         if len(buf) <= 0:
-            self.logger.info('Nothing to process in %s' % file_name)
+            self.logger.info('Nothing to process in %s' % fn)
             return
         self.file_name = fn
         self.file_size = os.path.getsize(fn)
         self.file_lines = 0
         self.append(buf, extra_cols)
-        # lines = buf.split('\n')
-        # self.logger.debug('%d lines red from %s' % (len(lines), self.file_name))
-        # self.file_lines = len(lines)
-        # # loop for lines
-        # for line in lines:
-        #     self.decode_line(line)
-        # # add extra columns
-        # self.add_extra_columns(extra_cols)
 
     def append(self, buf, extra_cols=None):
         if extra_cols is None:
@@ -1007,7 +1009,7 @@ class LogTable:
                 n += 1
         # add extra columns
         self.add_extra_columns(extra_cols)
-        self.logger.debug('%d of %d lines appended' % (n, len(lines)))
+        self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
         return n
 
     def decode_line(self, line):
