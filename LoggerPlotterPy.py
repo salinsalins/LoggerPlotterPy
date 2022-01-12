@@ -556,6 +556,7 @@ class MainWindow(QMainWindow):
             return default
 
     def change_background(self, row=None, column=0, color=YELLOW):
+        self.restore_background()
         try:
             if row is None:
                 row = self.last_selection
@@ -701,13 +702,13 @@ class MainWindow(QMainWindow):
             if not append:
                 # read log file content to logTable
                 self.log_table = LogTable(file_name, extra_cols=self.extra_cols)
-                # self.last_selection = -1
                 if self.log_table.file_name is None:
                     return
                 self.log_file_name = self.log_table.file_name
                 # Create displayed columns list
                 self.columns = self.sort_columns()
                 self.fill_table_widget()
+                # self.last_selection = -1
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
             else:
@@ -956,10 +957,14 @@ class MainWindow(QMainWindow):
         self.new_size = os.path.getsize(self.log_file_name)
         if self.new_size <= self.old_size:
             return
+        self.logger.debug('New shot detected')
         if self.checkBox_4.isChecked():
-            self.restore_background()
-            self.last_selection = self.log_table.rows - 1
-        self.parse_folder(append=True)
+            self.logger.debug('Selection switched to previous shot')
+            # select last row
+            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+            # self.restore_background()
+            # self.last_selection = self.log_table.rows - 1
+        self.parse_folder()
 
 
 class VLine(QFrame):
