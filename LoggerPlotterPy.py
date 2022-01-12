@@ -268,10 +268,8 @@ class MainWindow(QMainWindow):
         self.actionParameters.setChecked(False)
         self.save_local_settings()
         self.save_settings()
-        self.table_selection_changed()
-        if self.refresh_flag:
-            self.refresh_flag = False
-            self.parse_folder()
+        self.table_selection_changed(True)
+        self.parse_folder()
 
     def show_param_pane(self):
         self.stackedWidget.setCurrentIndex(1)
@@ -334,12 +332,12 @@ class MainWindow(QMainWindow):
         # return None
 
     # @TangoUtils.timeit
-    def table_selection_changed(self):
+    def table_selection_changed(self, force=False):
         sig = self.sig
         row_s = self.get_selected_row(self.tableWidget_3)
         if row_s < 0:
             return
-        if self.current_selection != row_s:
+        if force or self.current_selection != row_s:
             gc.collect()
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
             self.tableWidget_3.setUpdatesEnabled(False)
