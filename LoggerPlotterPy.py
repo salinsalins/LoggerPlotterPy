@@ -148,12 +148,17 @@ class MainWindow(QMainWindow):
         self.sb_clock.setFont(self.clock_font)
         # status bar: previous shot time
         self.sb_prev_shot_time = QLabel("**:**:**")
-        # self.sblbl1.setFixedWidth(100)
         self.sb_prev_shot_time.setFont(self.statusbar_font)
         self.sb_prev_shot_time.setStyleSheet('border: 0; color:  black; background: yellow;')
         self.sb_prev_shot_time.setText("**:**:**")
         self.sb_prev_shot_time.setVisible(False)
-        # status bar: message with log file name
+        # green trace time
+        self.sb_green_time = QLabel("**:**:**")
+        self.sb_green_time.setFont(self.statusbar_font)
+        self.sb_green_time.setStyleSheet('border: 0; color:  black; background: green;')
+        self.sb_green_time.setText("**:**:**")
+        self.sb_green_time.setVisible(False)
+        # status bar: message with data file name
         self.sb_text = QLabel("")
         self.sb_text.setFont(self.statusbar_font)
         # status bar: add widgets
@@ -162,22 +167,21 @@ class MainWindow(QMainWindow):
         self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
         self.statusBar().addWidget(self.sb_prev_shot_time)
         self.statusBar().addWidget(VLine())  # <---
+        self.statusBar().addWidget(self.sb_green_time)
+        self.statusBar().addWidget(VLine())  # <---
         self.statusBar().addWidget(self.sb_text)
         self.statusBar().addWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(self.sb_clock)
         self.sb_text.setText("Starting...")
-
         # default settings
         self.set_default_settings()
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
         # restore settings
         self.restore_settings()
         self.restore_local_settings()
-
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
-
         # read data files
         self.parse_folder()
 
@@ -336,7 +340,6 @@ class MainWindow(QMainWindow):
         raise ValueError('Signal %s not found' % name)
         # return None
 
-    # @TangoUtils.timeit
     def table_selection_changed(self, force=False):
         sig = self.sig
         row_s = self.get_selected_row(self.tableWidget_3)
@@ -360,13 +363,14 @@ class MainWindow(QMainWindow):
                 self.calculate_extra_plots()
                 self.signals = self.sort_plots()
                 self.plot_signals()
+                self.current_selection = row_s
                 self.update_status_bar()
             except:
                 log_exception(self, 'Exception in tableSelectionChanged')
             finally:
                 self.tableWidget_3.setUpdatesEnabled(True)
                 self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
-                self.current_selection = row_s
+                # self.update_status_bar()
 
     def calculate_extra_plots(self):
         def sig(name):
@@ -583,17 +587,27 @@ class MainWindow(QMainWindow):
             pass
 
     def update_status_bar(self):
-        if self.checkBox_2.isChecked() and self.last_selection >= 0:
-            self.change_background()
-            # self.tableWidget_3.item(self.last_selection, 0).setBackground(YELLOW)
-            last_sel_time = self.log_table.column("Time")[self.last_selection]
-            self.sb_prev_shot_time.setVisible(True)
-            self.sb_prev_shot_time.setText(last_sel_time)
-            # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+        if self.log_file_name is not None:
+            self.sb_text.setText('File: %s' % self.log_file_name)
+            if self.checkBox_2.isChecked() and self.last_selection >= 0:
+                self.change_background()
+                # self.tableWidget_3.item(self.last_selection, 0).setBackground(YELLOW)
+                last_sel_time = self.log_table.column("Time")[self.last_selection]
+                self.sb_prev_shot_time.setVisible(True)
+                self.sb_prev_shot_time.setText(last_sel_time)
+                # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
+            else:
+                self.sb_prev_shot_time.setVisible(False)
+                self.sb_prev_shot_time.setText("**:**:**")
+            green_time = self.log_table.column("Time")[self.current_selection]
+            self.sb_green_time.setVisible(True)
+            self.sb_green_time.setText(green_time)
         else:
+            self.sb_text.setText('Data file not found')
             self.sb_prev_shot_time.setVisible(False)
-            self.sb_prev_shot_time.setText("**:**:**")
-        self.sb_text.setText('File: %s' % self.log_file_name)
+            self.sb_green_time.setVisible(False)
+            self.sb_prev_shot_time.setText('**:**:**')
+            self.sb_green_time.setText('**:**:**')
 
     def file_selection_changed(self, m):
         # self.logger.debug('Selection changed to %s' % str(m))
@@ -701,6 +715,8 @@ class MainWindow(QMainWindow):
             if file_name is None:
                 file_name = self.log_file_name
             if file_name is None:
+                self.sb_text.setText('Data file not found')
+                self.logger.info('Data file not found')
                 return
             self.sb_text.setText('Reading %s' % file_name)
             self.logger.debug('Reading data file %s', file_name)
@@ -805,7 +821,7 @@ class MainWindow(QMainWindow):
 
             config['folder'] = self.log_file_name
             config['history'] = [str(self.comboBox_2.itemText(count)) for count in
-                                    range(min(self.comboBox_2.count(), 10))]
+                                 range(min(self.comboBox_2.count(), 10))]
             config['history_index'] = self.comboBox_2.currentIndex()
             config['log_level'] = self.logger.level
             config['included'] = str(self.plainTextEdit_2.toPlainText())
