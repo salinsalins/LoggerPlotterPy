@@ -619,6 +619,8 @@ class MainWindow(QMainWindow):
         return data_folder
 
     def restore_local_settings(self):
+        if not self.checkBox_5.isChecked():
+            return
         full_name = os.path.join(self.get_data_folder(), CONFIG_FILE)
         try:
             with open(full_name, 'r') as configfile:
@@ -639,6 +641,8 @@ class MainWindow(QMainWindow):
             return False
 
     def save_local_settings(self):
+        if not self.checkBox_5.isChecked():
+            return
         conf = dict()
         conf['included'] = self.conf['included']
         conf['extra_plot'] = self.conf['extra_plot']
