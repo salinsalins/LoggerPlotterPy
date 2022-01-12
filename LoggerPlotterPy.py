@@ -641,15 +641,15 @@ class MainWindow(QMainWindow):
             return False
 
     def save_local_settings(self):
-        if not self.checkBox_5.isChecked():
-            return
-        conf = dict()
-        conf['included'] = self.conf['included']
-        conf['extra_plot'] = self.conf['extra_plot']
-        conf['extra_col'] = self.conf['extra_col']
-        conf['plot_order'] = self.conf['plot_order']
         full_name = os.path.join(self.get_data_folder(), CONFIG_FILE)
         try:
+            if not self.checkBox_5.isChecked():
+                return
+            conf = dict()
+            conf['included'] = self.conf['included']
+            conf['extra_plot'] = self.conf['extra_plot']
+            conf['extra_col'] = self.conf['extra_col']
+            conf['plot_order'] = self.conf['plot_order']
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(conf, indent=4))
             self.logger.info('Local configuration saved to %s' % full_name)
