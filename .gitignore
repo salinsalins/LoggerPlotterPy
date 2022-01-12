@@ -19,3 +19,4 @@ build/*
 *.log
 *.bak
 .idea/
+/LoggerPlotterPy.bat
