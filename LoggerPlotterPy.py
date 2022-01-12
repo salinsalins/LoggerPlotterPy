@@ -9,6 +9,7 @@ import gc
 import json
 import logging
 import math
+import os
 import os.path
 import sys
 import time
@@ -35,8 +36,11 @@ from PyQt5.QtWidgets import qApp
 np = numpy
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
-
-from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
+try:
+    from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
+except:
+    sys.path.append('../TangoUtils')
+    from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
 
 # import TangoUtils
 
