@@ -269,6 +269,7 @@ class MainWindow(QMainWindow):
         self.save_local_settings()
         self.save_settings()
         self.table_selection_changed(True)
+        self.refresh_flag = False
         self.parse_folder()
 
     def show_param_pane(self):
