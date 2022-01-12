@@ -898,8 +898,7 @@ class MainWindow(QMainWindow):
             self.logger.log(logging.INFO, 'Configuration restored from %s' % full_name)
             return True
         except:
-            self.logger.log(logging.WARNING, 'Configuration restore error from %s' % full_name)
-            self.logger.debug('Exception:', exc_info=True)
+            log_exception('Configuration restore error from %s' % full_name)
             return False
 
     def set_default_settings(self):
