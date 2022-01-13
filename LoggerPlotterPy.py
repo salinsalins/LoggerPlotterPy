@@ -15,16 +15,14 @@ import sys
 import time
 import zipfile
 
+import numpy
+
 import PyQt5
 import PyQt5.QtGui as QtGui
-import numpy
 from PyQt5 import uic
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QBrush
-from PyQt5.QtGui import QColor
-from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
@@ -33,17 +31,14 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtWidgets import qApp
 
-np = numpy
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
-try:
-    from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
-except:
-    sys.path.append('../TangoUtils')
-    from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
 
+sys.path.append('../TangoUtils')
+from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
 # import TangoUtils
 
+np = numpy
 
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
@@ -52,8 +47,10 @@ APPLICATION_VERSION = '6.3'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
-CELL_FONT_BOLD = QFont('Open Sans Bold', weight=QFont.Bold)
-CELL_FONT_NORMAL = QFont('Open Sans', weight=QFont.Normal)
+CELL_FONT_BOLD = QtGui.QFont('Open Sans Bold', 14, weight=QtGui.QFont.Bold)
+CELL_FONT_NORMAL = QtGui.QFont('Open Sans', 14, weight=QtGui.QFont.Normal)
+STATUS_BAR_FONT = QtGui.QFont('Open Sans', 14)
+
 WHITE = QtGui.QColor(255, 255, 255)
 YELLOW = QtGui.QColor(255, 255, 0)
 GREEN = QtGui.QColor(0, 255, 0)
@@ -90,7 +87,6 @@ class MainWindow(QMainWindow):
         self.included = []
         self.excluded = []
         self.columns = []
-        self.last_columns = []
         self.last_cell_background = None
         self.last_cell_row = None
         self.last_cell_column = None
@@ -105,10 +101,10 @@ class MainWindow(QMainWindow):
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
-        self.plainTextEdit_2.textChanged.connect(self.refresh_on)
-        self.plainTextEdit_4.textChanged.connect(self.refresh_on)
-        self.plainTextEdit_5.textChanged.connect(self.refresh_on)
-        self.plainTextEdit_7.textChanged.connect(self.refresh_on)
+        #self.plainTextEdit_2.textChanged.connect(self.refresh_on)
+        #self.plainTextEdit_4.textChanged.connect(self.refresh_on)
+        #self.plainTextEdit_5.textChanged.connect(self.refresh_on)
+        #self.plainTextEdit_7.textChanged.connect(self.refresh_on)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
         self.actionOpen.triggered.connect(self.select_log_file)
@@ -140,27 +136,26 @@ class MainWindow(QMainWindow):
         # brushes, colors, fonts
         # self.yellow_brush = QBrush(QColor('#FFFF00'))
         # status bar: font
-        self.statusbar_font = QFont('Open Sans', 14)
-        self.statusBar().setFont(self.statusbar_font)
+        self.statusBar().setFont(STATUS_BAR_FONT)
         # status bar: clock label
         self.sb_clock = QLabel(" ")
-        self.clock_font = QFont('Open Sans Bold', 16, weight=QFont.Bold)
-        self.sb_clock.setFont(self.clock_font)
+        clock_font = QtGui.QFont('Open Sans Bold', 16, weight=QtGui.QFont.Bold)
+        self.sb_clock.setFont(clock_font)
         # status bar: previous shot time
         self.sb_prev_shot_time = QLabel("**:**:**")
-        self.sb_prev_shot_time.setFont(self.statusbar_font)
+        self.sb_prev_shot_time.setFont(STATUS_BAR_FONT)
         self.sb_prev_shot_time.setStyleSheet('border: 0; color:  black; background: yellow;')
         self.sb_prev_shot_time.setText("**:**:**")
         self.sb_prev_shot_time.setVisible(False)
         # green trace time
         self.sb_green_time = QLabel("**:**:**")
-        self.sb_green_time.setFont(self.statusbar_font)
+        self.sb_green_time.setFont(STATUS_BAR_FONT)
         self.sb_green_time.setStyleSheet('border: 0; color:  black; background: green;')
         self.sb_green_time.setText("**:**:**")
         self.sb_green_time.setVisible(False)
         # status bar: message with data file name
         self.sb_text = QLabel("")
-        self.sb_text.setFont(self.statusbar_font)
+        self.sb_text.setFont(STATUS_BAR_FONT)
         # status bar: add widgets
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0; background-color: #FFF8DC;')
@@ -622,10 +617,10 @@ class MainWindow(QMainWindow):
             self.log_file_name = new_log_file
             # clear signal list
             self.signal_list = []
-            # clear last columns list
-            self.last_columns = []
-            self.restore_local_settings()
+            self.old_signal_list = []
             self.last_selection = -1
+            self.current_selection = -1
+            self.restore_local_settings()
             self.parse_folder()
 
     def get_data_folder(self):
@@ -645,12 +640,16 @@ class MainWindow(QMainWindow):
             conf = json.loads(s)
             if 'included' in conf:
                 self.plainTextEdit_2.setPlainText(conf['included'])
+                self.conf['included'] = conf['included']
             if 'extra_plot' in conf:
                 self.plainTextEdit_4.setPlainText(conf['extra_plot'])
+                self.conf['extra_plot'] = conf['extra_plot']
             if 'extra_col' in conf:
                 self.plainTextEdit_5.setPlainText(conf['extra_col'])
-            if 'plot_order' in conf and hasattr(self, 'plainTextEdit_7'):
-                self.plainTextEdit_7.setPlainText(self.conf['plot_order'])
+                self.conf['extra_col'] = conf['extra_col']
+            if 'plot_order' in conf:
+                self.plainTextEdit_7.setPlainText(conf['plot_order'])
+                self.conf['plot_order'] = conf['plot_order']
             self.logger.info('Local configuration restored from %s' % full_name)
             return True
         except:
@@ -669,7 +668,7 @@ class MainWindow(QMainWindow):
             conf['plot_order'] = self.conf['plot_order']
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(conf, indent=4))
-            self.logger.info('Local configuration saved to %s' % full_name)
+            self.logger.info('Local configuration saved to %s', full_name)
             return True
         except:
             log_exception('Local configuration save error to %s' % full_name)
@@ -780,6 +779,7 @@ class MainWindow(QMainWindow):
                 except:
                     txt = self.log_table.data[col][row]
                 item = QTableWidgetItem(txt)
+                item.setFont(CELL_FONT_NORMAL)
                 # mark changed values
                 if row > 0:
                     v = self.log_table.values[col][row]
@@ -798,8 +798,6 @@ class MainWindow(QMainWindow):
                             flag = abs(v1 - v) > -thr
                     if flag:
                         item.setFont(CELL_FONT_BOLD)
-                    else:
-                        item.setFont(CELL_FONT_NORMAL)
                 self.tableWidget_3.setItem(row, n, item)
                 n += 1
         # enable table widget update events
