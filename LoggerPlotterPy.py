@@ -18,10 +18,12 @@ import zipfile
 import numpy
 
 import PyQt5
-import PyQt5.QtGui as QtGui
+from PyQt5 import QtGui
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
 from PyQt5 import uic
-QPoint = PyQt5.QtCore.QPoint
-#from PyQt5.QtCore import QPoint
+# QPoint = PyQt5.QtCore.QPoint
+from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
@@ -30,7 +32,6 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame, QMenu
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem
-from PyQt5.QtWidgets import qApp
 
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
@@ -959,8 +960,8 @@ class MainWindow(QMainWindow):
     def save_and_exit(self) -> None:
         self.save_local_settings()
         self.save_settings()
-        qApp.exit()
-        # qApp.quit()
+        QApplication.exit()
+        # QApplication.quit()
 
     def timer_handler(self):
         t = time.strftime('%H:%M:%S')
