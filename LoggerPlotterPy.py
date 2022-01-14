@@ -20,7 +20,8 @@ import numpy
 import PyQt5
 import PyQt5.QtGui as QtGui
 from PyQt5 import uic
-from PyQt5.QtCore import QPoint
+QPoint = PyQt5.QtCore.QPoint
+#from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
