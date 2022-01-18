@@ -18,7 +18,7 @@ pyqtgraph.setConfigOption('leftButtonPan', False)
 
 class CustomViewBox(pyqtgraph.ViewBox):
     def __init__(self, *args, **kwds):
-        pyqtgraph.ViewBox.__init__(self, *args, **kwds)
+        super().__init__(*args, **kwds)
         self.setMouseMode(self.RectMode)
         self.setBackgroundColor('#1d648da0')
         # self.setBorder(pen=('green', 5))
