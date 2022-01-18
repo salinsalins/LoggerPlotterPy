@@ -96,6 +96,7 @@ class MplAdapter:
         self.item.getPlotItem().vb.clearScaleHistory()
 
 
+# empty plug class
 class ToolBar:
     def __init__(self, *args):
         pass
