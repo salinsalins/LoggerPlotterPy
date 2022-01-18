@@ -12,7 +12,7 @@ from pyqtgraph.Qt import QtCore
 # pyqtgraph.setConfigOption('background', '#1d648d')
 pyqtgraph.setConfigOption('background', 'w')
 pyqtgraph.setConfigOption('foreground', 'k')
-pyqtgraph.setConfigOption('antialias', True)
+# pyqtgraph.setConfigOption('antialias', True)
 pyqtgraph.setConfigOption('leftButtonPan', False)
 
 
