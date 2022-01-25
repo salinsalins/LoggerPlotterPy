@@ -404,7 +404,7 @@ class MainWindow(QMainWindow):
                             value = float('nan')
                             if 'value' in result:
                                 value = result['value']
-                            s = Signal(x, y, name=key, params=params, unit=unit, value=value, marks=marks)
+                            s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
                     elif isinstance(result, list) or isinstance(result, tuple):
                         if len(result) >= 3:
                             key, x_val, y_val = result[:3]
@@ -1248,14 +1248,12 @@ class LogTable:
 
 
 class Signal:
-    def __init__(self, y=numpy.zeros(1), x=None, name='empty', params=None,
+    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params=None, name='empty',
                  unit='', scale=1.0, value=float('nan'), marks=None):
         if params is None:
             params = {}
         if marks is None:
             marks = {}
-        if x is None:
-            x = numpy.linspace(0, len(y)-1, len(y))
         n = min(len(x), len(y))
         self.x = x[:n]
         self.y = y[:n]
@@ -1286,7 +1284,6 @@ class Signal:
         n = min(len(self.x), len(self.y))
         self.x = self.x[:n]
         self.y = self.y[:n]
-        return self
 
     def __add__(self, other):
         if isinstance(other, Signal):
@@ -1345,8 +1342,8 @@ def justify_signals(first: Signal, other: Signal):
     xmax = min(first.x[-1], other.x[-1])
     index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
     index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
-    result = (Signal(name=first.name, value=first.value, marks=first.marks, params=first.params, unit=first.unit, scale=first.scale),
-              Signal(name=other.name, value=other.value, marks=other.marks, params=other.params, unit=other.unit, scale=other.scale))
+    result = (Signal(name=first.name, marks=first.marks, value=first.value),
+              Signal(name=other.name, marks=other.marks, value=other.value))
     if len(index1) >= len(index2):
         x = first.x[index1].copy()
         result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
