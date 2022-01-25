@@ -404,7 +404,7 @@ class MainWindow(QMainWindow):
                             value = float('nan')
                             if 'value' in result:
                                 value = result['value']
-                            s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
+                            s = Signal(x, y, name=key, params=params, unit=unit, value=value, marks=marks)
                     elif isinstance(result, list) or isinstance(result, tuple):
                         if len(result) >= 3:
                             key, x_val, y_val = result[:3]
@@ -1339,8 +1339,8 @@ def justify_signals(first: Signal, other: Signal):
     xmax = min(first.x[-1], other.x[-1])
     index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
     index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
-    result = (Signal(name=first.name, marks=first.marks, value=first.value),
-              Signal(name=other.name, marks=other.marks, value=other.value))
+    result = (Signal(name=first.name, value=first.value, marks=first.marks),
+              Signal(name=other.name, value=other.value, marks=other.marks))
     if len(index1) >= len(index2):
         x = first.x[index1].copy()
         result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
