@@ -1359,6 +1359,20 @@ def justify_signals(first: Signal, other: Signal):
     return result
 
 
+def common_marks(first: Signal, other: Signal):
+    result = {}
+    for mark in first.marks:
+        if mark in other.marks:
+            fi = first.marks[mark]
+            ot = other.marks[mark]
+            m1 = max(fi[0], ot[0])
+            m2 = min(fi[0] + fi[1], ot[0] + ot[1])
+            if m2 > m1:
+                v = float('nan')
+                result[mark] = (m1, m2-m1, v)
+    return result
+
+
 class DataFile:
     def __init__(self, file_name, folder="", logger=None):
         if logger is None:
