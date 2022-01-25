@@ -1282,6 +1282,12 @@ class Signal:
         self.unit = unit
         return self
 
+    def trim(self):
+        n = min(len(self.x), len(self.y))
+        self.x = self.x[:n]
+        self.y = self.y[:n]
+        return self
+
     def __add__(self, other):
         if isinstance(other, Signal):
             args = justify_signals(self, other)
@@ -1339,8 +1345,8 @@ def justify_signals(first: Signal, other: Signal):
     xmax = min(first.x[-1], other.x[-1])
     index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
     index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
-    result = (Signal(name=first.name, value=first.value, marks=first.marks),
-              Signal(name=other.name, value=other.value, marks=other.marks))
+    result = (Signal(name=first.name, value=first.value, marks=first.marks, params=first.params, unit=first.unit, scale=first.scale),
+              Signal(name=other.name, value=other.value, marks=other.marks, params=other.params, unit=other.unit, scale=other.scale))
     if len(index1) >= len(index2):
         x = first.x[index1].copy()
         result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
