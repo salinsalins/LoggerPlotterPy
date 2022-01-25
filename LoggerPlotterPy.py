@@ -1248,14 +1248,17 @@ class LogTable:
 
 
 class Signal:
-    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params=None, name='empty',
+    def __init__(self, y=numpy.zeros(1), x=None, name='empty', params=None,
                  unit='', scale=1.0, value=float('nan'), marks=None):
         if params is None:
             params = {}
         if marks is None:
             marks = {}
-        self.x = x
-        self.y = y
+        if x is None:
+            x = numpy.linspace(0, len(y)-1, len(y))
+        n = min(len(x), len(y))
+        self.x = x[:n]
+        self.y = y[:n]
         self.params = params
         self.name = name
         self.unit = unit
