@@ -41,4 +41,5 @@
 #     else:
 #         return obj.exec_()
 
+# quine
 _='_=%r;print(_%%_)';print(_%_)
