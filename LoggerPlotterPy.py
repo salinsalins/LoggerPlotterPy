@@ -1063,10 +1063,15 @@ class LogTable:
         # add row to table
         self.add_row()
         # iterate rest fields for key=value pairs
+        added_columns=[]
         for field in fields:
             kv = field.split("=")
             key = kv[0].strip()
             val = kv[1].strip()
+            if key in added_columns:
+                self.logger.warning('Duplicate columns in row %s)', self.rows)
+            else:
+                added_columns.append(key)
             j = self.add_column(key)
             self.data[j][self.rows - 1] = val
             # split value and units
