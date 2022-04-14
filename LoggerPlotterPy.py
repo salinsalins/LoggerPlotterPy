@@ -38,6 +38,7 @@ from pyqtgraphwidget import MplWidget
 
 sys.path.append('../TangoUtils')
 from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
+
 # import TangoUtils
 
 np = numpy
@@ -524,7 +525,7 @@ class MainWindow(QMainWindow):
                 # if self.new_shot and self.checkBox_3.isChecked():
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    #mplw.autoRange()
+                    # mplw.autoRange()
             except:
                 pass
             jj += 1
@@ -1067,7 +1068,7 @@ class LogTable:
         # add row to table
         self.add_row()
         # iterate rest fields for key=value pairs
-        added_columns=[]
+        added_columns = []
         for field in fields:
             kv = field.split("=")
             key = kv[0].strip()
@@ -1378,7 +1379,21 @@ def common_marks(first: Signal, other: Signal):
             m2 = min(fi[0] + fi[1], ot[0] + ot[1])
             if m2 > m1:
                 v = float('nan')
-                result[mark] = (m1, m2-m1, v)
+                result[mark] = (m1, m2 - m1, v)
+    return result
+
+
+def unify_marks(first: Signal, other: Signal):
+    result = {}
+    cm = common_marks(first, other)
+    for mark in first.marks:
+        if mark in other.marks:
+            result[mark] = cm[mark]
+        else:
+            result[mark] = first.marks[mark]
+    for mark in other.marks:
+        if mark not in result:
+            result[mark] = other.marks[mark]
     return result
 
 
