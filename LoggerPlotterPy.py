@@ -393,18 +393,10 @@ class MainWindow(QMainWindow):
                         x = result['x']
                         y = result['y']
                         if key != '':
-                            marks = None
-                            if 'marks' in result:
-                                marks = result['marks']
-                            params = None
-                            if 'params' in result:
-                                params = result['params']
-                            unit = ''
-                            if 'unit' in result:
-                                unit = result['unit']
-                            value = float('nan')
-                            if 'value' in result:
-                                value = result['value']
+                            marks = result.get('marks', None)
+                            params = result.get('params', None)
+                            unit = result.get('unit', '')
+                            value = result.get('value', float('nan'))
                             s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
                     elif isinstance(result, list) or isinstance(result, tuple):
                         if len(result) >= 3:
