@@ -1505,20 +1505,6 @@ class DataFile:
         return signals
 
 
-# Logging to the text panel
-class TextEditHandler(logging.Handler):
-    widget = None
-
-    def __init__(self, wdgt=None):
-        logging.Handler.__init__(self)
-        self.widget = wdgt
-
-    def emit(self, record):
-        log_entry = self.format(record)
-        if self.widget is not None:
-            self.widget.appendPlainText(log_entry)
-
-
 class Config:
     def __init__(self):
         self.data = {}
