@@ -504,10 +504,13 @@ class MainWindow(QMainWindow):
                         axes.plot(s1.x, s1.y, color=self.previous_color)
                         break
             # plot main line
-            y_min = s.params.get(b'plot_y_min', float('inf'))
-            y_max = s.params.get(b'plot_y_max', float('-inf'))
-            if y_max > y_min:
-                axes.item.setYRange(y_min, y_max)
+            try:
+                y_min = float(self.from_params(b'plot_y_min', s.params, 'inf'))
+                y_max = float(self.from_params(b'plot_y_max', s.params, '-inf'))
+                if y_max > y_min:
+                    axes.item.setYRange(y_min, y_max)
+            except:
+                pass
             axes.plot(s.x, s.y, color=self.trace_color)
             # plot 'mark' highlight
             if 'mark' in s.marks:
@@ -520,14 +523,13 @@ class MainWindow(QMainWindow):
                 m2 = m1 + s.marks['zero'][1]
                 axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.zero_color)
             # Show plot
-            # mplw.canvas.draw()
             try:
-                # if self.new_shot and self.checkBox_3.isChecked():
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
                     # mplw.autoRange()
             except:
                 pass
+            # mplw.canvas.draw()
             jj += 1
         # Remove unused plot widgets
         while jj < layout.count():
