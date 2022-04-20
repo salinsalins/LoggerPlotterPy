@@ -864,6 +864,7 @@ File</string>
      <string>File</string>
     </property>
     <addaction name="actionOpen"/>
+    <addaction name="actionToday"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -929,6 +930,11 @@ File</string>
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionToday">
+   <property name="text">
+    <string>Today</string>
    </property>
   </action>
  </widget>

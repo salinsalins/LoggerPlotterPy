@@ -14,6 +14,7 @@ import os.path
 import sys
 import time
 import zipfile
+import datetime
 
 import numpy
 
@@ -110,6 +111,7 @@ class MainWindow(QMainWindow):
         # self.plainTextEdit_7.textChanged.connect(self.refresh_on)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
+        self.actionToday.triggered.connect(self.select_today_file)
         self.actionOpen.triggered.connect(self.select_log_file)
         self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
@@ -300,6 +302,28 @@ class MainWindow(QMainWindow):
             fn = fn[0]
         # if fn is empty
         if fn is None or fn == '':
+            return
+        # if it is the same file as being used
+        if self.log_file_name == fn:
+            return
+        # different file selected
+        i = self.comboBox_2.findText(fn)
+        if i < 0:
+            # add file name to history
+            self.comboBox_2.insertItem(-1, fn)
+            i = 0
+        # change selection and fire callback
+        self.comboBox_2.setCurrentIndex(i)
+
+    def select_today_file(self):
+        ydf = datetime.datetime.today().strftime('%Y')
+        mdf = datetime.datetime.today().strftime('%Y-%m')
+        ddf = datetime.datetime.today().strftime('%Y-%m-%d')
+        logfn = datetime.datetime.today().strftime('%Y-%m-%d.log')
+        rootfn = os.path.dirname(self.log_file_name)
+        fn = os.path.join(rootfn[:-23], ydf, mdf, ddf, logfn)
+        if not os.path.exists(fn):
+            self.logger.error("Today file does not exist")
             return
         # if it is the same file as being used
         if self.log_file_name == fn:
