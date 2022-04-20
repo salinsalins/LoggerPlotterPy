@@ -27,7 +27,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QComboBox
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame, QMenu
@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
         self.actionAbout.triggered.connect(self.show_about)
-        # windows icon
+        # window icon
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.setWindowTitle(APPLICATION_NAME + APPLICATION_VERSION)
         # table: header
@@ -159,11 +159,12 @@ class MainWindow(QMainWindow):
         self.sb_green_time.setText("**:**:**")
         self.sb_green_time.setVisible(False)
         # status bar: message with data file name
+        self.sb_combo = QComboBox(self.statusBar())
         self.sb_text = QLabel("")
         self.sb_text.setFont(STATUS_BAR_FONT)
         # status bar: add widgets
         self.statusBar().reformat()
-        self.statusBar().setStyleSheet('border: 0; background-color: #FFF8DC;')
+        self.statusBar().setStyleSheet('border: 0;')
         self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
         self.statusBar().addWidget(self.sb_prev_shot_time)
         self.statusBar().addWidget(VLine())  # <---
@@ -171,9 +172,16 @@ class MainWindow(QMainWindow):
         self.statusBar().addWidget(VLine())  # <---
         self.statusBar().addWidget(self.sb_text)
         self.statusBar().addWidget(VLine())  # <---
+        self.statusBar().addWidget(self.sb_combo)
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.statusBar().addPermanentWidget(self.sb_clock)
         self.sb_text.setText("Starting...")
+        # config select combo
+        self.sb_combo.disconnect()
+        self.sb_combo.clear()
+        arr = os.listdir()
+        self.sb_combo.addItems([x for x in arr if x.endswith('.json')])
+        self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
         # default settings
         self.set_default_settings()
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
@@ -869,7 +877,13 @@ class MainWindow(QMainWindow):
             log_exception('Configuration save error to %s' % full_name)
             return False
 
-    def restore_settings(self, folder='', file_name=CONFIG_FILE):
+    def dir(self, folder='./'):
+        pass
+
+    def restore_settings(self, folder='', file_name=None):
+        global CONFIG_FILE
+        if file_name is None:
+            file_name = CONFIG_FILE
         full_name = os.path.join(str(folder), file_name)
         try:
             with open(full_name, 'r') as configfile:
@@ -943,6 +957,12 @@ class MainWindow(QMainWindow):
         except:
             log_exception('Configuration restore error from %s' % full_name)
             return False
+
+    def config_selection_changed(self, index):
+        global CONFIG_FILE
+        CONFIG_FILE = str(self.sb_combo.currentText())
+        self.restore_settings()
+        self.restore_local_settings()
 
     def set_default_settings(self):
         try:
