@@ -38,29 +38,31 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from pyqtgraphwidget import MplWidget
 
 sys.path.append('../TangoUtils')
-from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
-
-# import TangoUtils
+#from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
+from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
+from log_exception import log_exception
 
 np = numpy
 
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '7.1'
+APPLICATION_VERSION = '7.2'
+VERSION_DATE = "2017-04-21"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
-
-CELL_FONT_BOLD = QtGui.QFont('Open Sans Bold', 14, weight=QtGui.QFont.Bold)
+# fonts
 CELL_FONT_NORMAL = QtGui.QFont('Open Sans', 14, weight=QtGui.QFont.Normal)
-STATUS_BAR_FONT = QtGui.QFont('Open Sans', 14)
-
+CELL_FONT_BOLD = QtGui.QFont('Open Sans Bold', 14, weight=QtGui.QFont.Bold)
+STATUS_BAR_FONT = CELL_FONT_NORMAL
+# colors
 WHITE = QtGui.QColor(255, 255, 255)
 YELLOW = QtGui.QColor(255, 255, 0)
 GREEN = QtGui.QColor(0, 255, 0)
-
-# global logger
-logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
+PREVIOUS_COLOR = '#ffff00'
+TRACE_COLOR = '#00ff00'
+MARK_COLOR = '#ff0000'
+ZERO_COLOR = '#0000ff'
 
 # Global configuration dictionary
 config = {}
@@ -70,10 +72,10 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         # colors
-        self.previous_color = '#ffff00'
-        self.trace_color = '#00ff00'
-        self.mark_color = '#ff0000'
-        self.zero_color = '#0000ff'
+        self.previous_color = PREVIOUS_COLOR
+        self.trace_color = TRACE_COLOR
+        self.mark_color = MARK_COLOR
+        self.zero_color = ZERO_COLOR
         #
         self.log_file_name = None
         self.data_root = None
@@ -99,7 +101,7 @@ class MainWindow(QMainWindow):
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # Configure logging
-        self.logger = logger
+        self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
@@ -138,52 +140,51 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
-        # brushes, colors, fonts
-        # self.yellow_brush = QBrush(QColor('#FFFF00'))
+        # status bar
+        self.statusBar().reformat()
+        self.statusBar().setStyleSheet('border: 0;')
+        self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
         # status bar: font
         self.statusBar().setFont(STATUS_BAR_FONT)
-        # status bar: clock label
-        self.sb_clock = QLabel(" ")
-        clock_font = QtGui.QFont('Open Sans Bold', 16, weight=QtGui.QFont.Bold)
-        self.sb_clock.setFont(clock_font)
         # status bar: previous shot time
         self.sb_prev_shot_time = QLabel("**:**:**")
         self.sb_prev_shot_time.setFont(STATUS_BAR_FONT)
         self.sb_prev_shot_time.setStyleSheet('border: 0; color:  black; background: yellow;')
         self.sb_prev_shot_time.setText("**:**:**")
         self.sb_prev_shot_time.setVisible(False)
-        # green trace time
+        self.statusBar().addWidget(self.sb_prev_shot_time)
+        self.statusBar().addWidget(VLine())  # <---
+        # status bar: green trace time
         self.sb_green_time = QLabel("**:**:**")
         self.sb_green_time.setFont(STATUS_BAR_FONT)
         self.sb_green_time.setStyleSheet('border: 0; color:  black; background: green;')
         self.sb_green_time.setText("**:**:**")
         self.sb_green_time.setVisible(False)
-        # status bar: message with data file name
-        self.sb_combo = QComboBox(self.statusBar())
-        self.sb_text = QLabel("")
-        self.sb_text.setFont(STATUS_BAR_FONT)
-        # status bar: add widgets
-        self.statusBar().reformat()
-        self.statusBar().setStyleSheet('border: 0;')
-        self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
-        self.statusBar().addWidget(self.sb_prev_shot_time)
-        self.statusBar().addWidget(VLine())  # <---
         self.statusBar().addWidget(self.sb_green_time)
         self.statusBar().addWidget(VLine())  # <---
+        # status bar: message with data file name
+        self.sb_text = QLabel("")
+        self.sb_text.setFont(STATUS_BAR_FONT)
         self.statusBar().addWidget(self.sb_text)
         self.statusBar().addWidget(VLine())  # <---
+        self.sb_text.setText("Starting...")
+        # status bar: config select combo
+        self.sb_combo = QComboBox(self.statusBar())
         self.statusBar().addWidget(self.sb_combo)
         self.statusBar().addPermanentWidget(VLine())  # <---
-        self.statusBar().addPermanentWidget(self.sb_clock)
-        self.sb_text.setText("Starting...")
-        # config select combo
         self.sb_combo.disconnect()
         self.sb_combo.clear()
         arr = os.listdir()
         self.sb_combo.addItems([x for x in arr if x.endswith('.json')])
         self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
+        # status bar: clock label
+        self.sb_clock = QLabel(" ")
+        clock_font = QtGui.QFont('Open Sans Bold', 16, weight=QtGui.QFont.Bold)
+        self.sb_clock.setFont(clock_font)
+        self.statusBar().addPermanentWidget(self.sb_clock)
         # default settings
         self.set_default_settings()
+        #
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
         # restore settings
         self.restore_settings()
@@ -841,7 +842,10 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.scrollToBottom()
         self.tableWidget_3.setFocus()
 
-    def save_settings(self, folder='', file_name=CONFIG_FILE, config=None):
+    def save_settings(self, folder='', file_name=None, config=None):
+        global CONFIG_FILE
+        if file_name is None:
+            file_name = CONFIG_FILE
         if config is None:
             config = self.conf
         full_name = os.path.join(str(folder), file_name)
@@ -850,11 +854,10 @@ class MainWindow(QMainWindow):
             p = self.pos()
             s = self.size()
             config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
-
             config['folder'] = self.log_file_name
             config['history'] = [str(self.comboBox_2.itemText(count)) for count in
                                  range(min(self.comboBox_2.count(), 10))]
-            config['history_index'] = self.comboBox_2.currentIndex()
+            config['history_index'] = min(self.comboBox_2.currentIndex(), 9)
             config['log_level'] = self.logger.level
             config['included'] = str(self.plainTextEdit_2.toPlainText())
             config['excluded'] = str(self.plainTextEdit_3.toPlainText())
@@ -865,20 +868,13 @@ class MainWindow(QMainWindow):
             config['extra_col'] = str(self.plainTextEdit_5.toPlainText())
             config['exclude_plots'] = str(self.plainTextEdit_6.toPlainText())
             config['plot_order'] = str(self.plainTextEdit_7.toPlainText())
-            # if os.path.exists(full_name):
-            #     # try to read old config to confirm correct syntax
-            #     with open(full_name, 'r') as configfile:
-            #         s = configfile.read()
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s' % full_name)
             return True
         except:
-            log_exception('Configuration save error to %s' % full_name)
+            log_exception('Error configuration save to %s' % full_name)
             return False
-
-    def dir(self, folder='./'):
-        pass
 
     def restore_settings(self, folder='', file_name=None):
         global CONFIG_FILE
@@ -1556,14 +1552,6 @@ class DataFile:
         for s in self.signals:
             signals.append(self.read_signal(s))
         return signals
-
-
-class Config:
-    def __init__(self):
-        self.data = {}
-
-    def __getitem__(self, item):
-        return self.data[item]
 
 
 if __name__ == '__main__':
