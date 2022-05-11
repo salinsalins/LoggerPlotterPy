@@ -34,11 +34,12 @@ from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame, QMenu
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem
 
-# from mplwidget import MplWidget
-from pyqtgraphwidget import MplWidget
-
 sys.path.append('../TangoUtils')
-from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
+from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
+from log_exception import log_exception
+from pyqtgraphwidget import MplWidget
+# from mplwidget import MplWidget
+
 
 # import TangoUtils
 
