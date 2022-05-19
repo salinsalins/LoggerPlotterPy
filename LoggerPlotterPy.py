@@ -276,7 +276,7 @@ class MainWindow(QMainWindow):
         self.refresh_flag = True
 
     def show_about(self):
-        QMessageBox.information(self, 'About', APPLICATION_NAME + APPLICATION_VERSION +
+        QMessageBox.information(self, 'About', APPLICATION_NAME + 'version ' + APPLICATION_VERSION +
                                 '\nShows saved shot logs and plot traces.', QMessageBox.Ok)
 
     def show_plot_pane(self):
