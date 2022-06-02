@@ -47,7 +47,7 @@ ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
 APPLICATION_VERSION = '8.0'
-VERSION_DATE = "2022-06-02"
+VERSION_DATE = "02-06-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -106,10 +106,6 @@ class MainWindow(QMainWindow):
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
-        # self.plainTextEdit_2.textChanged.connect(self.refresh_on)
-        # self.plainTextEdit_4.textChanged.connect(self.refresh_on)
-        # self.plainTextEdit_5.textChanged.connect(self.refresh_on)
-        # self.plainTextEdit_7.textChanged.connect(self.refresh_on)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
         self.actionToday.triggered.connect(self.select_today_file)
