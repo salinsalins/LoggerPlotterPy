@@ -38,7 +38,6 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from pyqtgraphwidget import MplWidget
 
 sys.path.append('../TangoUtils')
-#from TangoUtils import config_logger, LOG_FORMAT_STRING_SHORT, log_exception
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
 from log_exception import log_exception
 
@@ -47,8 +46,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '7.2'
-VERSION_DATE = "2017-04-21"
+APPLICATION_VERSION = '8.0'
+VERSION_DATE = "2022-06-02"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -170,6 +169,7 @@ class MainWindow(QMainWindow):
         self.sb_text.setText("Starting...")
         # status bar: config select combo
         self.sb_combo = QComboBox(self.statusBar())
+        self.sb_combo.setFont(STATUS_BAR_FONT)
         self.statusBar().addWidget(self.sb_combo)
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.sb_combo.disconnect()
