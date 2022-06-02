@@ -46,7 +46,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '8.1'
+APPLICATION_VERSION = '8.2'
 VERSION_DATE = "02-06-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -171,7 +171,12 @@ class MainWindow(QMainWindow):
         self.sb_combo.disconnect()
         self.sb_combo.clear()
         arr = os.listdir()
-        self.sb_combo.addItems([x for x in arr if x.endswith('.json')])
+        jsonarr = [x for x in arr if x.endswith('.json')]
+        for x in jsonarr:
+            if CONFIG_FILE in x:
+                jsonarr.pop(jsonarr.index(x))
+                jsonarr.insert(0, x)
+        self.sb_combo.addItems(jsonarr)
         self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
         # status bar: clock label
         self.sb_clock = QLabel(" ")
@@ -317,8 +322,12 @@ class MainWindow(QMainWindow):
             # add file name to history
             self.comboBox_2.insertItem(-1, fn)
             i = 0
+            self.comboBox_2.setCurrentIndex(i)
         # change selection and fire callback
-        self.comboBox_2.setCurrentIndex(i)
+        if self.comboBox_2.currentIndex() != i:
+            self.comboBox_2.setCurrentIndex(i)
+        else:
+            self.file_selection_changed(i)
 
     def select_today_file(self):
         ydf = datetime.datetime.today().strftime('%Y')
@@ -955,6 +964,9 @@ class MainWindow(QMainWindow):
         CONFIG_FILE = str(self.sb_combo.currentText())
         self.restore_settings()
         self.restore_local_settings()
+        self.table_selection_changed(True)
+        self.refresh_flag = False
+        self.parse_folder()
 
     def set_default_settings(self):
         try:
@@ -1008,8 +1020,8 @@ class MainWindow(QMainWindow):
         if self.is_locked():
             return
         # check if data file exists
-        if not os.path.exists(self.log_file_name):
-            self.logger.debug('Data file does not exist')
+        if not (os.path.exists(self.log_file_name) and os.path.isfile(self.log_file_name)):
+            # self.logger.debug('Data file does not exist')
             return
         self.old_size = self.log_table.file_size
         self.new_size = os.path.getsize(self.log_file_name)
@@ -1057,8 +1069,12 @@ class LogTable:
             self.logger.info('File %s does not exist' % fn)
             return
         # read file to buf
-        with open(fn, "r") as stream:
-            buf = stream.read()
+        try:
+            with open(fn, "r") as stream:
+                buf = stream.read()
+        except:
+            self.logger.error('Data file %s not found' % fn)
+            return
         if len(buf) <= 0:
             self.logger.info('Nothing to process in %s' % fn)
             return
