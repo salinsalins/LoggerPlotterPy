@@ -24,24 +24,23 @@ import numpy
 
 import PyQt5
 from PyQt5 import QtGui
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
+from PyQt5.QtGui import QFont
 from PyQt5 import uic
-# QPoint = PyQt5.QtCore.QPoint
-from PyQt5.QtCore import QPoint
-from PyQt5.QtCore import QSize
+from PyQt5 import QtCore
+from PyQt5.QtCore import QPoint, QSize
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QApplication, QComboBox
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFrame, QMenu
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QFrame, QMenu
+from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
+from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
 
 sys.path.append('../TangoUtils')
+from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
 from log_exception import log_exception
 
@@ -53,13 +52,13 @@ ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
 APPLICATION_VERSION = '8.2'
-VERSION_DATE = "02-06-2022"
+VERSION_DATE = "03-06-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
-CELL_FONT_NORMAL = QtGui.QFont('Open Sans', 14, weight=QtGui.QFont.Normal)
-CELL_FONT_BOLD = QtGui.QFont('Open Sans Bold', 14, weight=QtGui.QFont.Bold)
-STATUS_BAR_FONT = CELL_FONT_NORMAL
+CELL_FONT = QFont('Open Sans', 14)
+CELL_FONT_BOLD = QFont('Open Sans', 14, weight=QFont.Bold)
+STATUS_BAR_FONT = CELL_FONT
 # colors
 WHITE = QtGui.QColor(255, 255, 255)
 YELLOW = QtGui.QColor(255, 255, 0)
@@ -70,7 +69,7 @@ MARK_COLOR = '#ff0000'
 ZERO_COLOR = '#0000ff'
 
 # Global configuration dictionary
-config = {}
+config = Configuration(CONFIG_FILE)
 
 
 class MainWindow(QMainWindow):
@@ -102,11 +101,10 @@ class MainWindow(QMainWindow):
         self.last_cell_row = None
         self.last_cell_column = None
         self.log_table = None
-
-        # Load the UI
-        uic.loadUi(UI_FILE, self)
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
+        # Load the UI
+        uic.loadUi(UI_FILE, self)
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
@@ -119,14 +117,13 @@ class MainWindow(QMainWindow):
         self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
         self.actionAbout.triggered.connect(self.show_about)
-        # window icon
+        # main window decoration
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.setWindowTitle(APPLICATION_NAME + APPLICATION_VERSION)
         # table: header
         header = self.tableWidget_3.horizontalHeader()
-        # header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
-        header.setSectionResizeMode(QHeaderView.ResizeToContents)  # QHeaderView.Stretch QHeaderView.ResizeToContents
-        # header.setSectionResizeMode(0)
+        # header.setSectionResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(QHeaderView.Interactive)
         # table: header right click menu
         header.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         header.customContextMenuRequested.connect(self.table_header_right_click_menu_wrap)
@@ -825,7 +822,7 @@ class MainWindow(QMainWindow):
                 except:
                     txt = self.log_table.data[col][row]
                 item = QTableWidgetItem(txt)
-                item.setFont(CELL_FONT_NORMAL)
+                item.setFont(CELL_FONT)
                 # mark changed values
                 if row > 0:
                     v = self.log_table.values[col][row]
