@@ -18,6 +18,10 @@ import datetime
 
 import numpy
 
+# os.environ['QT_API'] = 'pyqt5'
+# os.environ['QT_API'] = 'pyside6'
+# from qt import *
+
 import PyQt5
 from PyQt5 import QtGui
 from PyQt5 import QtCore
@@ -42,6 +46,8 @@ from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
 from log_exception import log_exception
 
 np = numpy
+
+# print(QtCore.QT_VERSION_STR)
 
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
@@ -120,9 +126,9 @@ class MainWindow(QMainWindow):
         header = self.tableWidget_3.horizontalHeader()
         # header.setSectionResizeMode(QHeaderView.Stretch)  # QHeaderView.Stretch QHeaderView.ResizeToContents
         header.setSectionResizeMode(QHeaderView.ResizeToContents)  # QHeaderView.Stretch QHeaderView.ResizeToContents
-        header.setSectionResizeMode(0)
+        # header.setSectionResizeMode(0)
         # table: header right click menu
-        header.setContextMenuPolicy(PyQt5.QtCore.Qt.CustomContextMenu)
+        header.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         header.customContextMenuRequested.connect(self.table_header_right_click_menu_wrap)
         # table: style tuning
         self.tableWidget_3.setStyleSheet("""
