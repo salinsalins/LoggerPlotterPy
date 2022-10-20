@@ -51,8 +51,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '8.2'
-VERSION_DATE = "03-06-2022"
+APPLICATION_VERSION = '8.3'
+VERSION_DATE = "20-10-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -559,7 +559,7 @@ class MainWindow(QMainWindow):
             try:
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    # mplw.autoRange()
+                    mplw.autoRange()
             except:
                 pass
             # mplw.canvas.draw()
