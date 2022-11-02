@@ -59,6 +59,7 @@ UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 CELL_FONT = QFont('Open Sans', 14)
 CELL_FONT_BOLD = QFont('Open Sans', 14, weight=QFont.Bold)
 STATUS_BAR_FONT = CELL_FONT
+CLOCK_FONT = CELL_FONT_BOLD
 # colors
 WHITE = QtGui.QColor(255, 255, 255)
 YELLOW = QtGui.QColor(255, 255, 0)
@@ -183,8 +184,7 @@ class MainWindow(QMainWindow):
         self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
         # status bar: clock label
         self.sb_clock = QLabel(" ")
-        clock_font = QtGui.QFont('Open Sans Bold', 16, weight=QtGui.QFont.Bold)
-        self.sb_clock.setFont(clock_font)
+        self.sb_clock.setFont(CLOCK_FONT)
         self.statusBar().addPermanentWidget(self.sb_clock)
         # default settings
         self.set_default_settings()
@@ -1393,59 +1393,6 @@ class Signal:
         return result
 
 
-def justify_signals(first: Signal, other: Signal):
-    if len(first.x) == len(other.x) and \
-            first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
-        return first, other
-    xmin = max(first.x[0], other.x[0])
-    xmax = min(first.x[-1], other.x[-1])
-    index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
-    index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
-    result = (Signal(name=first.name, marks=first.marks, value=first.value),
-              Signal(name=other.name, marks=other.marks, value=other.value))
-    if len(index1) >= len(index2):
-        x = first.x[index1].copy()
-        result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
-        result[0].x = x
-        result[0].y = first.y[index1].copy()
-        result[1].x = x
-    else:
-        x = first.x[index2].copy()
-        result[0].y = numpy.interp(x, first.x[index1], first.y[index1])
-        result[0].x = x
-        result[1].y = other.y[index2].copy()
-        result[1].x = x
-    return result
-
-
-def common_marks(first: Signal, other: Signal):
-    result = {}
-    for mark in first.marks:
-        if mark in other.marks:
-            fi = first.marks[mark]
-            ot = other.marks[mark]
-            m1 = max(fi[0], ot[0])
-            m2 = min(fi[0] + fi[1], ot[0] + ot[1])
-            if m2 > m1:
-                v = float('nan')
-                result[mark] = (m1, m2 - m1, v)
-    return result
-
-
-def unify_marks(first: Signal, other: Signal):
-    result = {}
-    cm = common_marks(first, other)
-    for mark in first.marks:
-        if mark in other.marks:
-            result[mark] = cm[mark]
-        else:
-            result[mark] = first.marks[mark]
-    for mark in other.marks:
-        if mark not in result:
-            result[mark] = other.marks[mark]
-    return result
-
-
 class DataFile:
     def __init__(self, file_name, folder="", logger=None):
         if logger is None:
@@ -1567,6 +1514,59 @@ class DataFile:
         for s in self.signals:
             signals.append(self.read_signal(s))
         return signals
+
+
+def justify_signals(first: Signal, other: Signal):
+    if len(first.x) == len(other.x) and \
+            first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
+        return first, other
+    xmin = max(first.x[0], other.x[0])
+    xmax = min(first.x[-1], other.x[-1])
+    index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
+    index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
+    result = (Signal(name=first.name, marks=first.marks, value=first.value),
+              Signal(name=other.name, marks=other.marks, value=other.value))
+    if len(index1) >= len(index2):
+        x = first.x[index1].copy()
+        result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
+        result[0].x = x
+        result[0].y = first.y[index1].copy()
+        result[1].x = x
+    else:
+        x = first.x[index2].copy()
+        result[0].y = numpy.interp(x, first.x[index1], first.y[index1])
+        result[0].x = x
+        result[1].y = other.y[index2].copy()
+        result[1].x = x
+    return result
+
+
+def common_marks(first: Signal, other: Signal):
+    result = {}
+    for mark in first.marks:
+        if mark in other.marks:
+            fi = first.marks[mark]
+            ot = other.marks[mark]
+            m1 = max(fi[0], ot[0])
+            m2 = min(fi[0] + fi[1], ot[0] + ot[1])
+            if m2 > m1:
+                v = float('nan')
+                result[mark] = (m1, m2 - m1, v)
+    return result
+
+
+def unify_marks(first: Signal, other: Signal):
+    result = {}
+    cm = common_marks(first, other)
+    for mark in first.marks:
+        if mark in other.marks:
+            result[mark] = cm[mark]
+        else:
+            result[mark] = first.marks[mark]
+    for mark in other.marks:
+        if mark not in result:
+            result[mark] = other.marks[mark]
+    return result
 
 
 if __name__ == '__main__':
