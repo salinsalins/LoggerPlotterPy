@@ -872,6 +872,7 @@ class MainWindow(QMainWindow):
             config['cb_1'] = self.checkBox_1.isChecked()
             config['cb_2'] = self.checkBox_2.isChecked()
             config['cb_3'] = self.checkBox_3.isChecked()
+            config['cb_4'] = self.checkBox_4.isChecked()
             config['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
             config['extra_col'] = str(self.plainTextEdit_5.toPlainText())
             config['exclude_plots'] = str(self.plainTextEdit_6.toPlainText())
