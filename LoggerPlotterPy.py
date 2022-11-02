@@ -1032,7 +1032,7 @@ class MainWindow(QMainWindow):
             return
         self.logger.debug('New shot detected')
         if self.checkBox_4.isChecked():
-            self.logger.debug('Selection switched to previous shot')
+            self.logger.debug('Selection switched to last shot')
             # select last row
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
             # self.restore_background()
