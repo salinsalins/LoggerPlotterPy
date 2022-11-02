@@ -405,7 +405,7 @@ class MainWindow(QMainWindow):
                 self.current_selection = row_s
                 self.update_status_bar()
             except:
-                log_exception(self, 'Exception in tableSelectionChanged')
+                log_exception(self)
             finally:
                 self.tableWidget_3.setUpdatesEnabled(True)
                 self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
@@ -1108,7 +1108,7 @@ class LogTable:
         # First field "date time" should be longer than 18 symbols
         if len(fields) < 2 or len(fields[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.debug('Wrong data format in "%s", line skipped' % line)
+            self.logger.info('Wrong data format in "%s", line skipped' % line)
             return False
         # split time and date
         tm = fields[0].split(" ")[1].strip()
@@ -1122,6 +1122,9 @@ class LogTable:
             kv = field.split("=")
             key = kv[0].strip()
             val = kv[1].strip()
+            if key == 'DO_NOT_SHOW' and val == 'True':
+                self.logger.info(f'DO_NOT_SHOW tag detected in {line}, line skipped')
+                return False
             if key in added_columns:
                 self.logger.warning('Duplicate columns in row %s)', self.rows)
             else:
