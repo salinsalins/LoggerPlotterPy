@@ -270,7 +270,7 @@
                          <number>0</number>
                         </property>
                         <attribute name="horizontalHeaderVisible">
-                         <bool>true</bool>
+                         <bool>false</bool>
                         </attribute>
                         <attribute name="horizontalHeaderDefaultSectionSize">
                          <number>100</number>
@@ -496,7 +496,7 @@
                     <item>
                      <widget class="QCheckBox" name="checkBox_4">
                       <property name="text">
-                       <string>Switch to previous shot</string>
+                       <string>Switch to last shot</string>
                       </property>
                       <property name="checked">
                        <bool>true</bool>
