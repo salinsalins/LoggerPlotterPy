@@ -1104,7 +1104,7 @@ class LogTable:
         return n
 
     def decode_line(self, line):
-        if 'DO_NOT_SHOW=True' in line:
+        if 'DO_NOT_SHOW = True' in line:
             self.logger.info(f'DO_NOT_SHOW tag detected in {line[:10]}, line skipped')
             return False
         # Split line to fields
