@@ -1104,6 +1104,9 @@ class LogTable:
         return n
 
     def decode_line(self, line):
+        if 'DO_NOT_SHOW=True' in line:
+            self.logger.info(f'DO_NOT_SHOW tag detected in {line[:10]}, line skipped')
+            return False
         # Split line to fields
         fields = line.split("; ")
         # First field "date time" should be longer than 18 symbols
@@ -1123,9 +1126,6 @@ class LogTable:
             kv = field.split("=")
             key = kv[0].strip()
             val = kv[1].strip()
-            if key == 'DO_NOT_SHOW' and val.startswith('True'):
-                self.logger.info(f'DO_NOT_SHOW tag detected in {line}, line skipped')
-                return False
             if key in added_columns:
                 self.logger.warning('Duplicate columns in row %s)', self.rows)
             else:
