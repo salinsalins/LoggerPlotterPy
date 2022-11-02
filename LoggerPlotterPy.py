@@ -1123,7 +1123,7 @@ class LogTable:
             kv = field.split("=")
             key = kv[0].strip()
             val = kv[1].strip()
-            if key == 'DO_NOT_SHOW' and val == 'True':
+            if key == 'DO_NOT_SHOW' and val.startswith('True'):
                 self.logger.info(f'DO_NOT_SHOW tag detected in {line}, line skipped')
                 return False
             if key in added_columns:
