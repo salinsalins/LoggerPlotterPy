@@ -51,7 +51,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '9.1'
+APPLICATION_VERSION = '9.2'
 VERSION_DATE = "03-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -293,7 +293,7 @@ class MainWindow(QMainWindow):
         self.actionParameters.setChecked(False)
         self.save_local_settings()
         self.save_settings()
-        self.table_selection_changed(True)
+        # self.table_selection_changed(True)
         self.refresh_flag = False
         self.parse_folder()
 
@@ -825,8 +825,10 @@ class MainWindow(QMainWindow):
                     txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
                 except:
                     txt = self.log_table.data[col][row]
-                txt.replace('none', '')
-                txt.replace('None', '')
+                if 'None' in txt:
+                    self.logger.debug("!!!!!!!! None")
+                txt = txt.replace('none', '')
+                txt = txt.replace('None', '')
                 item = QTableWidgetItem(txt)
                 item.setFont(CELL_FONT)
                 # mark changed values
@@ -1054,6 +1056,7 @@ class MainWindow(QMainWindow):
         # select last row
         if self.checkBox_4.isChecked():
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+            self.last_selection = self.tableWidget_3.rowCount() - 1
             self.logger.debug('Selection has been switched to last row')
         else:
             self.logger.debug('Selection switch to last row rejected')
@@ -1126,14 +1129,14 @@ class LogTable:
         if self.show_line_flag and ('DO_NOT_SHOW_LINE' in line or
                                     'DO_NOT_SHOW = True' in line or
                                     'DO_NOT_SHOW=True' in line):
-            self.logger.info(f'DO_NOT_SHOW tag detected in {line[:10]}, line skipped')
+            self.logger.info(f'DO_NOT_SHOW tag detected in {line[11:20]}, line skipped')
             return False
         # Split line to fields
         fields = line.split("; ")
         # First field "date time" should be longer than 18 symbols
         if len(fields) < 2 or len(fields[0]) < 19:
             # Wrong line format, skip to next line
-            self.logger.info('Wrong data format in "%s", line skipped' % line)
+            self.logger.info('Wrong data format in "%s", line skipped' % line[11:20])
             return False
         # split time and date
         tm = fields[0].split(" ")[1].strip()
