@@ -110,7 +110,7 @@ class MainWindow(QMainWindow):
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-        self.tableWidget_3.setFocus.connect(self.set_focus)
+        #self.tableWidget_3.focusChanged.connect(self.set_focus)
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
         self.parse_folder()
 
     def set_focus(self, n):
-        self.logger.debug('******** Enter')
+        self.logger.debug('******** Enter %s', n)
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
