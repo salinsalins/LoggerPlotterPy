@@ -825,8 +825,6 @@ class MainWindow(QMainWindow):
                     txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
                 except:
                     txt = self.log_table.data[col][row]
-                if 'None' in txt:
-                    self.logger.debug("!!!!!!!! None")
                 txt = txt.replace('none', '')
                 txt = txt.replace('None', '')
                 item = QTableWidgetItem(txt)
