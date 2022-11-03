@@ -51,8 +51,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '9.0'
-VERSION_DATE = "02-11-2022"
+APPLICATION_VERSION = '9.1'
+VERSION_DATE = "03-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -766,7 +766,8 @@ class MainWindow(QMainWindow):
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             if not append:
                 # read log file content to logTable
-                self.log_table = LogTable(file_name, extra_cols=self.extra_cols)
+                self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
+                                          show_line_flag=self.checkBox_6.isChecked())
                 if self.log_table.file_name is None:
                     return
                 self.log_file_name = self.log_table.file_name
@@ -775,7 +776,7 @@ class MainWindow(QMainWindow):
                 self.fill_table_widget()
                 # self.last_selection = -1
                 # select last row of widget -> tableSelectionChanged will be fired
-                self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+                self.select_last_row()
             else:
                 # read file to buf
                 with open(self.log_file_name, "r") as stream:
@@ -783,7 +784,7 @@ class MainWindow(QMainWindow):
                 n = self.log_table.append(buf[self.old_size:], extra_cols=self.extra_cols)
                 self.fill_table_widget(n)
                 # select last row of widget -> tableSelectionChanged will be fired
-                self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+                self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
         self.update_status_bar()
@@ -807,7 +808,6 @@ class MainWindow(QMainWindow):
             row_range = range(self.log_table.rows)
         else:
             row_range = range(append, self.log_table.rows)
-
         # insert and fill rows
         for row in row_range:
             self.tableWidget_3.insertRow(row)
@@ -821,6 +821,8 @@ class MainWindow(QMainWindow):
                     txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
                 except:
                     txt = self.log_table.data[col][row]
+                txt.replace('none', '')
+                txt.replace('None', '')
                 item = QTableWidgetItem(txt)
                 item.setFont(CELL_FONT)
                 # mark changed values
@@ -843,10 +845,12 @@ class MainWindow(QMainWindow):
                         item.setFont(CELL_FONT_BOLD)
                 self.tableWidget_3.setItem(row, n, item)
                 n += 1
+        # resize Columns
+        self.tableWidget_3.resizeColumnsToContents()
         # enable table widget update events
         self.tableWidget_3.setUpdatesEnabled(True)
-        self.tableWidget_3.resizeColumnsToContents()
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
+        #
         self.tableWidget_3.scrollToBottom()
         self.tableWidget_3.setFocus()
 
@@ -873,6 +877,7 @@ class MainWindow(QMainWindow):
             config['cb_2'] = self.checkBox_2.isChecked()
             config['cb_3'] = self.checkBox_3.isChecked()
             config['cb_4'] = self.checkBox_4.isChecked()
+            config['cb_6'] = self.checkBox_6.isChecked()
             config['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
             config['extra_col'] = str(self.plainTextEdit_5.toPlainText())
             config['exclude_plots'] = str(self.plainTextEdit_6.toPlainText())
@@ -950,6 +955,10 @@ class MainWindow(QMainWindow):
                 self.checkBox_2.setChecked(self.conf['cb_2'])
             if 'cb_3' in self.conf:
                 self.checkBox_3.setChecked(self.conf['cb_3'])
+            if 'cb_4' in self.conf:
+                self.checkBox_4.setChecked(self.conf['cb_4'])
+            if 'cb_6' in self.conf:
+                self.checkBox_6.setChecked(self.conf['cb_6'])
             if 'history' in self.conf:
                 self.comboBox_2.currentIndexChanged.disconnect(self.file_selection_changed)
                 self.comboBox_2.clear()
@@ -1032,13 +1041,18 @@ class MainWindow(QMainWindow):
         if self.new_size <= self.old_size:
             return
         self.logger.debug('New shot detected')
-        if self.checkBox_4.isChecked():
-            self.logger.debug('Selection switched to last shot')
-            # select last row
-            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
-            # self.restore_background()
-            # self.last_selection = self.log_table.rows - 1
+        self.select_last_row()
+        # self.restore_background()
+        # self.last_selection = self.log_table.rows - 1
         self.parse_folder()
+
+    def select_last_row(self):
+        # select last row
+        if self.checkBox_4.isChecked():
+            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
+            self.logger.debug('Selection has been switched to last row')
+        else:
+            self.logger.debug('Selection switch to last row rejected')
 
 
 class VLine(QFrame):

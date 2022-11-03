@@ -470,7 +470,7 @@
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
                    </property>
-                   <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0,0,0,0,0,0">
+                   <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0,0,0,0,0,0,0,0">
                     <property name="spacing">
                      <number>15</number>
                     </property>
@@ -496,7 +496,7 @@
                     <item>
                      <widget class="QCheckBox" name="checkBox_4">
                       <property name="text">
-                       <string>Switch to last shot</string>
+                       <string>Switch to new shot</string>
                       </property>
                       <property name="checked">
                        <bool>true</bool>
@@ -529,6 +529,26 @@
                        <bool>true</bool>
                       </property>
                      </widget>
+                    </item>
+                    <item>
+                     <widget class="QCheckBox" name="checkBox_6">
+                      <property name="text">
+                       <string>Use DO_NOT_SHOW flag</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_5">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>0</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
                     </item>
                     <item>
                      <widget class="QLabel" name="label">
