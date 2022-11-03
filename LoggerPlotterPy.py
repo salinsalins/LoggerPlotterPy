@@ -1049,7 +1049,7 @@ class VLine(QFrame):
 
 
 class LogTable:
-    def __init__(self, file_name: str, folder: str = "", extra_cols=None, logger=None):
+    def __init__(self, file_name: str, folder: str = "", extra_cols=None, logger=None, show_line_flag=False):
         self.columns_with_error = []
         if extra_cols is None:
             extra_cols = []
@@ -1067,6 +1067,7 @@ class LogTable:
         self.rows = 0
         self.columns = 0
         self.keys_with_errors = []
+        self.show_line_flag = show_line_flag
         # Full file name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn):
@@ -1104,7 +1105,9 @@ class LogTable:
         return n
 
     def decode_line(self, line):
-        if 'DO_NOT_SHOW = True' in line:
+        if self.show_line_flag and ('DO_NOT_SHOW_LINE' in line or
+                                    'DO_NOT_SHOW = True' in line or
+                                    'DO_NOT_SHOW=True' in line):
             self.logger.info(f'DO_NOT_SHOW tag detected in {line[:10]}, line skipped')
             return False
         # Split line to fields
