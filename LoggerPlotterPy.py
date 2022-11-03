@@ -201,6 +201,7 @@ class MainWindow(QMainWindow):
 
     def set_focus(self, n):
         self.logger.debug('******** Enter')
+
     def table_header_right_click_menu(self, n):
         # print('menu', n)
         cursor = QtGui.QCursor()
