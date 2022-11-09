@@ -1094,10 +1094,10 @@ class LogTable:
             return
         # read file to buf
         try:
-            with open(fn, "r") as stream:
+            with open(fn, "r", encoding='ascii') as stream:
                 buf = stream.read()
         except:
-            self.logger.error('Data file %s not found' % fn)
+            self.logger.error('Data file %s can not be opened' % fn)
             return
         if len(buf) <= 0:
             self.logger.info('Nothing to process in %s' % fn)
