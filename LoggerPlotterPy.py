@@ -1094,10 +1094,11 @@ class LogTable:
             return
         # read file to buf
         try:
-            with open(fn, "r", encoding='ascii') as stream:
+            with open(fn, "r", encoding='windows-1251') as stream:
                 buf = stream.read()
         except:
-            self.logger.error('Data file %s can not be opened' % fn)
+            # self.logger.error('Data file %s can not be opened' % fn)
+            log_exception(self.logger, 'Data file %s can not be opened' % fn)
             return
         if len(buf) <= 0:
             self.logger.info('Nothing to process in %s' % fn)
@@ -1116,7 +1117,7 @@ class LogTable:
         n = 0
         self.keys_with_errors = []
         for line in lines:
-            if self.decode_line(line):
+            if line != '' and self.decode_line(line):
                 n += 1
         # add extra columns
         self.add_extra_columns(extra_cols)
