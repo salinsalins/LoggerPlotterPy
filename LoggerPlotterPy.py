@@ -770,6 +770,7 @@ class MainWindow(QMainWindow):
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             if not append:
                 # read log file content to logTable
+                self.logger.debug("Reading log file")
                 self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
                                           show_line_flag=self.checkBox_6.isChecked())
                 if self.log_table.file_name is None:
@@ -782,9 +783,10 @@ class MainWindow(QMainWindow):
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
             else:
+                self.logger.debug("Appending from log file")
                 # read file to buf
-                with open(self.log_file_name, "r") as stream:
-                    buf = stream.read()
+                with open(self.log_file_name, "r", encoding='windows-1251') as stream:
+                        buf = stream.read()
                 n = self.log_table.append(buf[self.old_size:], extra_cols=self.extra_cols)
                 self.fill_table_widget(n)
                 # select last row of widget -> tableSelectionChanged will be fired
@@ -1045,10 +1047,10 @@ class MainWindow(QMainWindow):
         if self.new_size <= self.old_size:
             return
         self.logger.debug('New shot detected')
-        self.select_last_row()
+        # self.select_last_row()
         # self.restore_background()
         # self.last_selection = self.log_table.rows - 1
-        self.parse_folder()
+        self.parse_folder(append=False)
 
     def select_last_row(self):
         # select last row
