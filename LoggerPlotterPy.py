@@ -1124,22 +1124,29 @@ class LogTable:
         if not os.path.exists(fn):
             self.logger.info('File %s does not exist' % fn)
             return None
+        if self.old_file_name == fn:
+            pass
         fs = os.path.getsize(fn)
         if fs < 20:
             self.logger.info('Wrong file format %s' % fn)
             return None
         # read file to buf
         try:
-            with open(fn, "r", encoding='windows-1251') as stream:
+            # with open(fn, "r", encoding='windows-1251') as stream:
+            with open(fn, "rb") as stream:
+                if self.old_file_name == fn:
+                    stream.seek(self.file_size)
+                    #buf = stream.read(fs - self.old_file_size)
+                #else:
                 buf = stream.read()
+            self.old_file_name = self.file_name
+            self.file_name = fn
+            self.old_file_size = self.file_size
+            self.file_size = fs
+            return buf
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
             return None
-        self.old_file_name = self.file_name
-        self.file_name = fn
-        self.old_file_size = self.file_size
-        self.file_size = fs
-        return buf
 
     def append(self, buf, extra_cols=None):
         if not buf:
