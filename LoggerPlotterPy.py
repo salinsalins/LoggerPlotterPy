@@ -1071,22 +1071,25 @@ class VLine(QFrame):
 
 class LogTable:
     def __init__(self, file_name: str, folder: str = "", extra_cols=None, logger=None, show_line_flag=False):
-        self.columns_with_error = []
         if extra_cols is None:
             extra_cols = []
         if logger is None:
             self.logger = config_logger()
         else:
             self.logger = logger
+        self.headers = []
         self.data = [[], ]
         self.values = [[], ]
         self.units = [[], ]
-        self.headers = []
         self.file_name = None
+        self.old_file_name = None
+        self.folder = None
         self.file_size = -1
+        self.old_file_size = -1
         self.file_lines = -1
         self.rows = 0
         self.columns = 0
+        self.columns_with_error = []
         self.keys_with_errors = []
         self.show_line_flag = show_line_flag
         # Full file name
@@ -1106,11 +1109,42 @@ class LogTable:
             self.logger.info('Nothing to process in %s' % fn)
             return
         self.file_name = fn
+        self.folder  = folder
         self.file_size = os.path.getsize(fn)
         self.file_lines = 0
         self.append(buf, extra_cols)
 
+    def read_log_to_buf(self, file_name: str = None, folder: str = None):
+        buf = ''
+        if folder is None:
+            folder = self.folder
+        if file_name is None:
+            file_name = self.file_name
+        fn = os.path.join(folder, file_name)
+        if not os.path.exists(fn):
+            self.logger.info('File %s does not exist' % fn)
+            return None
+        fs = os.path.getsize(fn)
+        if fs < 20:
+            self.logger.info('Wrong file format %s' % fn)
+            return None
+        # read file to buf
+        try:
+            with open(fn, "r", encoding='windows-1251') as stream:
+                buf = stream.read()
+        except:
+            log_exception(self.logger, 'Data file %s can not be opened' % fn)
+            return None
+        self.old_file_name = self.file_name
+        self.file_name = fn
+        self.old_file_size = self.file_size
+        self.file_size = fs
+        return buf
+
     def append(self, buf, extra_cols=None):
+        if not buf:
+            self.logger.debug('Nothing to process')
+            return
         if extra_cols is None:
             extra_cols = []
         lines = buf.split('\n')
