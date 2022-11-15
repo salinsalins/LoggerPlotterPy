@@ -1150,7 +1150,7 @@ class LogTable:
             self.file_name = fn
             self.old_file_size = self.file_size
             self.file_size = fs
-            buf1 = buf[self.old_file_size:].decode('cp1251')
+            buf1 = buf.decode('cp1251')
             return buf1
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
