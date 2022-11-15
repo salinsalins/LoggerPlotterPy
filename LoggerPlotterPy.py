@@ -36,7 +36,6 @@ from PyQt5.QtWidgets import QFrame, QMenu
 from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 
-from QtUtils import WidgetLogHandler
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
 
@@ -44,6 +43,7 @@ sys.path.append('../TangoUtils')
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
 from log_exception import log_exception
+from QtUtils import WidgetLogHandler
 
 np = numpy
 
