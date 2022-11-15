@@ -191,7 +191,7 @@ class MainWindow(QMainWindow):
         # status bar: connect logger to status bar
         sbhandler = WidgetLogHandler(self.sb_text)
         sbhandler.setLevel(logging.INFO)
-        self.logger.addHandler(sbhandler)
+        self.logger.addHandler(sbhandler, 24)
         # status bar: END
 
         # default settings
