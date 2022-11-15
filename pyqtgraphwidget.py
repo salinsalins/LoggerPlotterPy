@@ -17,8 +17,8 @@ pyqtgraph.setConfigOption('leftButtonPan', False)
 
 
 class CustomViewBox(pyqtgraph.ViewBox):
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
+    def __init__(self, parent=None, *args, **kwds):
+        super().__init__(parent, *args, **kwds)
         self.setMouseMode(self.RectMode)
         self.setBackgroundColor('#1d648da0')
         # self.setBorder(pen=('green', 5))
@@ -47,7 +47,7 @@ class CustomViewBox(pyqtgraph.ViewBox):
 
 class MplWidget(pyqtgraph.PlotWidget):
     def __init__(self, parent=None, height=300, width=300):
-        super().__init__(viewBox=CustomViewBox())
+        super().__init__(parent, viewBox=CustomViewBox())
         self.canvas = MplAdapter(self)
         self.canvas.ax = MplAdapter(self)
         self.ntb = ToolBar()

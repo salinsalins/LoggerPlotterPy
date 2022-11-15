@@ -52,7 +52,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '9.2'
+APPLICATION_VERSION = '9.3'
 VERSION_DATE = "03-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -163,17 +163,11 @@ class MainWindow(QMainWindow):
         self.sb_green_time.setVisible(False)
         self.statusBar().addWidget(self.sb_green_time)
         self.statusBar().addWidget(VLine())  # <---
-        # status bar: message with data file name
-        self.sb_text = QLabel("")
-        self.sb_text.setFont(STATUS_BAR_FONT)
-        self.statusBar().addWidget(self.sb_text)
-        self.statusBar().addWidget(VLine())  # <---
-        self.sb_text.setText("Starting...")
         # status bar: config select combo
         self.sb_combo = QComboBox(self.statusBar())
         self.sb_combo.setFont(STATUS_BAR_FONT)
         self.statusBar().addWidget(self.sb_combo)
-        self.statusBar().addPermanentWidget(VLine())  # <---
+        self.statusBar().addWidget(VLine())  # <---
         self.sb_combo.disconnect()
         self.sb_combo.clear()
         arr = os.listdir()
@@ -185,24 +179,37 @@ class MainWindow(QMainWindow):
         self.sb_combo.addItems(jsonarr)
         self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
         # status bar: clock label
+        self.statusBar().addPermanentWidget(VLine())  # <---
         self.sb_clock = QLabel(" ")
         self.sb_clock.setFont(CLOCK_FONT)
         self.statusBar().addPermanentWidget(self.sb_clock)
-        # status bar: connect logger to status bar
-        sbhandler = WidgetLogHandler(self.sb_text)
+        # status bar: message with data file name
+        self.sb_text = QLabel("")
+        self.sb_text.setFont(STATUS_BAR_FONT)
+        self.statusBar().addWidget(self.sb_text)
+        self.statusBar().addWidget(VLine())  # <---
+        self.sb_text.setText("Starting...")
+        # status bar: log show widget and connect logger to status bar
+        self.sb_log = QLabel("")
+        self.sb_log.setFont(STATUS_BAR_FONT)
+        self.sb_log.time = time.time()
+        self.statusBar().addWidget(self.sb_log)
+        sbhandler = WidgetLogHandler(self.sb_log)
         sbhandler.setLevel(logging.INFO)
-        self.logger.addHandler(sbhandler, 24)
+        self.logger.addHandler(sbhandler)
         # status bar: END
 
         # default settings
         self.set_default_settings()
         #
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
+
         # restore settings
         self.restore_settings()
         self.restore_local_settings()
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
+
         # read data files
         self.parse_folder()
 
@@ -1039,6 +1046,8 @@ class MainWindow(QMainWindow):
     def timer_handler(self):
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
+        if (time.time() - self.sb_log.time) > 10.0:
+            self.sb_log.setText('')
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
             return
@@ -1057,7 +1066,7 @@ class MainWindow(QMainWindow):
         # self.select_last_row()
         # self.restore_background()
         # self.last_selection = self.log_table.rows - 1
-        self.parse_folder(append=False)
+        self.parse_folder()
 
     def select_last_row(self):
         # select last row
@@ -1090,7 +1099,7 @@ class LogTable:
         self.units = [[], ]
         self.file_name = None
         self.old_file_name = None
-        self.folder = None
+        self.folder = folder
         self.file_size = -1
         self.old_file_size = -1
         self.file_lines = -1
@@ -1099,30 +1108,32 @@ class LogTable:
         self.columns_with_error = []
         self.keys_with_errors = []
         self.show_line_flag = show_line_flag
-        # Full file name
-        fn = os.path.join(folder, file_name)
-        if not os.path.exists(fn):
-            self.logger.info('File %s does not exist' % fn)
-            return
-        # read file to buf
-        try:
-            with open(fn, "r", encoding='windows-1251') as stream:
-                buf = stream.read()
-        except:
-            # self.logger.error('Data file %s can not be opened' % fn)
-            log_exception(self.logger, 'Data file %s can not be opened' % fn)
-            return
-        if len(buf) <= 0:
-            self.logger.info('Nothing to process in %s' % fn)
-            return
-        self.file_name = fn
-        self.folder  = folder
-        self.file_size = os.path.getsize(fn)
-        self.file_lines = 0
+
+        buf = self.read_log_to_buf(file_name, folder)
+        # # Full file name
+        # fn = os.path.join(folder, file_name)
+        # if not os.path.exists(fn):
+        #     self.logger.info('File %s does not exist' % fn)
+        #     return
+        # # read file to buf
+        # try:
+        #     with open(fn, "r", encoding='windows-1251') as stream:
+        #         buf = stream.read()
+        # except:
+        #     # self.logger.error('Data file %s can not be opened' % fn)
+        #     log_exception(self.logger, 'Data file %s can not be opened' % fn)
+        #     return
+        # if len(buf) <= 0:
+        #     self.logger.info('Nothing to process in %s' % fn)
+        #     return
+        # self.file_name = fn
+        # self.folder  = folder
+        # self.file_size = os.path.getsize(fn)
+        # self.file_lines = 0
         self.append(buf, extra_cols)
 
     def read_log_to_buf(self, file_name: str = None, folder: str = None):
-        buf = ''
+        buf = b''
         if folder is None:
             folder = self.folder
         if file_name is None:
@@ -1134,23 +1145,23 @@ class LogTable:
         # if self.old_file_name == fn:
         #     pass
         fs = os.path.getsize(fn)
-        if fs < 20 or (self.old_file_name == fn and fs < self.old_file_size):
-            self.logger.warning('Wrong file size for %s' % fn)
+        if fs < 20 or (self.file_name == fn and fs <= self.file_size):
+            # self.logger.warning('Wrong file size for %s' % fn)
             return None
         # read file to buf
         try:
             # with open(fn, "r", encoding='windows-1251') as stream:
             with open(fn, "rb") as stream:
-                if self.old_file_name == fn:
+                if self.file_name == fn:
                     stream.seek(self.file_size)
                     #buf = stream.read(fs - self.old_file_size)
                 #else:
                 buf = stream.read()
+            buf1 = buf.decode('cp1251')
             self.old_file_name = self.file_name
             self.file_name = fn
             self.old_file_size = self.file_size
             self.file_size = fs
-            buf1 = buf.decode('cp1251')
             return buf1
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
