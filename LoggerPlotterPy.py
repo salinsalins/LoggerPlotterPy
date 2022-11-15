@@ -36,6 +36,7 @@ from PyQt5.QtWidgets import QFrame, QMenu
 from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 
+from QtUtils import WidgetLogHandler
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
 
@@ -187,6 +188,12 @@ class MainWindow(QMainWindow):
         self.sb_clock = QLabel(" ")
         self.sb_clock.setFont(CLOCK_FONT)
         self.statusBar().addPermanentWidget(self.sb_clock)
+        # status bar: connect logger to status bar
+        sbhandler = WidgetLogHandler(self.sb_text)
+        sbhandler.setLevel(logging.INFO)
+        self.logger.addHandler(sbhandler)
+        # status bar: END
+
         # default settings
         self.set_default_settings()
         #
@@ -1122,13 +1129,13 @@ class LogTable:
             file_name = self.file_name
         fn = os.path.join(folder, file_name)
         if not os.path.exists(fn):
-            self.logger.info('File %s does not exist' % fn)
+            self.logger.warning('File %s does not exist' % fn)
             return None
-        if self.old_file_name == fn:
-            pass
+        # if self.old_file_name == fn:
+        #     pass
         fs = os.path.getsize(fn)
-        if fs < 20:
-            self.logger.info('Wrong file format %s' % fn)
+        if fs < 20 or (self.old_file_name == fn and fs < self.old_file_size):
+            self.logger.warning('Wrong file size for %s' % fn)
             return None
         # read file to buf
         try:
@@ -1143,7 +1150,8 @@ class LogTable:
             self.file_name = fn
             self.old_file_size = self.file_size
             self.file_size = fs
-            return buf
+            buf1 = buf[self.old_file_size:].decode('cp1251')
+            return buf1
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
             return None
