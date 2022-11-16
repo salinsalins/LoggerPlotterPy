@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-        #self.tableWidget_3.focusChanged.connect(self.set_focus)
+        # self.tableWidget_3.focusChanged.connect(self.set_focus)
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
@@ -210,8 +210,17 @@ class MainWindow(QMainWindow):
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
 
-        # read data files
-        self.parse_folder()
+        self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
+        self.log_table = LogTable(self.log_file_name, extra_cols=self.extra_cols,
+                                  show_line_flag=self.checkBox_6.isChecked())
+        if self.log_table.file_name is None:
+            return
+        self.log_file_name = self.log_table.file_name
+        # Create displayed columns list
+        self.columns = self.sort_columns()
+        self.fill_table_widget()
+        # select last row of widget -> tableSelectionChanged will be fired
+        self.select_last_row()
 
     def set_focus(self, n):
         self.logger.debug('******** Enter %s', n)
@@ -770,7 +779,7 @@ class MainWindow(QMainWindow):
         self.plainTextEdit_3.setPlainText(text)
         return columns
 
-    def parse_folder(self, file_name=None, append=False):
+    def parse_folder(self, file_name: str = None, append=False):
         try:
             if file_name is None:
                 file_name = self.log_file_name
@@ -782,36 +791,23 @@ class MainWindow(QMainWindow):
             self.logger.info('Reading data file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-            if self.log_table is None:
-                self.logger.debug(f"Creating log table from {file_name}")
-                self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
-                                          show_line_flag=self.checkBox_6.isChecked())
-                if self.log_table.file_name is None:
-                    return
-                self.log_file_name = self.log_table.file_name
+            if self.log_table.old_file_name == self.log_table.file_name:
+                self.logger.debug("Appending from log file")
+                # append
+                buf = self.log_table.read_log_to_buf()
+                n = self.log_table.append(buf, extra_cols=self.extra_cols)
+                # Create displayed columns list
+                self.columns = self.sort_columns()
+                self.fill_table_widget(n)
+                # select last row of widget -> tableSelectionChanged will be fired
+                self.select_last_row()
+            else:
+                self.log_table.__init__(self.log_table.file_name)
                 # Create displayed columns list
                 self.columns = self.sort_columns()
                 self.fill_table_widget()
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
-            else:
-                if self.log_table.old_file_name == self.log_table.file_name:
-                    self.logger.debug("Appending from log file")
-                    # append
-                    buf = self.log_table.read_log_to_buf()
-                    n = self.log_table.append(buf, extra_cols=self.extra_cols)
-                    # Create displayed columns list
-                    self.columns = self.sort_columns()
-                    self.fill_table_widget(n)
-                    # select last row of widget -> tableSelectionChanged will be fired
-                    self.select_last_row()
-                else:
-                    self.log_table.__init__(self.log_table.file_name)
-                    # Create displayed columns list
-                    self.columns = self.sort_columns()
-                    self.fill_table_widget()
-                    # select last row of widget -> tableSelectionChanged will be fired
-                    self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
         self.update_status_bar()
@@ -1159,8 +1155,8 @@ class LogTable:
             with open(fn, "rb") as stream:
                 if self.file_name == fn:
                     stream.seek(self.file_size)
-                    #buf = stream.read(fs - self.old_file_size)
-                #else:
+                    # buf = stream.read(fs - self.old_file_size)
+                # else:
                 buf = stream.read()
             buf1 = buf.decode('cp1251')
             self.old_file_name = self.file_name
