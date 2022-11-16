@@ -490,7 +490,7 @@ class MainWindow(QMainWindow):
                     else:
                         self.logger.info('Can not calculate signal for "%s ..."', p[:10])
                 except:
-                    log_exception(self, 'Plot eval() error in "%s ..."' % p[:10])
+                    log_exception(self, 'Plot eval() error in "%s ..."' % p[:10], level=logging.INFO)
 
     def sort_plots(self):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -838,7 +838,7 @@ class MainWindow(QMainWindow):
         try:
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
-            pass
+            log_exception()
         if append == 0:
             return
         elif append < 0:
