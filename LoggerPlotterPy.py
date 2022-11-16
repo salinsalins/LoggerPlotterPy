@@ -782,13 +782,8 @@ class MainWindow(QMainWindow):
             self.logger.info('Reading data file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-            # if self.log_table is None:
-            #     self.logger.debug(f"Creating log table from {file_name}")
-            #     self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
-            #                               show_line_flag=self.checkBox_6.isChecked())
-            if not append:
-                # read log file content to logTable
-                self.logger.debug("Creating log table")
+            if self.log_table is None:
+                self.logger.debug(f"Creating log table from {file_name}")
                 self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
                                           show_line_flag=self.checkBox_6.isChecked())
                 if self.log_table.file_name is None:
@@ -797,18 +792,26 @@ class MainWindow(QMainWindow):
                 # Create displayed columns list
                 self.columns = self.sort_columns()
                 self.fill_table_widget()
-                # self.last_selection = -1
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
             else:
-                self.logger.debug("Appending from log file")
-                # read file to buf
-                with open(self.log_file_name, "r", encoding='windows-1251') as stream:
-                        buf = stream.read()
-                n = self.log_table.append(buf[self.old_size:], extra_cols=self.extra_cols)
-                self.fill_table_widget(n)
-                # select last row of widget -> tableSelectionChanged will be fired
-                self.select_last_row()
+                if self.log_table.old_file_name == self.log_table.file_name:
+                    self.logger.debug("Appending from log file")
+                    # append
+                    buf = self.log_table.read_log_to_buf()
+                    n = self.log_table.append(buf, extra_cols=self.extra_cols)
+                    # Create displayed columns list
+                    self.columns = self.sort_columns()
+                    self.fill_table_widget(n)
+                    # select last row of widget -> tableSelectionChanged will be fired
+                    self.select_last_row()
+                else:
+                    self.log_table.__init__(self.log_table.file_name)
+                    # Create displayed columns list
+                    self.columns = self.sort_columns()
+                    self.fill_table_widget()
+                    # select last row of widget -> tableSelectionChanged will be fired
+                    self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
         self.update_status_bar()
@@ -832,8 +835,13 @@ class MainWindow(QMainWindow):
     def fill_table_widget(self, append=-1):
         # disable table widget update events
         self.tableWidget_3.setUpdatesEnabled(False)
-        self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
-        if append < 0:
+        try:
+            self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
+        except:
+            pass
+        if append == 0:
+            return
+        elif append < 0:
             # clear table widget
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
@@ -1166,8 +1174,8 @@ class LogTable:
 
     def append(self, buf, extra_cols=None):
         if not buf:
-            self.logger.debug('Nothing to process')
-            return
+            self.logger.debug('Empty buffer')
+            return 0
         if extra_cols is None:
             extra_cols = []
         lines = buf.split('\n')
