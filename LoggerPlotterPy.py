@@ -782,6 +782,10 @@ class MainWindow(QMainWindow):
             self.logger.info('Reading data file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
+            # if self.log_table is None:
+            #     self.logger.debug(f"Creating log table from {file_name}")
+            #     self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
+            #                               show_line_flag=self.checkBox_6.isChecked())
             if not append:
                 # read log file content to logTable
                 self.logger.debug("Creating log table")
@@ -1124,30 +1128,9 @@ class LogTable:
         self.show_line_flag = show_line_flag
 
         buf = self.read_log_to_buf(file_name, folder)
-        # # Full file name
-        # fn = os.path.join(folder, file_name)
-        # if not os.path.exists(fn):
-        #     self.logger.info('File %s does not exist' % fn)
-        #     return
-        # # read file to buf
-        # try:
-        #     with open(fn, "r", encoding='windows-1251') as stream:
-        #         buf = stream.read()
-        # except:
-        #     # self.logger.error('Data file %s can not be opened' % fn)
-        #     log_exception(self.logger, 'Data file %s can not be opened' % fn)
-        #     return
-        # if len(buf) <= 0:
-        #     self.logger.info('Nothing to process in %s' % fn)
-        #     return
-        # self.file_name = fn
-        # self.folder  = folder
-        # self.file_size = os.path.getsize(fn)
-        # self.file_lines = 0
         self.append(buf, extra_cols)
 
     def read_log_to_buf(self, file_name: str = None, folder: str = None):
-        buf = b''
         if folder is None:
             folder = self.folder
         if file_name is None:
