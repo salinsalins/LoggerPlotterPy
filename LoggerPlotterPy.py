@@ -802,7 +802,11 @@ class MainWindow(QMainWindow):
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
             else:
-                self.log_table.__init__(self.log_table.file_name)
+                self.log_table.__init__(self.log_file_name, extra_cols=self.extra_cols,
+                                        show_line_flag=self.checkBox_6.isChecked())
+                if self.log_table.file_name is None:
+                    return
+                self.log_file_name = self.log_table.file_name
                 # Create displayed columns list
                 self.columns = self.sort_columns()
                 self.fill_table_widget()
