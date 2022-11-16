@@ -779,12 +779,12 @@ class MainWindow(QMainWindow):
                 self.logger.info('Data file not found')
                 return
             self.sb_text.setText('Reading %s' % file_name)
-            self.logger.debug('Reading data file %s', file_name)
+            self.logger.info('Reading data file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             if not append:
                 # read log file content to logTable
-                self.logger.debug("Reading log file")
+                self.logger.debug("Creating log table")
                 self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
                                           show_line_flag=self.checkBox_6.isChecked())
                 if self.log_table.file_name is None:
@@ -809,6 +809,21 @@ class MainWindow(QMainWindow):
             log_exception(self, 'Exception in parseFolder')
         self.update_status_bar()
         return
+
+    def clear_table_widget(self):
+        self.tableWidget_3.setUpdatesEnabled(False)
+        self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
+        self.tableWidget_3.setRowCount(0)
+        self.tableWidget_3.setColumnCount(0)
+        self.tableWidget_3.setUpdatesEnabled(True)
+        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
+
+    def create_table_widget_columns(self, columns):
+        cln = 0
+        for column in columns:
+            self.tableWidget_3.insertColumn(cln)
+            self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
+            cln += 1
 
     def fill_table_widget(self, append=-1):
         # disable table widget update events
@@ -1102,7 +1117,6 @@ class LogTable:
         self.folder = folder
         self.file_size = -1
         self.old_file_size = -1
-        self.file_lines = -1
         self.rows = 0
         self.columns = 0
         self.columns_with_error = []
@@ -1174,7 +1188,6 @@ class LogTable:
         if extra_cols is None:
             extra_cols = []
         lines = buf.split('\n')
-        self.file_lines += len(lines)
         # loop for lines
         n = 0
         self.keys_with_errors = []
