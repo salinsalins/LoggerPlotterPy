@@ -52,7 +52,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '9.4'
+APPLICATION_VERSION = '9.5'
 VERSION_DATE = "03-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -791,7 +791,7 @@ class MainWindow(QMainWindow):
             self.logger.info('Reading data file %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-            if self.log_table.old_file_name == self.log_table.file_name:
+            if self.log_table.file_name == file_name:
                 self.logger.debug("Appending from log file")
                 # append
                 buf = self.log_table.read_log_to_buf()
@@ -855,7 +855,7 @@ class MainWindow(QMainWindow):
                 cln += 1
             row_range = range(self.log_table.rows)
         else:
-            row_range = range(append, self.log_table.rows)
+            row_range = range(self.log_table.rows - append, self.log_table.rows)
         # insert and fill rows
         for row in row_range:
             self.tableWidget_3.insertRow(row)
@@ -1166,7 +1166,7 @@ class LogTable:
                 buf = stream.read()
             buf1 = buf.decode('cp1251')
             self.old_file_name = self.file_name
-            self.file_name = file_name
+            self.file_name = fn
             self.folder = folder
             self.old_file_size = self.file_size
             self.file_size = fs
