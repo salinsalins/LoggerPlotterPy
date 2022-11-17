@@ -703,7 +703,7 @@ class MainWindow(QMainWindow):
     def restore_local_settings(self):
         if not self.checkBox_5.isChecked():
             return
-        full_name = os.path.join(self.get_data_folder(), CONFIG_FILE)
+        full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
         try:
             with open(full_name, 'r') as configfile:
                 s = configfile.read()
@@ -802,6 +802,7 @@ class MainWindow(QMainWindow):
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
             else:
+                self.logger.debug("Clean log table and refill from new log file")
                 self.log_table.__init__(self.log_file_name, extra_cols=self.extra_cols,
                                         show_line_flag=self.checkBox_6.isChecked())
                 if self.log_table.file_name is None:
@@ -1143,7 +1144,8 @@ class LogTable:
             folder = self.folder
         if file_name is None:
             file_name = self.file_name
-        fn = os.path.join(folder, file_name)
+        fn = os.path.abspath(os.path.join(folder, file_name))
+        self.logger.info('File %s will be processed' % fn)
         if not os.path.exists(fn):
             self.logger.warning('File %s does not exist' % fn)
             return None
@@ -1164,7 +1166,8 @@ class LogTable:
                 buf = stream.read()
             buf1 = buf.decode('cp1251')
             self.old_file_name = self.file_name
-            self.file_name = fn
+            self.file_name = file_name
+            self.folder = folder
             self.old_file_size = self.file_size
             self.file_size = fs
             return buf1
