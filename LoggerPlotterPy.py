@@ -863,7 +863,6 @@ class MainWindow(QMainWindow):
             # clear table widget
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
-            # refill table widget
             # insert columns
             cln = 0
             for column in self.columns:
@@ -872,6 +871,9 @@ class MainWindow(QMainWindow):
                 cln += 1
             row_range = range(self.log_table.rows)
         else:
+            # insert columns
+            for column in self.columns[self.tableWidget_3.columnCount():]:
+                self.insert_column(column)
             row_range = range(self.log_table.rows - append, self.log_table.rows)
         # insert and fill rows
         for row in row_range:
