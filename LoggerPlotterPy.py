@@ -772,10 +772,10 @@ class MainWindow(QMainWindow):
         # sort hidden list
         hidden.sort()
         # set hidden columns text
-        text = ''
-        for t in hidden:
-            text += t
-            text += '\n'
+        text = '\n'.join(hidden)
+        # for t in hidden:
+        #     text += t
+        #     text += '\n'
         self.plainTextEdit_3.setPlainText(text)
         return columns
 
