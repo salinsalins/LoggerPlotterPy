@@ -86,7 +86,6 @@ class MainWindow(QMainWindow):
         self.log_file_name = None
         self.data_root = None
         self.conf = {}
-        self.refresh_flag = False
         self.last_selection = -1
         self.current_selection = -1
         self.signal_list = []
@@ -303,9 +302,6 @@ class MainWindow(QMainWindow):
         if n > 0:
             self.table_header_right_click_menu(n)
 
-    def refresh_on(self):
-        self.refresh_flag = True
-
     def show_about(self):
         QMessageBox.information(self, 'About', APPLICATION_NAME + 'version ' + APPLICATION_VERSION +
                                 '\nShows saved shot logs and plot traces.', QMessageBox.Ok)
@@ -317,7 +313,6 @@ class MainWindow(QMainWindow):
         self.save_local_settings()
         self.save_settings()
         # self.table_selection_changed(True)
-        self.refresh_flag = False
         self.parse_folder()
 
     def show_param_pane(self):
@@ -723,11 +718,11 @@ class MainWindow(QMainWindow):
             self.logger.info('Local configuration restored from %s' % full_name)
             return True
         except:
-            log_exception('Local configuration restore error from %s' % full_name)
+            log_exception('Local configuration restore error from %s' % full_name, level=logging.INFO)
             return False
 
     def save_local_settings(self):
-        full_name = os.path.join(self.get_data_folder(), CONFIG_FILE)
+        full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
         try:
             if not self.checkBox_5.isChecked():
                 return
@@ -1045,7 +1040,6 @@ class MainWindow(QMainWindow):
         self.restore_settings()
         self.restore_local_settings()
         self.table_selection_changed(True)
-        self.refresh_flag = False
         self.parse_folder()
 
     def set_default_settings(self):
