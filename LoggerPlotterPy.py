@@ -798,7 +798,7 @@ class MainWindow(QMainWindow):
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
                 # Create displayed columns list
                 self.columns = self.sort_columns()
-                self.fill_table_widget(n)
+                self.fill_table_widget(-1)
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
             else:
