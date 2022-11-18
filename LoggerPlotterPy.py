@@ -365,9 +365,9 @@ class MainWindow(QMainWindow):
         ddf = datetime.datetime.today().strftime('%Y-%m-%d')
         logfn = datetime.datetime.today().strftime('%Y-%m-%d.log')
         rootfn = os.path.dirname(self.log_file_name)
-        fn = os.path.join(rootfn[:-23], ydf, mdf, ddf, logfn)
+        fn = os.path.abspath(os.path.join(rootfn[:-23], ydf, mdf, ddf, logfn))
         if not os.path.exists(fn):
-            self.logger.error("Today file does not exist")
+            self.logger.error(f"Today file {fn} does not exist")
             return
         # if it is the same file as being used
         if self.log_file_name == fn:
@@ -810,7 +810,7 @@ class MainWindow(QMainWindow):
                 self.log_file_name = self.log_table.file_name
                 # Create displayed columns list
                 self.columns = self.sort_columns()
-                self.fill_table_widget()
+                self.fill_table_widget(-1)
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
         except:
@@ -832,6 +832,22 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.insertColumn(cln)
             self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
             cln += 1
+
+    def insert_column(self, label, index=-1):
+        if index < 0:
+            index = self.tableWidget_3.columnCount()
+        self.tableWidget_3.insertColumn(index)
+        self.tableWidget_3.setHorizontalHeaderItem(index, QTableWidgetItem(label))
+
+    # def insert_columns(self):
+    #     cln = 0
+    #     for column in self.columns:
+    #         #n = self.tableWidget_3.columnCount()
+    #         #i = self.tableWidget_3.horizontalHeaderItem(n)
+    #         #i = self.tableWidget_3..setHorizontalHeaderLabels(labels)
+    #         self.tableWidget_3.insertColumn(cln)
+    #         self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
+    #         cln += 1
 
     def fill_table_widget(self, append=-1):
         # disable table widget update events
@@ -1145,25 +1161,27 @@ class LogTable:
         if file_name is None:
             file_name = self.file_name
         fn = os.path.abspath(os.path.join(folder, file_name))
-        self.logger.info('File %s will be processed' % fn)
         if not os.path.exists(fn):
             self.logger.warning('File %s does not exist' % fn)
             return None
         # if self.old_file_name == fn:
         #     pass
         fs = os.path.getsize(fn)
+        self.logger.info(f'File {fn} {fs} bytes will be processed')
         if fs < 20 or (self.file_name == fn and fs <= self.file_size):
-            # self.logger.warning('Wrong file size for %s' % fn)
+            self.logger.warning('Wrong file size for %s' % fn)
             return None
         # read file to buf
         try:
             # with open(fn, "r", encoding='windows-1251') as stream:
             with open(fn, "rb") as stream:
                 if self.file_name == fn:
+                    self.logger.debug(f'Positioning to {self.file_size}')
                     stream.seek(self.file_size)
                     # buf = stream.read(fs - self.old_file_size)
                 # else:
                 buf = stream.read()
+            self.logger.debug(f'{len(buf)} bytes has been red')
             buf1 = buf.decode('cp1251')
             self.old_file_name = self.file_name
             self.file_name = fn
