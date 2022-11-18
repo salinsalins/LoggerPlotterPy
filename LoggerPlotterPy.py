@@ -844,10 +844,11 @@ class MainWindow(QMainWindow):
     #     for column in self.columns:
     #         #n = self.tableWidget_3.columnCount()
     #         #i = self.tableWidget_3.horizontalHeaderItem(n)
-    #         #i = self.tableWidget_3..setHorizontalHeaderLabels(labels)
+    #         #i = self.tableWidget_3.setHorizontalHeaderLabels(labels)
     #         self.tableWidget_3.insertColumn(cln)
     #         self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
     #         cln += 1
+    #         self.tableWidget_3.horizontalHeaderItem(0).text()
 
     def fill_table_widget(self, append=-1):
         # disable table widget update events
