@@ -1087,7 +1087,7 @@ class MainWindow(QMainWindow):
     def timer_handler(self):
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
-        if (time.time() - self.sb_log.time) > 10.0:
+        if time.time() > self.sb_log.time:
             self.sb_log.setText('')
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
