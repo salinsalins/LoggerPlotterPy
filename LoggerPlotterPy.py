@@ -195,6 +195,7 @@ class MainWindow(QMainWindow):
         self.statusBar().addWidget(self.sb_log)
         sbhandler = WidgetLogHandler(self.sb_log)
         sbhandler.setLevel(logging.INFO)
+        sbhandler.setFormatter(config_logger.log_formatter)
         self.logger.addHandler(sbhandler)
         # status bar: END
 
