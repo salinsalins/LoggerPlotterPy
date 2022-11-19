@@ -52,8 +52,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '9.6'
-VERSION_DATE = "17-11-2022"
+APPLICATION_VERSION = '9.7'
+VERSION_DATE = "19-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -110,7 +110,7 @@ class MainWindow(QMainWindow):
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-        # self.tableWidget_3.focusChanged.connect(self.set_focus)
+        # self.tableWidget_3.focusOutEvent = self.focus_out
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
@@ -222,8 +222,9 @@ class MainWindow(QMainWindow):
         # select last row of widget -> tableSelectionChanged will be fired
         self.select_last_row()
 
-    def set_focus(self, n):
-        self.logger.debug('******** Enter %s', n)
+    def focus_out(self, ev):
+        print('********')
+        super().focusOutEvent(ev)
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -520,10 +521,11 @@ class MainWindow(QMainWindow):
         col = 0
         row = 0
         col_count = 3
+        l_count = layout.count()
         for c in signals:
             s = self.signal_list[c]
             # Use existing plot widgets or create new
-            if jj < layout.count():
+            if jj < l_count:
                 # use existing plot widget
                 mplw = layout.itemAt(jj).widget()
             else:
@@ -582,9 +584,9 @@ class MainWindow(QMainWindow):
             try:
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    # mplw.autoRange()
+                    mplw.autoRange()
             except:
-                pass
+                log_exception()
             # mplw.canvas.draw()
             jj += 1
         # Remove unused plot widgets
@@ -594,7 +596,12 @@ class MainWindow(QMainWindow):
                 continue
             w = item.widget()
             if w:
+                layout.removeWidget(w)
+                layout.removeItem(item)
                 w.deleteLater()
+                del w
+        layout.update()
+        # self.logger.info(f'{layout.count()} items remained')
         # self.logger.debug('End %s', time.time() - t0)
 
     @staticmethod
@@ -648,7 +655,7 @@ class MainWindow(QMainWindow):
             pass
 
     def update_status_bar(self):
-        if self.log_file_name is not None:
+        if self.log_file_name is not None and self.log_table is not None:
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
                 self.change_background()
@@ -689,7 +696,9 @@ class MainWindow(QMainWindow):
             self.restore_local_settings()
             if self.stackedWidget.currentIndex() == 0:
                 self.parse_folder()
-            # self.parse_folder()
+            else:
+                self.plainTextEdit_3.setPlainText('')
+                self.plainTextEdit_6.setPlainText('')
 
     def get_data_folder(self):
         if self.log_file_name is None:
@@ -1112,7 +1121,7 @@ class MainWindow(QMainWindow):
         # self.select_last_row()
         # self.restore_background()
         # self.last_selection = self.log_table.rows - 1
-        self.parse_folder(appen=True)
+        self.parse_folder()
 
     def select_last_row(self):
         # select last row
