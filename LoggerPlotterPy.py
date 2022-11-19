@@ -52,7 +52,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '9.5'
+APPLICATION_VERSION = '9.6'
 VERSION_DATE = "17-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -687,7 +687,9 @@ class MainWindow(QMainWindow):
             self.last_selection = -1
             self.current_selection = -1
             self.restore_local_settings()
-            self.parse_folder()
+            if self.stackedWidget.currentIndex() == 0:
+                self.parse_folder()
+            # self.parse_folder()
 
     def get_data_folder(self):
         if self.log_file_name is None:
@@ -794,7 +796,9 @@ class MainWindow(QMainWindow):
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
                 # Create displayed columns list
                 self.columns = self.sort_columns()
-                self.fill_table_widget(-1)
+                if not append:
+                    n = -1
+                self.fill_table_widget(n)
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
             else:
@@ -1108,7 +1112,7 @@ class MainWindow(QMainWindow):
         # self.select_last_row()
         # self.restore_background()
         # self.last_selection = self.log_table.rows - 1
-        self.parse_folder()
+        self.parse_folder(appen=True)
 
     def select_last_row(self):
         # select last row
