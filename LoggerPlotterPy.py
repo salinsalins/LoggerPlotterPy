@@ -30,7 +30,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint, QSize
 from PyQt5.QtCore import QTimer
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetSelectionRange
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QFrame, QMenu
 from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
@@ -222,9 +222,9 @@ class MainWindow(QMainWindow):
         # select last row of widget -> tableSelectionChanged will be fired
         self.select_last_row()
 
-    def focus_out(self, ev):
-        print('********')
-        super().focusOutEvent(ev)
+    def focus_out(self, *args, **kwargs):
+        # print('********')
+        super().focusOutEvent(*args, **kwargs)
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -412,8 +412,6 @@ class MainWindow(QMainWindow):
             gc.collect()
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
             self.tableWidget_3.setUpdatesEnabled(False)
-            self.restore_background()
-            self.last_selection = self.current_selection
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
@@ -426,9 +424,14 @@ class MainWindow(QMainWindow):
                 self.calculate_extra_plots()
                 self.signals = self.sort_plots()
                 self.plot_signals()
+                self.restore_background()
+                self.last_selection = self.current_selection
                 self.current_selection = row_s
                 self.update_status_bar()
             except:
+                r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
+                                               self.tableWidget_3.columnCount()-1)
+                self.tableWidget_3.setRangeSelected(r, True)
                 log_exception(self)
             finally:
                 self.tableWidget_3.setUpdatesEnabled(True)
@@ -646,6 +649,7 @@ class MainWindow(QMainWindow):
         try:
             if row is None:
                 row = self.last_cell_row
+                # self.last_cell_row = None
             if column is None:
                 column = self.last_cell_column
             if color is None:
@@ -795,7 +799,8 @@ class MainWindow(QMainWindow):
                 self.logger.info('Data file not found')
                 return
             self.sb_text.setText('Reading %s' % file_name)
-            self.logger.info('Reading data file %s', file_name)
+            self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
+            self.logger.info('Parsing %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             if self.log_table.file_name == file_name:
@@ -824,6 +829,7 @@ class MainWindow(QMainWindow):
                 self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
+        self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
         self.update_status_bar()
         return
 
@@ -1178,10 +1184,11 @@ class LogTable:
         # if self.old_file_name == fn:
         #     pass
         fs = os.path.getsize(fn)
-        self.logger.info(f'File {fn} {fs} bytes will be processed')
         if fs < 20 or (self.file_name == fn and fs <= self.file_size):
-            self.logger.warning('Wrong file size for %s' % fn)
+            if fs < self.file_size:
+                self.logger.warning('Wrong file size for %s' % fn)
             return None
+        self.logger.info(f'File {fn} will be processed. File length {fs} bytes')
         # read file to buf
         try:
             # with open(fn, "r", encoding='windows-1251') as stream:
