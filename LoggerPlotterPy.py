@@ -101,6 +101,9 @@ class MainWindow(QMainWindow):
         self.last_cell_background = None
         self.last_cell_row = None
         self.last_cell_column = None
+        self.last_green_cell_background = None
+        self.last_green_cell_row = None
+        self.last_green_cell_column = None
         self.log_table = None
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
@@ -110,6 +113,7 @@ class MainWindow(QMainWindow):
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
+        self.tableWidget_3.Changed.connect(self.table_selection_changed)
         # self.tableWidget_3.focusChanged.connect(self.set_focus)
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         # Menu actions connection
@@ -387,11 +391,11 @@ class MainWindow(QMainWindow):
         # top row of the selection
         row_s = rng[0].topRow()
         # if selected the same row
-        if self.last_selection == row_s:
+        if self.current_selection == row_s:
             self.logger.debug('Selection unchanged')
-            return row_s
-        # different row selected
-        self.logger.debug('Selection changed to row %i', row_s)
+        else:
+            # different row selected
+            self.logger.debug(f'Selection changed to {row_s} from {self.current_selection}')
         return row_s
 
     def sig(self, name):
@@ -410,6 +414,7 @@ class MainWindow(QMainWindow):
             gc.collect()
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
             self.tableWidget_3.setUpdatesEnabled(False)
+            # self.restore_background(color=GREEN)
             self.restore_background()
             self.last_selection = self.current_selection
             try:
@@ -623,31 +628,49 @@ class MainWindow(QMainWindow):
             return default
 
     def change_background(self, row=None, column=0, color=YELLOW):
-        self.restore_background()
+        self.restore_background(row=row, column=column, color=color)
         try:
-            if row is None:
-                row = self.last_selection
-            self.last_cell_background = self.tableWidget_3.item(row, column).background()
-            self.last_cell_row = row
-            self.last_cell_column = column
+            if color == YELLOW:
+                if row is None:
+                    row = self.last_selection
+                self.last_cell_background = self.tableWidget_3.item(row, column).background()
+                self.last_cell_row = row
+                self.last_cell_column = column
+            elif color == GREEN:
+                if row is None:
+                    row = self.current_selection
+                self.last_green_cell_background = self.tableWidget_3.item(row, column).background()
+                self.last_green_cell_row = row
+                self.last_green_cell_column = column
+            else:
+                return
             self.tableWidget_3.item(row, column).setBackground(color)
         except:
             pass
 
     def restore_background(self, row=None, column=None, color=None):
         try:
-            if row is None:
-                row = self.last_cell_row
-            if column is None:
-                column = self.last_cell_column
-            if color is None:
+            if color == YELLOW:
+                if row is None:
+                    row = self.last_cell_row
+                if column is None:
+                    column = self.last_cell_column
                 color = self.last_cell_background
+            elif color == GREEN:
+                if row is None:
+                    row = self.last_green_cell_row
+                if column is None:
+                    column = self.last_green_cell_column
+                color = self.last_green_cell_background
+            else:
+                return
             self.tableWidget_3.item(row, column).setBackground(color)
         except:
             pass
 
     def update_status_bar(self):
         if self.log_file_name is not None:
+            self.change_background(color=GREEN)
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
                 self.change_background()
