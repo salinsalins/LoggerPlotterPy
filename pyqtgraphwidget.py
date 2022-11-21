@@ -38,7 +38,9 @@ class CustomViewBox(pyqtgraph.ViewBox):
             pyqtgraph.ViewBox.mouseDragEvent(self, ev, **kwargs)
 
     def wheelEvent(self, ev, axis=None):
+        # print('wheel1')
         ev.ignore()
+        # ev.accept()
 
     def clearScaleHistory(self):
         self.axHistory = []  # maintain a history of zoom locations
@@ -60,6 +62,10 @@ class MplWidget(pyqtgraph.PlotWidget):
     def clearScaleHistory(self):
         self.getPlotItem().vb.clearScaleHistory()
 
+    def wheelEvent(self, ev, axis=None):
+        # print('wheel2')
+        ev.ignore()
+        # ev.accept()
 
 class MplAdapter:
     def __init__(self, item):
