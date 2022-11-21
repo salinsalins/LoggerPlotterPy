@@ -30,7 +30,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint, QSize
 from PyQt5.QtCore import QTimer
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetSelectionRange
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QFrame, QMenu
 from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
@@ -52,8 +52,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '9.5'
-VERSION_DATE = "17-11-2022"
+APPLICATION_VERSION = '9.7'
+VERSION_DATE = "19-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -101,9 +101,6 @@ class MainWindow(QMainWindow):
         self.last_cell_background = None
         self.last_cell_row = None
         self.last_cell_column = None
-        self.last_green_cell_background = None
-        self.last_green_cell_row = None
-        self.last_green_cell_column = None
         self.log_table = None
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
@@ -113,8 +110,7 @@ class MainWindow(QMainWindow):
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-        self.tableWidget_3.Changed.connect(self.table_selection_changed)
-        # self.tableWidget_3.focusChanged.connect(self.set_focus)
+        # self.tableWidget_3.focusOutEvent = self.focus_out
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
@@ -199,6 +195,7 @@ class MainWindow(QMainWindow):
         self.statusBar().addWidget(self.sb_log)
         sbhandler = WidgetLogHandler(self.sb_log)
         sbhandler.setLevel(logging.INFO)
+        sbhandler.setFormatter(config_logger.log_formatter)
         self.logger.addHandler(sbhandler)
         # status bar: END
 
@@ -225,8 +222,9 @@ class MainWindow(QMainWindow):
         # select last row of widget -> tableSelectionChanged will be fired
         self.select_last_row()
 
-    def set_focus(self, n):
-        self.logger.debug('******** Enter %s', n)
+    def focus_out(self, *args, **kwargs):
+        # print('********')
+        super().focusOutEvent(*args, **kwargs)
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -391,11 +389,11 @@ class MainWindow(QMainWindow):
         # top row of the selection
         row_s = rng[0].topRow()
         # if selected the same row
-        if self.current_selection == row_s:
+        if self.last_selection == row_s:
             self.logger.debug('Selection unchanged')
-        else:
-            # different row selected
-            self.logger.debug(f'Selection changed to {row_s} from {self.current_selection}')
+            return row_s
+        # different row selected
+        self.logger.debug('Selection changed to row %i', row_s)
         return row_s
 
     def sig(self, name):
@@ -414,9 +412,6 @@ class MainWindow(QMainWindow):
             gc.collect()
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
             self.tableWidget_3.setUpdatesEnabled(False)
-            # self.restore_background(color=GREEN)
-            self.restore_background()
-            self.last_selection = self.current_selection
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
@@ -429,9 +424,14 @@ class MainWindow(QMainWindow):
                 self.calculate_extra_plots()
                 self.signals = self.sort_plots()
                 self.plot_signals()
+                self.restore_background()
+                self.last_selection = self.current_selection
                 self.current_selection = row_s
                 self.update_status_bar()
             except:
+                r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
+                                               self.tableWidget_3.columnCount()-1)
+                self.tableWidget_3.setRangeSelected(r, True)
                 log_exception(self)
             finally:
                 self.tableWidget_3.setUpdatesEnabled(True)
@@ -524,10 +524,11 @@ class MainWindow(QMainWindow):
         col = 0
         row = 0
         col_count = 3
+        l_count = layout.count()
         for c in signals:
             s = self.signal_list[c]
             # Use existing plot widgets or create new
-            if jj < layout.count():
+            if jj < l_count:
                 # use existing plot widget
                 mplw = layout.itemAt(jj).widget()
             else:
@@ -586,9 +587,9 @@ class MainWindow(QMainWindow):
             try:
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    # mplw.autoRange()
+                    mplw.autoRange()
             except:
-                pass
+                log_exception()
             # mplw.canvas.draw()
             jj += 1
         # Remove unused plot widgets
@@ -598,7 +599,12 @@ class MainWindow(QMainWindow):
                 continue
             w = item.widget()
             if w:
+                layout.removeWidget(w)
+                layout.removeItem(item)
                 w.deleteLater()
+                del w
+        layout.update()
+        # self.logger.info(f'{layout.count()} items remained')
         # self.logger.debug('End %s', time.time() - t0)
 
     @staticmethod
@@ -628,49 +634,32 @@ class MainWindow(QMainWindow):
             return default
 
     def change_background(self, row=None, column=0, color=YELLOW):
-        self.restore_background(row=row, column=column, color=color)
+        self.restore_background()
         try:
-            if color == YELLOW:
-                if row is None:
-                    row = self.last_selection
-                self.last_cell_background = self.tableWidget_3.item(row, column).background()
-                self.last_cell_row = row
-                self.last_cell_column = column
-            elif color == GREEN:
-                if row is None:
-                    row = self.current_selection
-                self.last_green_cell_background = self.tableWidget_3.item(row, column).background()
-                self.last_green_cell_row = row
-                self.last_green_cell_column = column
-            else:
-                return
+            if row is None:
+                row = self.last_selection
+            self.last_cell_background = self.tableWidget_3.item(row, column).background()
+            self.last_cell_row = row
+            self.last_cell_column = column
             self.tableWidget_3.item(row, column).setBackground(color)
         except:
             pass
 
     def restore_background(self, row=None, column=None, color=None):
         try:
-            if color == YELLOW:
-                if row is None:
-                    row = self.last_cell_row
-                if column is None:
-                    column = self.last_cell_column
+            if row is None:
+                row = self.last_cell_row
+                # self.last_cell_row = None
+            if column is None:
+                column = self.last_cell_column
+            if color is None:
                 color = self.last_cell_background
-            elif color == GREEN:
-                if row is None:
-                    row = self.last_green_cell_row
-                if column is None:
-                    column = self.last_green_cell_column
-                color = self.last_green_cell_background
-            else:
-                return
             self.tableWidget_3.item(row, column).setBackground(color)
         except:
             pass
 
     def update_status_bar(self):
-        if self.log_file_name is not None:
-            self.change_background(color=GREEN)
+        if self.log_file_name is not None and self.log_table is not None:
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
                 self.change_background()
@@ -709,7 +698,11 @@ class MainWindow(QMainWindow):
             self.last_selection = -1
             self.current_selection = -1
             self.restore_local_settings()
-            self.parse_folder()
+            if self.stackedWidget.currentIndex() == 0:
+                self.parse_folder()
+            else:
+                self.plainTextEdit_3.setPlainText('')
+                self.plainTextEdit_6.setPlainText('')
 
     def get_data_folder(self):
         if self.log_file_name is None:
@@ -806,7 +799,8 @@ class MainWindow(QMainWindow):
                 self.logger.info('Data file not found')
                 return
             self.sb_text.setText('Reading %s' % file_name)
-            self.logger.info('Reading data file %s', file_name)
+            self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
+            self.logger.info('Parsing %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             if self.log_table.file_name == file_name:
@@ -816,7 +810,9 @@ class MainWindow(QMainWindow):
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
                 # Create displayed columns list
                 self.columns = self.sort_columns()
-                self.fill_table_widget(-1)
+                if not append:
+                    n = -1
+                self.fill_table_widget(n)
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
             else:
@@ -833,6 +829,7 @@ class MainWindow(QMainWindow):
                 self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
+        self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
         self.update_status_bar()
         return
 
@@ -1110,7 +1107,7 @@ class MainWindow(QMainWindow):
     def timer_handler(self):
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
-        if (time.time() - self.sb_log.time) > 10.0:
+        if time.time() > self.sb_log.time:
             self.sb_log.setText('')
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
@@ -1187,10 +1184,11 @@ class LogTable:
         # if self.old_file_name == fn:
         #     pass
         fs = os.path.getsize(fn)
-        self.logger.info(f'File {fn} {fs} bytes will be processed')
         if fs < 20 or (self.file_name == fn and fs <= self.file_size):
-            self.logger.warning('Wrong file size for %s' % fn)
+            if fs < self.file_size:
+                self.logger.warning('Wrong file size for %s' % fn)
             return None
+        self.logger.info(f'File {fn} will be processed. File length {fs} bytes')
         # read file to buf
         try:
             # with open(fn, "r", encoding='windows-1251') as stream:
