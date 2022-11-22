@@ -226,6 +226,41 @@ class MainWindow(QMainWindow):
         # print('********')
         super().focusOutEvent(*args, **kwargs)
 
+    def plot_click_menu(self, n):
+        # print('menu', n)
+        cursor = QtGui.QCursor()
+        position = cursor.pos()
+        # position = n
+        menu = QMenu()
+        hide_plot = menu.addAction("Hide plot")
+        test_action = menu.addAction("Test action")
+        action = menu.exec(position)
+        if action is None:
+            return
+        if action == hide_plot:
+            print("Hide", n)
+            # remove from shown columns list
+            t = self.tableWidget_3.horizontalHeaderItem(n).text()
+            text = self.plainTextEdit_2.toPlainText()
+            t1 = '\n' + t
+            t2 = t + '\n'
+            t3 = t1 + '\n'
+            if t3 in text:
+                text = text.replace(t3, '\n')
+            elif text.startswith(t2):
+                text = text.replace(t2, '')
+            elif text.endswith(t1):
+                text = text.replace(t1, '')
+            else:
+                text = text.replace(t, '')
+            text = text.replace('\n\n', '\n')
+            self.plainTextEdit_2.setPlainText(text)
+            # add to hidden columns list (unsorted!)
+            text = self.plainTextEdit_3.toPlainText()
+            self.plainTextEdit_3.setPlainText(text + t + '\n')
+            # hide column
+            self.tableWidget_3.hideColumn(n)
+
     def table_header_right_click_menu(self, n):
         # print('menu', n)
         cursor = QtGui.QCursor()

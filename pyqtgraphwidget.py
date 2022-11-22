@@ -25,7 +25,7 @@ class CustomViewBox(pyqtgraph.ViewBox):
         self.setBackgroundColor('#1d648da0')
         # self.setBorder(pen=('green', 5))
         self.my_menu = QMenu()
-        #self.my_menu.setTitle("Double click test menu")
+        # self.my_menu.setTitle("Double click test menu")
         self.my_menu.addAction('Hide plot')
         self.my_menu.addAction('test action2')
 
@@ -34,8 +34,10 @@ class CustomViewBox(pyqtgraph.ViewBox):
         # print('menu1')
         if ev.double() and ev.button() == QtCore.Qt.LeftButton:
             ev.accept()
-            #self.my_menu.popup(ev.screenPos().toPoint())
+            # self.my_menu.popup(ev.screenPos().toPoint())
             action = self.my_menu.exec(ev.screenPos().toPoint())
+            if action is None:
+                return
             print('action', action.text(), action)
             if action.text() == 'Hide plot':
                 pass
@@ -62,6 +64,7 @@ class CustomViewBox(pyqtgraph.ViewBox):
     def clearScaleHistory(self):
         self.axHistory = []  # maintain a history of zoom locations
         self.axHistoryPointer = -1  # pointer into the history. Allows forward/backward movement, not just "undo"
+
     def action(self):
         print('action')
 
@@ -70,14 +73,13 @@ class MplWidget(pyqtgraph.PlotWidget):
     def __init__(self, parent=None, height=300, width=300):
         super().__init__(parent, viewBox=CustomViewBox())
         self.canvas = MplAdapter(self)
-        self.canvas.ax = MplAdapter(self)
+        self.canvas.ax = self.canvas
         self.ntb = ToolBar()
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
         self.getPlotItem().showGrid(True, True)
         # self.getPlotItem().getAxis('left').setBackgroundColor('w')
         # pyqtgraph.GridItem().setPen('k')
-
 
     def clearScaleHistory(self):
         self.getPlotItem().vb.clearScaleHistory()
@@ -91,7 +93,6 @@ class MplWidget(pyqtgraph.PlotWidget):
         ev.ignore()
 
     def mouseClickEvent(self, ev):
-        print('menu2')
         ev.ignore()
 
 
