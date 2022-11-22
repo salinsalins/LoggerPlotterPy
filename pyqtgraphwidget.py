@@ -5,6 +5,8 @@ Created on 16 april 2021
 '''
 
 import pyqtgraph
+from PyQt5 import QtGui
+from PyQt5.QtWidgets import QMenu
 from pyqtgraph.Qt import QtCore
 
 # pg = pyqtgraph
@@ -22,10 +24,22 @@ class CustomViewBox(pyqtgraph.ViewBox):
         self.setMouseMode(self.RectMode)
         self.setBackgroundColor('#1d648da0')
         # self.setBorder(pen=('green', 5))
+        self.my_menu = QMenu()
+        self.my_menu.setTitle("Double click test menu")
+        self.my_menu.addAction('test action1')
+        self.my_menu.addAction('test action2')
 
     # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
+        # print('menu1')
+        if ev.double() and ev.button() == QtCore.Qt.LeftButton:
+            ev.accept()
+            #self.my_menu.popup(ev.screenPos().toPoint())
+            action = self.my_menu.exec(ev.screenPos().toPoint())
+            print('action', action)
+
         if ev.button() == QtCore.Qt.RightButton:
+            ev.accept()
             if ev.double():
                 pyqtgraph.ViewBox.mouseClickEvent(self, ev)
             else:
@@ -33,7 +47,8 @@ class CustomViewBox(pyqtgraph.ViewBox):
 
     def mouseDragEvent(self, ev, **kwargs):
         if ev.button() != QtCore.Qt.LeftButton:
-            ev.ignore()
+            ev.accept()
+            # ev.ignore()
         else:
             pyqtgraph.ViewBox.mouseDragEvent(self, ev, **kwargs)
 
@@ -45,6 +60,8 @@ class CustomViewBox(pyqtgraph.ViewBox):
     def clearScaleHistory(self):
         self.axHistory = []  # maintain a history of zoom locations
         self.axHistoryPointer = -1  # pointer into the history. Allows forward/backward movement, not just "undo"
+    def action(self):
+        print('action')
 
 
 class MplWidget(pyqtgraph.PlotWidget):
@@ -59,6 +76,7 @@ class MplWidget(pyqtgraph.PlotWidget):
         # self.getPlotItem().getAxis('left').setBackgroundColor('w')
         # pyqtgraph.GridItem().setPen('k')
 
+
     def clearScaleHistory(self):
         self.getPlotItem().vb.clearScaleHistory()
 
@@ -66,6 +84,14 @@ class MplWidget(pyqtgraph.PlotWidget):
         # print('wheel2')
         ev.ignore()
         # ev.accept()
+
+    def mouseDragEvent(self, ev, **kwargs):
+        ev.ignore()
+
+    def mouseClickEvent(self, ev):
+        print('menu2')
+        ev.ignore()
+
 
 class MplAdapter:
     def __init__(self, item):
