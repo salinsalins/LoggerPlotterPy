@@ -25,8 +25,8 @@ class CustomViewBox(pyqtgraph.ViewBox):
         self.setBackgroundColor('#1d648da0')
         # self.setBorder(pen=('green', 5))
         self.my_menu = QMenu()
-        self.my_menu.setTitle("Double click test menu")
-        self.my_menu.addAction('test action1')
+        #self.my_menu.setTitle("Double click test menu")
+        self.my_menu.addAction('Hide plot')
         self.my_menu.addAction('test action2')
 
     # reimplement right-click to zoom out
@@ -36,7 +36,9 @@ class CustomViewBox(pyqtgraph.ViewBox):
             ev.accept()
             #self.my_menu.popup(ev.screenPos().toPoint())
             action = self.my_menu.exec(ev.screenPos().toPoint())
-            print('action', action)
+            print('action', action.text(), action)
+            if action.text() == 'Hide plot':
+                pass
 
         if ev.button() == QtCore.Qt.RightButton:
             ev.accept()
