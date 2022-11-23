@@ -454,7 +454,7 @@ class MainWindow(QMainWindow):
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
                 zip_file_name = self.log_table.column("File")[row_s]
-                self.logger.debug('Using zip File %s', zip_file_name)
+                self.logger.debug('Using zip File %s from %s', (zip_file_name, folder))
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list
                 self.signal_list = self.data_file.read_all_signals()
