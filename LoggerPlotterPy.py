@@ -447,7 +447,7 @@ class MainWindow(QMainWindow):
         if row_s < 0:
             return
         if force or self.current_selection != row_s:
-            gc.collect()
+            # gc.collect()
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
             self.tableWidget_3.setUpdatesEnabled(False)
             try:
