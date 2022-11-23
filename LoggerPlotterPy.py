@@ -701,17 +701,19 @@ class MainWindow(QMainWindow):
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.checkBox_2.isChecked() and self.last_selection >= 0:
                 self.change_background()
-                # self.tableWidget_3.item(self.last_selection, 0).setBackground(YELLOW)
                 last_sel_time = self.log_table.column("Time")[self.last_selection]
                 self.sb_prev_shot_time.setVisible(True)
                 self.sb_prev_shot_time.setText(last_sel_time)
-                # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
             else:
                 self.sb_prev_shot_time.setVisible(False)
                 self.sb_prev_shot_time.setText("**:**:**")
-            green_time = self.log_table.column("Time")[self.current_selection]
-            self.sb_green_time.setVisible(True)
-            self.sb_green_time.setText(green_time)
+            if self.current_selection >= 0:
+                green_time = self.log_table.column("Time")[self.current_selection]
+                self.sb_green_time.setVisible(True)
+                self.sb_green_time.setText(green_time)
+            else:
+                self.sb_green_time.setVisible(False)
+                self.sb_green_time.setText('**:**:**')
         else:
             self.sb_text.setText('Data file not found')
             self.sb_prev_shot_time.setVisible(False)
@@ -838,6 +840,7 @@ class MainWindow(QMainWindow):
                 self.sb_text.setText('Data file not found')
                 self.logger.warning('Data file not found')
                 return
+            file_name = os.path.abspath(file_name)
             self.sb_text.setText('Reading %s' % file_name)
             self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
             self.logger.info('Parsing %s', file_name)
@@ -847,25 +850,28 @@ class MainWindow(QMainWindow):
                 self.logger.debug("Appending from log file")
                 buf = self.log_table.read_log_to_buf()
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
-                # Create displayed columns list
-                self.columns = self.sort_columns()
                 if not append:
                     n = -1
-                self.fill_table_widget(n)
-                # select last row of widget -> tableSelectionChanged will be fired
-                self.select_last_row()
+                # # Create displayed columns list
+                # self.columns = self.sort_columns()
+                # self.fill_table_widget(n)
+                # # select last row of widget -> tableSelectionChanged will be fired
+                # self.select_last_row()
             else:
                 self.logger.debug("Clean log table and refill")
-                self.log_table.__init__(self.log_file_name, extra_cols=self.extra_cols,
+                self.log_table.__init__(file_name, extra_cols=self.extra_cols,
                                         show_line_flag=self.checkBox_6.isChecked())
                 if self.log_table.file_name is None:
                     return
-                self.log_file_name = self.log_table.file_name
-                # Create displayed columns list
-                self.columns = self.sort_columns()
-                self.fill_table_widget(-1)
-                # select last row of widget -> tableSelectionChanged will be fired
-                self.select_last_row()
+                self.log_file_name = file_name
+                n = -1
+                self.last_selection = -1
+                self.current_selection = -1
+            # Create displayed columns list
+            self.columns = self.sort_columns()
+            self.fill_table_widget(n)
+            # select last row of widget -> tableSelectionChanged will be fired
+            self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
         self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
@@ -905,15 +911,15 @@ class MainWindow(QMainWindow):
     #         self.tableWidget_3.horizontalHeaderItem(0).text()
 
     def fill_table_widget(self, append=-1):
+        if append == 0:
+            return
         # disable table widget update events
         self.tableWidget_3.setUpdatesEnabled(False)
         try:
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
             log_exception(self)
-        if append == 0:
-            return
-        elif append < 0:
+        if append < 0:
             # clear table widget
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
@@ -921,11 +927,11 @@ class MainWindow(QMainWindow):
             # for column in self.columns:
             #     self.insert_column(column)
             # row_range = range(self.log_table.rows)
-        else:
-            # insert columns
-            # for column in self.columns[self.tableWidget_3.columnCount():]:
-            #     self.insert_column(column)
-            row_range = range(self.log_table.rows - append, self.log_table.rows)
+        # else:
+        #     # insert columns
+        #     # for column in self.columns[self.tableWidget_3.columnCount():]:
+        #     #     self.insert_column(column)
+        #     row_range = range(self.log_table.rows - append, self.log_table.rows)
         for column in self.columns[self.tableWidget_3.columnCount():]:
             self.insert_column(column)
         row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
@@ -1176,11 +1182,12 @@ class MainWindow(QMainWindow):
 
     def select_last_row(self):
         # select last row
-        if self.checkBox_4.isChecked():
+        if self.checkBox_4.isChecked() or self.current_selection < 0:
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
             self.last_selection = self.tableWidget_3.rowCount() - 1
             self.logger.debug('Selection has been switched to last row')
         else:
+            self.tableWidget_3.selectRow(self.current_selection)
             self.logger.debug('Selection switch to last row rejected')
 
 
