@@ -431,7 +431,7 @@ class MainWindow(QMainWindow):
             self.logger.debug('Selection unchanged')
             return row_s
         # different row selected
-        self.logger.debug('Selection changed to row %i', row_s)
+        self.logger.debug('Selection changed from %s to %i', (self.last_selection, row_s))
         return row_s
 
     def sig(self, name):
