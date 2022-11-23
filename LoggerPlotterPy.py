@@ -720,15 +720,18 @@ class MainWindow(QMainWindow):
             self.sb_green_time.setText('**:**:**')
 
     def file_selection_changed(self, m):
-        # self.logger.debug('Selection changed to %s' % str(m))
+        self.logger.debug('File selection changed to %s' % m)
         if m < 0:
             return
         new_log_file = str(self.comboBox_2.currentText())
+        new_log_file = os.path.abspath(new_log_file)
         if not os.path.exists(new_log_file):
             self.logger.warning('File %s not found' % new_log_file)
             self.comboBox_2.removeItem(m)
             return
         if self.log_file_name != new_log_file:
+            self.logger.debug('New file selected %s' % new_log_file)
+            self.save_local_settings()
             self.log_file_name = new_log_file
             # clear signal list
             self.signal_list = []
@@ -736,11 +739,10 @@ class MainWindow(QMainWindow):
             self.last_selection = -1
             self.current_selection = -1
             self.restore_local_settings()
+            self.plainTextEdit_3.setPlainText('')
+            self.plainTextEdit_6.setPlainText('')
             if self.stackedWidget.currentIndex() == 0:
                 self.parse_folder()
-            else:
-                self.plainTextEdit_3.setPlainText('')
-                self.plainTextEdit_6.setPlainText('')
 
     def get_data_folder(self):
         if self.log_file_name is None:
@@ -834,7 +836,7 @@ class MainWindow(QMainWindow):
                 file_name = self.log_file_name
             if file_name is None:
                 self.sb_text.setText('Data file not found')
-                self.logger.info('Data file not found')
+                self.logger.warning('Data file not found')
                 return
             self.sb_text.setText('Reading %s' % file_name)
             self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
@@ -980,7 +982,7 @@ class MainWindow(QMainWindow):
             file_name = CONFIG_FILE
         if config is None:
             config = self.conf
-        full_name = os.path.join(str(folder), file_name)
+        full_name = os.path.abspath(os.path.join(str(folder), file_name))
         try:
             # save window size and position
             p = self.pos()
@@ -1014,7 +1016,7 @@ class MainWindow(QMainWindow):
         global CONFIG_FILE
         if file_name is None:
             file_name = CONFIG_FILE
-        full_name = os.path.join(str(folder), file_name)
+        full_name = os.path.abspath(os.path.join(str(folder), file_name))
         try:
             with open(full_name, 'r') as configfile:
                 s = configfile.read()
@@ -1117,7 +1119,7 @@ class MainWindow(QMainWindow):
             return True
         # look for the file "lock.lock" in the folder of the log file
         folder = os.path.dirname(self.log_file_name)
-        file = os.path.join(folder, "lock.lock")
+        file = os.path.abspath(os.path.join(folder, "lock.lock"))
         if os.path.exists(file):
             return True
         return False
@@ -1572,7 +1574,7 @@ class DataFile:
         self.file_name = None
         self.files = []
         self.signals = []
-        full_name = os.path.join(folder, file_name)
+        full_name = os.path.abspath(os.path.join(folder, file_name))
         with zipfile.ZipFile(full_name, 'r') as zip_file:
             self.files = zip_file.namelist()
         self.file_name = full_name
