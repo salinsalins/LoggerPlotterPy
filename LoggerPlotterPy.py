@@ -431,7 +431,7 @@ class MainWindow(QMainWindow):
             self.logger.debug('Selection unchanged')
             return row_s
         # different row selected
-        self.logger.debug('Selection changed from %s to %i', (self.last_selection, row_s))
+        self.logger.debug('Selection changed from %s to %i', self.last_selection, row_s)
         return row_s
 
     def sig(self, name):
@@ -454,7 +454,7 @@ class MainWindow(QMainWindow):
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
                 zip_file_name = self.log_table.column("File")[row_s]
-                self.logger.debug('Using zip File %s from %s', (zip_file_name, folder))
+                self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list
                 self.signal_list = self.data_file.read_all_signals()
@@ -845,7 +845,6 @@ class MainWindow(QMainWindow):
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
             if self.log_table.file_name == file_name:
                 self.logger.debug("Appending from log file")
-                # append
                 buf = self.log_table.read_log_to_buf()
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
                 # Create displayed columns list
@@ -856,7 +855,7 @@ class MainWindow(QMainWindow):
                 # select last row of widget -> tableSelectionChanged will be fired
                 self.select_last_row()
             else:
-                self.logger.debug("Clean log table and refill from new log file")
+                self.logger.debug("Clean log table and refill")
                 self.log_table.__init__(self.log_file_name, extra_cols=self.extra_cols,
                                         show_line_flag=self.checkBox_6.isChecked())
                 if self.log_table.file_name is None:
@@ -911,7 +910,7 @@ class MainWindow(QMainWindow):
         try:
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
-            log_exception()
+            log_exception(self)
         if append == 0:
             return
         elif append < 0:
@@ -919,17 +918,15 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
             # insert columns
-            cln = 0
             for column in self.columns:
-                self.tableWidget_3.insertColumn(cln)
-                self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
-                cln += 1
+                self.insert_column(column)
             row_range = range(self.log_table.rows)
         else:
             # insert columns
             for column in self.columns[self.tableWidget_3.columnCount():]:
                 self.insert_column(column)
             row_range = range(self.log_table.rows - append, self.log_table.rows)
+        row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
         # insert and fill rows
         for row in row_range:
             self.tableWidget_3.insertRow(row)
@@ -969,12 +966,12 @@ class MainWindow(QMainWindow):
                 n += 1
         # resize Columns
         self.tableWidget_3.resizeColumnsToContents()
-        # enable table widget update events
-        self.tableWidget_3.setUpdatesEnabled(True)
-        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
         #
         self.tableWidget_3.scrollToBottom()
         self.tableWidget_3.setFocus()
+        # enable table widget update events
+        self.tableWidget_3.setUpdatesEnabled(True)
+        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
 
     def save_settings(self, folder='', file_name=None, config=None):
         global CONFIG_FILE
@@ -1096,8 +1093,14 @@ class MainWindow(QMainWindow):
 
     def config_selection_changed(self, index):
         global CONFIG_FILE
+        old_config_file = CONFIG_FILE
         CONFIG_FILE = str(self.sb_combo.currentText())
-        self.restore_settings()
+        self.save_settings()
+        self.save_local_settings()
+        if not self.restore_settings():
+            CONFIG_FILE = old_config_file
+            self.restore_settings()
+            return
         self.restore_local_settings()
         self.table_selection_changed(True)
         self.parse_folder()
@@ -1228,7 +1231,7 @@ class LogTable:
             if fs < self.file_size:
                 self.logger.warning('Wrong file size for %s' % fn)
             return None
-        self.logger.info(f'File {fn} will be processed. File length {fs} bytes')
+        self.logger.debug(f'File {fn} will be processed. File length {fs} bytes')
         # read file to buf
         try:
             # with open(fn, "r", encoding='windows-1251') as stream:
