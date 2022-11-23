@@ -918,14 +918,16 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
             # insert columns
-            for column in self.columns:
-                self.insert_column(column)
-            row_range = range(self.log_table.rows)
+            # for column in self.columns:
+            #     self.insert_column(column)
+            # row_range = range(self.log_table.rows)
         else:
             # insert columns
-            for column in self.columns[self.tableWidget_3.columnCount():]:
-                self.insert_column(column)
+            # for column in self.columns[self.tableWidget_3.columnCount():]:
+            #     self.insert_column(column)
             row_range = range(self.log_table.rows - append, self.log_table.rows)
+        for column in self.columns[self.tableWidget_3.columnCount():]:
+            self.insert_column(column)
         row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
         # insert and fill rows
         for row in row_range:
