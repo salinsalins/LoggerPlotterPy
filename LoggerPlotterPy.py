@@ -74,6 +74,20 @@ ZERO_COLOR = '#0000ff'
 config = Configuration(CONFIG_FILE)
 
 
+def remove_from_text(text: str, removed: str):
+    lines = text.split('\n')
+    try:
+        n = lines.index(removed)
+        lines.pop(n)
+        result = '\n'.join(lines)
+        result = result.replace('\n\n', '\n')
+        if result.endswith('\n'):
+            result = result[:-1]
+        return result
+    except:
+        return text
+
+
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -226,7 +240,7 @@ class MainWindow(QMainWindow):
         # print('********')
         super().focusOutEvent(*args, **kwargs)
 
-    def plot_click_menu(self, n):
+    def plot_click_menu(self, signal_name):
         # print('menu', n)
         cursor = QtGui.QCursor()
         position = cursor.pos()
@@ -238,28 +252,16 @@ class MainWindow(QMainWindow):
         if action is None:
             return
         if action == hide_plot:
-            print("Hide", n)
-            # remove from shown columns list
-            t = self.tableWidget_3.horizontalHeaderItem(n).text()
-            text = self.plainTextEdit_2.toPlainText()
-            t1 = '\n' + t
-            t2 = t + '\n'
-            t3 = t1 + '\n'
-            if t3 in text:
-                text = text.replace(t3, '\n')
-            elif text.startswith(t2):
-                text = text.replace(t2, '')
-            elif text.endswith(t1):
-                text = text.replace(t1, '')
-            else:
-                text = text.replace(t, '')
+            print("Hide", signal_name)
+            # remove from shown plots list
+            t = signal_name
+            text = self.plainTextEdit_7.toPlainText()
+            text = text.replace(t, '')
             text = text.replace('\n\n', '\n')
-            self.plainTextEdit_2.setPlainText(text)
+            self.plainTextEdit_7.setPlainText(text)
             # add to hidden columns list (unsorted!)
-            text = self.plainTextEdit_3.toPlainText()
-            self.plainTextEdit_3.setPlainText(text + t + '\n')
-            # hide column
-            self.tableWidget_3.hideColumn(n)
+            text = self.plainTextEdit_6.toPlainText()
+            self.plainTextEdit_6.setPlainText(text + t + '\n')
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -375,6 +377,7 @@ class MainWindow(QMainWindow):
         # if fn is empty
         if fn is None or fn == '':
             return
+        fn = os.path.abspath(fn)
         # if it is the same file as being used
         if self.log_file_name == fn:
             return
@@ -384,7 +387,7 @@ class MainWindow(QMainWindow):
             # add file name to history
             self.comboBox_2.insertItem(-1, fn)
             i = 0
-            self.comboBox_2.setCurrentIndex(i)
+            # self.comboBox_2.setCurrentIndex(i)
         # change selection and fire callback
         if self.comboBox_2.currentIndex() != i:
             self.comboBox_2.setCurrentIndex(i)
@@ -465,7 +468,7 @@ class MainWindow(QMainWindow):
                 self.update_status_bar()
             except:
                 r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
-                                               self.tableWidget_3.columnCount()-1)
+                                               self.tableWidget_3.columnCount() - 1)
                 self.tableWidget_3.setRangeSelected(r, True)
                 log_exception(self)
             finally:
