@@ -27,22 +27,21 @@ class CustomViewBox(pyqtgraph.ViewBox):
         self.my_menu = QMenu()
         # self.my_menu.setTitle("Double click test menu")
         self.my_menu.addAction('Hide plot')
-        self.my_menu.addAction('test action2')
+        self.my_menu.addAction('Show plot')
 
     # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
-        # print('menu1')
         if ev.double() and ev.button() == QtCore.Qt.LeftButton:
             ev.accept()
             # self.my_menu.popup(ev.screenPos().toPoint())
             action = self.my_menu.exec(ev.screenPos().toPoint())
             if action is None:
                 return
-            print('action', action.text(), action)
             if action.text() == 'Hide plot':
-                pass
-
-        if ev.button() == QtCore.Qt.RightButton:
+                self.mplw.my_action.hide_plot(self.mplw.my_name)
+            elif action.text() == 'Show plot':
+                self.mplw.my_action.show_plot(self.mplw.my_name)
+        elif ev.button() == QtCore.Qt.RightButton:
             ev.accept()
             if ev.double():
                 pyqtgraph.ViewBox.mouseClickEvent(self, ev)
@@ -71,7 +70,9 @@ class CustomViewBox(pyqtgraph.ViewBox):
 
 class MplWidget(pyqtgraph.PlotWidget):
     def __init__(self, parent=None, height=300, width=300):
-        super().__init__(parent, viewBox=CustomViewBox())
+        vb = CustomViewBox()
+        vb.mplw = self
+        super().__init__(parent, viewBox=vb)
         self.canvas = MplAdapter(self)
         self.canvas.ax = self.canvas
         self.ntb = ToolBar()

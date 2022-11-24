@@ -83,6 +83,8 @@ def remove_from_text(text: str, removed: str):
         result = result.replace('\n\n', '\n')
         if result.endswith('\n'):
             result = result[:-1]
+        if result.startswith('\n'):
+            result = result[1:]
         return result
     except:
         return text
@@ -270,13 +272,39 @@ class MainWindow(QMainWindow):
         text = self.plainTextEdit_7.toPlainText()
         if signal_name not in text:
             return
-        text = text.replace(signal_name, '')
-        text = text.replace('\n\n', '\n')
-        self.plainTextEdit_7.setPlainText(text)
+        self.plainTextEdit_7.setPlainText(remove_from_text(text, signal_name))
         # add to hidden columns list
         text = self.plainTextEdit_6.toPlainText()+ '\n' + signal_name
         self.plainTextEdit_6.setPlainText(text)
         self.sort_text_edit_widget(self.plainTextEdit_6)
+        # add extra plots
+        self.calculate_extra_plots()
+        self.signals = self.sort_plots()
+        self.plot_signals()
+
+    def show_plot(self, signal_name):
+        print('hide plot')
+        hidden = self.plainTextEdit_6.toPlainText()
+        lines = hidden.split('\n')
+        cursor = QtGui.QCursor()
+        position = cursor.pos()
+        # position = n
+        menu = QMenu()
+        actions = []
+        for s in lines:
+            if s != '':
+                actions.append(menu.addAction(s))
+        action = menu.exec(position)
+        if action is None:
+            return
+        print(action.text(), signal_name)
+        displayed = self.plainTextEdit_7.toPlainText()
+        displayed.replace(signal_name, signal_name+'\n'+action.text())
+        print(displayed)
+        self.plainTextEdit_7.setPlainText(displayed)
+        # add extra plots
+        self.calculate_extra_plots()
+        self.signals = self.sort_plots()
         self.plot_signals()
 
     def table_header_right_click_menu(self, n):
@@ -591,7 +619,8 @@ class MainWindow(QMainWindow):
                 mplw.ntb.setIconSize(QSize(18, 18))
                 mplw.ntb.setFixedSize(300, 24)
                 layout.addWidget(mplw, row, col)
-            ## mplw.my_action = lambda: self.hide_plot(s.name)
+            mplw.my_action = self
+            mplw.my_name = s.name
             col += 1
             if col >= col_count:
                 col = 0
@@ -870,6 +899,9 @@ class MainWindow(QMainWindow):
                 buf = self.log_table.read_log_to_buf()
                 if not buf:
                     self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
+                    self.calculate_extra_plots()
+                    self.signals = self.sort_plots()
+                    self.plot_signals()
                     self.update_status_bar()
                     return
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
