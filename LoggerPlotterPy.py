@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
         # self.select_last_row()
 
     def focus_out(self, *args, **kwargs):
-        print('********' , args)
+        print('********', args)
         # super().focusOutEvent(*args, **kwargs)
 
     def plot_click_menu(self, signal_name):
@@ -265,6 +265,19 @@ class MainWindow(QMainWindow):
             # add to hidden columns list (unsorted!)
             text = self.plainTextEdit_6.toPlainText()
             self.plainTextEdit_6.setPlainText(text + t + '\n')
+
+    def hide_plot(self, signal_name):
+        text = self.plainTextEdit_7.toPlainText()
+        if signal_name not in text:
+            return
+        text = text.replace(signal_name, '')
+        text = text.replace('\n\n', '\n')
+        self.plainTextEdit_7.setPlainText(text)
+        # add to hidden columns list
+        text = self.plainTextEdit_6.toPlainText()+ '\n' + signal_name
+        self.plainTextEdit_6.setPlainText(text)
+        self.sort_text_edit_widget(self.plainTextEdit_6)
+        self.plot_signals()
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -578,6 +591,7 @@ class MainWindow(QMainWindow):
                 mplw.ntb.setIconSize(QSize(18, 18))
                 mplw.ntb.setFixedSize(300, 24)
                 layout.addWidget(mplw, row, col)
+            ## mplw.my_action = lambda: self.hide_plot(s.name)
             col += 1
             if col >= col_count:
                 col = 0
