@@ -238,10 +238,12 @@ class MainWindow(QMainWindow):
         # self.select_last_row()
 
     def focus_out(self, *args, **kwargs):
-        # print('********')
-        super().focusOutEvent(*args, **kwargs)
+        print('********' , args)
+        # super().focusOutEvent(*args, **kwargs)
 
     def plot_click_menu(self, signal_name):
+        if self.stackedWidget.currentIndex() != 0:
+            return
         # print('menu', n)
         cursor = QtGui.QCursor()
         position = cursor.pos()
