@@ -75,19 +75,26 @@ config = Configuration(CONFIG_FILE)
 
 
 def remove_from_text(text: str, removed: str):
-    lines = text.split('\n')
-    try:
-        n = lines.index(removed)
-        lines.pop(n)
-        result = '\n'.join(lines)
-        result = result.replace('\n\n', '\n')
-        if result.endswith('\n'):
-            result = result[:-1]
-        if result.startswith('\n'):
-            result = result[1:]
-        return result
-    except:
+    if text == '':
         return text
+    lines = text.split('\n')
+    res = [line.strip() for line in lines if line != removed and line != '']
+    if len(res) <= 0:
+        return ''
+    return '\n'.join(res)
+
+    # try:
+    #     n = lines.index(removed)
+    #     lines.pop(n)
+    #     result = '\n'.join(lines)
+    #     result = result.replace('\n\n', '\n')
+    #     if result.endswith('\n'):
+    #         result = result[:-1]
+    #     if result.startswith('\n'):
+    #         result = result[1:]
+    #     return result
+    # except:
+    #     return text
 
 
 def remove_from_widget(widget, removed: str):
@@ -294,6 +301,8 @@ class MainWindow(QMainWindow):
         for s in hidden_lines:
             if s != '':
                 actions.append(menu.addAction(s))
+        if len(actions) <= 0:
+            return
         action = menu.exec(position)
         if action is None:
             return
@@ -316,11 +325,12 @@ class MainWindow(QMainWindow):
         for s in hidden_lines:
             if s != '':
                 actions.append(menu.addAction(s))
+        if len(actions) <= 0:
+            return
         action = menu.exec(position)
         if action is None:
             return
         displayed = self.plainTextEdit_2.toPlainText()
-        # displayed_lines = displayed.split('\n')
         current = self.tableWidget_3.horizontalHeaderItem(n).text()
         displayed = displayed.replace(current, current + '\n' + action.text())
         self.plainTextEdit_2.setPlainText(displayed)
@@ -354,22 +364,11 @@ class MainWindow(QMainWindow):
             # remove from shown columns list
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
             text = self.plainTextEdit_2.toPlainText()
-            t1 = '\n' + t
-            t2 = t + '\n'
-            t3 = t1 + '\n'
-            if t3 in text:
-                text = text.replace(t3, '\n')
-            elif text.startswith(t2):
-                text = text.replace(t2, '')
-            elif text.endswith(t1):
-                text = text.replace(t1, '')
-            else:
-                text = text.replace(t, '')
-            text = text.replace('\n\n', '\n')
-            self.plainTextEdit_2.setPlainText(text)
-            # add to hidden columns list (unsorted!)
+            self.plainTextEdit_2.setPlainText(remove_from_text(text, t))
+            # add to hidden columns list
             text = self.plainTextEdit_3.toPlainText()
             self.plainTextEdit_3.setPlainText(text + t + '\n')
+            self.sort_text_edit_widget(self.plainTextEdit_3)
         elif action == show_action:
             self.show_column(n)
         elif n > 1 and action == left_action:
@@ -547,8 +546,11 @@ class MainWindow(QMainWindow):
 
         # add extra plots from plainTextEdit_4
         extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
+        # show_plots = self.plainTextEdit_6.toPlainText().split('\n')
         for p in extra_plots:
             p = p.strip()
+            # if p not in show_plots:
+            #     continue
             if p != "":
                 try:
                     s = None
