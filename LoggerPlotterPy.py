@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
         print(action.text(), signal_name)
         displayed = self.plainTextEdit_7.toPlainText()
         displayed_lines = displayed.split('\n')
-        displayed.replace(signal_name, signal_name+'\n'+action.text())
+        displayed = displayed.replace(signal_name, signal_name+'\n'+action.text())
         print(displayed)
         self.plainTextEdit_7.setPlainText(displayed)
         self.plot_signals()
