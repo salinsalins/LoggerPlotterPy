@@ -5,6 +5,8 @@ Created on 16 april 2021
 '''
 
 import pyqtgraph
+from PyQt5 import QtGui
+from PyQt5.QtWidgets import QMenu
 from pyqtgraph.Qt import QtCore
 
 # pg = pyqtgraph
@@ -22,10 +24,25 @@ class CustomViewBox(pyqtgraph.ViewBox):
         self.setMouseMode(self.RectMode)
         self.setBackgroundColor('#1d648da0')
         # self.setBorder(pen=('green', 5))
+        self.my_menu = QMenu()
+        # self.my_menu.setTitle("Double click test menu")
+        self.my_menu.addAction('Hide plot')
+        self.my_menu.addAction('Show plot')
 
     # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton:
+        if ev.double() and ev.button() == QtCore.Qt.LeftButton:
+            ev.accept()
+            # self.my_menu.popup(ev.screenPos().toPoint())
+            action = self.my_menu.exec(ev.screenPos().toPoint())
+            if action is None:
+                return
+            if action.text() == 'Hide plot':
+                self.mplw.my_action.hide_plot(self.mplw.my_name)
+            elif action.text() == 'Show plot':
+                self.mplw.my_action.show_plot(self.mplw.my_name)
+        elif ev.button() == QtCore.Qt.RightButton:
+            ev.accept()
             if ev.double():
                 pyqtgraph.ViewBox.mouseClickEvent(self, ev)
             else:
@@ -33,7 +50,8 @@ class CustomViewBox(pyqtgraph.ViewBox):
 
     def mouseDragEvent(self, ev, **kwargs):
         if ev.button() != QtCore.Qt.LeftButton:
-            ev.ignore()
+            ev.accept()
+            # ev.ignore()
         else:
             pyqtgraph.ViewBox.mouseDragEvent(self, ev, **kwargs)
 
@@ -46,12 +64,17 @@ class CustomViewBox(pyqtgraph.ViewBox):
         self.axHistory = []  # maintain a history of zoom locations
         self.axHistoryPointer = -1  # pointer into the history. Allows forward/backward movement, not just "undo"
 
+    def action(self):
+        print('action')
+
 
 class MplWidget(pyqtgraph.PlotWidget):
     def __init__(self, parent=None, height=300, width=300):
-        super().__init__(parent, viewBox=CustomViewBox())
+        vb = CustomViewBox()
+        vb.mplw = self
+        super().__init__(parent, viewBox=vb)
         self.canvas = MplAdapter(self)
-        self.canvas.ax = MplAdapter(self)
+        self.canvas.ax = self.canvas
         self.ntb = ToolBar()
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
@@ -66,6 +89,13 @@ class MplWidget(pyqtgraph.PlotWidget):
         # print('wheel2')
         ev.ignore()
         # ev.accept()
+
+    def mouseDragEvent(self, ev, **kwargs):
+        ev.ignore()
+
+    def mouseClickEvent(self, ev):
+        ev.ignore()
+
 
 class MplAdapter:
     def __init__(self, item):

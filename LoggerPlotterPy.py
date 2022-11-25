@@ -52,8 +52,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '9.9'
-VERSION_DATE = "21-11-2022"
+APPLICATION_VERSION = '10.0'
+VERSION_DATE = "25-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -72,6 +72,27 @@ ZERO_COLOR = '#0000ff'
 
 # Global configuration dictionary
 config = Configuration(CONFIG_FILE)
+
+
+def remove_from_text(text: str, removed: str):
+    lines = text.split('\n')
+    try:
+        n = lines.index(removed)
+        lines.pop(n)
+        result = '\n'.join(lines)
+        result = result.replace('\n\n', '\n')
+        if result.endswith('\n'):
+            result = result[:-1]
+        if result.startswith('\n'):
+            result = result[1:]
+        return result
+    except:
+        return text
+
+
+def remove_from_widget(widget, removed: str):
+    text = widget.toPlainText()
+    widget.setPlainText(remove_from_text(text, removed))
 
 
 class MainWindow(QMainWindow):
@@ -99,8 +120,8 @@ class MainWindow(QMainWindow):
         self.excluded = []
         self.columns = []
         self.last_cell_background = None
-        self.last_cell_row = None
-        self.last_cell_column = None
+        self.last_cell_row = -1
+        self.last_cell_column = -1
         self.log_table = None
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
@@ -210,21 +231,104 @@ class MainWindow(QMainWindow):
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
 
-        self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-        self.log_table = LogTable(self.log_file_name, extra_cols=self.extra_cols,
-                                  show_line_flag=self.checkBox_6.isChecked())
-        if self.log_table.file_name is None:
-            return
-        self.log_file_name = self.log_table.file_name
-        # Create displayed columns list
-        self.columns = self.sort_columns()
-        self.fill_table_widget()
-        # select last row of widget -> tableSelectionChanged will be fired
-        self.select_last_row()
+        self.parse_folder()
+        # self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
+        # self.log_table = LogTable(self.log_file_name, extra_cols=self.extra_cols,
+        #                           show_line_flag=self.checkBox_6.isChecked())
+        # if self.log_table.file_name is None:
+        #     return
+        # self.log_file_name = self.log_table.file_name
+        # # Create displayed columns list
+        # self.columns = self.sort_columns()
+        # self.fill_table_widget()
+        # # select last row of widget -> tableSelectionChanged will be fired
+        # self.select_last_row()
 
     def focus_out(self, *args, **kwargs):
-        # print('********')
-        super().focusOutEvent(*args, **kwargs)
+        print('********', args)
+        # super().focusOutEvent(*args, **kwargs)
+
+    def plot_click_menu(self, signal_name):
+        if self.stackedWidget.currentIndex() != 0:
+            return
+        # print('menu', n)
+        cursor = QtGui.QCursor()
+        position = cursor.pos()
+        # position = n
+        menu = QMenu()
+        hide_plot = menu.addAction("Hide plot")
+        test_action = menu.addAction("Test action")
+        action = menu.exec(position)
+        if action is None:
+            return
+        if action == hide_plot:
+            print("Hide", signal_name)
+            # remove from shown plots list
+            t = signal_name
+            text = self.plainTextEdit_7.toPlainText()
+            text = text.replace(t, '')
+            text = text.replace('\n\n', '\n')
+            self.plainTextEdit_7.setPlainText(text)
+            # add to hidden columns list (unsorted!)
+            text = self.plainTextEdit_6.toPlainText()
+            self.plainTextEdit_6.setPlainText(text + t + '\n')
+
+    def hide_plot(self, signal_name):
+        text = self.plainTextEdit_7.toPlainText()
+        if signal_name not in text:
+            return
+        self.plainTextEdit_7.setPlainText(remove_from_text(text, signal_name))
+        # add to hidden columns list
+        text = self.plainTextEdit_6.toPlainText() + '\n' + signal_name
+        self.plainTextEdit_6.setPlainText(text)
+        self.sort_text_edit_widget(self.plainTextEdit_6)
+        self.plot_signals()
+
+    def show_plot(self, signal_name):
+        cursor = QtGui.QCursor()
+        position = cursor.pos()
+        hidden = self.plainTextEdit_6.toPlainText()
+        hidden_lines = hidden.split('\n')
+        menu = QMenu()
+        actions = []
+        for s in hidden_lines:
+            if s != '':
+                actions.append(menu.addAction(s))
+        action = menu.exec(position)
+        if action is None:
+            return
+        # print(action.text(), signal_name)
+        displayed = self.plainTextEdit_7.toPlainText()
+        # displayed_lines = displayed.split('\n')
+        displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
+        # print(displayed)
+        self.plainTextEdit_7.setPlainText(displayed)
+        self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
+        self.plot_signals()
+
+    def show_column(self, n):
+        cursor = QtGui.QCursor()
+        position = cursor.pos()
+        hidden = self.plainTextEdit_3.toPlainText()
+        hidden_lines = hidden.split('\n')
+        menu = QMenu()
+        actions = []
+        for s in hidden_lines:
+            if s != '':
+                actions.append(menu.addAction(s))
+        action = menu.exec(position)
+        if action is None:
+            return
+        displayed = self.plainTextEdit_2.toPlainText()
+        # displayed_lines = displayed.split('\n')
+        current = self.tableWidget_3.horizontalHeaderItem(n).text()
+        displayed = displayed.replace(current, current + '\n' + action.text())
+        self.plainTextEdit_2.setPlainText(displayed)
+        self.plainTextEdit_3.setPlainText(remove_from_text(hidden, action.text()))
+        # self.columns = self.sort_columns()
+        # self.fill_table_widget()
+        # self.tableWidget_3.selectRow(self.current_selection)
+        # self.change_background()
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -233,6 +337,7 @@ class MainWindow(QMainWindow):
         # position = n
         menu = QMenu()
         hide_action = menu.addAction("Hide column")
+        show_action = menu.addAction("Show column")
         if n < self.tableWidget_3.columnCount() - 1:
             right_action = menu.addAction("Move right")
         else:
@@ -244,7 +349,7 @@ class MainWindow(QMainWindow):
         action = menu.exec(position)
         if action is None:
             return
-        if action == hide_action:
+        elif action == hide_action:
             # print("Hide", n)
             # remove from shown columns list
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
@@ -265,9 +370,9 @@ class MainWindow(QMainWindow):
             # add to hidden columns list (unsorted!)
             text = self.plainTextEdit_3.toPlainText()
             self.plainTextEdit_3.setPlainText(text + t + '\n')
-            # hide column
-            self.tableWidget_3.hideColumn(n)
-        if n > 1 and action == left_action:
+        elif action == show_action:
+            self.show_column(n)
+        elif n > 1 and action == left_action:
             # print("Move Left", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
             t2 = self.tableWidget_3.horizontalHeaderItem(n - 1).text()
@@ -276,11 +381,7 @@ class MainWindow(QMainWindow):
             text = text.replace(t2, t1)
             text = text.replace('*+-=*', t2)
             self.plainTextEdit_2.setPlainText(text)
-            self.columns = self.sort_columns()
-            self.fill_table_widget()
-            self.tableWidget_3.selectRow(self.current_selection)
-            self.change_background()
-        if n < self.tableWidget_3.columnCount() - 1 and action == right_action:
+        elif n < self.tableWidget_3.columnCount() - 1 and action == right_action:
             # print("Move Right", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
             t2 = self.tableWidget_3.horizontalHeaderItem(n + 1).text()
@@ -289,10 +390,10 @@ class MainWindow(QMainWindow):
             text = text.replace(t2, t1)
             text = text.replace('****', t2)
             self.plainTextEdit_2.setPlainText(text)
-            self.columns = self.sort_columns()
-            self.fill_table_widget()
-            self.tableWidget_3.selectRow(self.current_selection)
-            self.change_background()
+        self.columns = self.sort_columns()
+        self.fill_table_widget()
+        self.tableWidget_3.selectRow(self.current_selection)
+        self.change_background()
 
     def table_header_right_click_menu_wrap(self, a, *args):
         # i = self.tableWidget_3.horizontalHeader().currentIndex()
@@ -340,6 +441,7 @@ class MainWindow(QMainWindow):
         # if fn is empty
         if fn is None or fn == '':
             return
+        fn = os.path.abspath(fn)
         # if it is the same file as being used
         if self.log_file_name == fn:
             return
@@ -349,7 +451,7 @@ class MainWindow(QMainWindow):
             # add file name to history
             self.comboBox_2.insertItem(-1, fn)
             i = 0
-            self.comboBox_2.setCurrentIndex(i)
+            # self.comboBox_2.setCurrentIndex(i)
         # change selection and fire callback
         if self.comboBox_2.currentIndex() != i:
             self.comboBox_2.setCurrentIndex(i)
@@ -393,7 +495,7 @@ class MainWindow(QMainWindow):
             self.logger.debug('Selection unchanged')
             return row_s
         # different row selected
-        self.logger.debug('Selection changed to row %i', row_s)
+        self.logger.debug('Selection changed from %s to %i', self.last_selection, row_s)
         return row_s
 
     def sig(self, name):
@@ -409,20 +511,17 @@ class MainWindow(QMainWindow):
         if row_s < 0:
             return
         if force or self.current_selection != row_s:
-            gc.collect()
+            # gc.collect()
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
             self.tableWidget_3.setUpdatesEnabled(False)
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
                 zip_file_name = self.log_table.column("File")[row_s]
-                self.logger.debug('Using zip File %s', zip_file_name)
+                self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list
                 self.signal_list = self.data_file.read_all_signals()
-                # add extra plots
-                self.calculate_extra_plots()
-                self.signals = self.sort_plots()
                 self.plot_signals()
                 self.restore_background()
                 self.last_selection = self.current_selection
@@ -430,7 +529,7 @@ class MainWindow(QMainWindow):
                 self.update_status_bar()
             except:
                 r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
-                                               self.tableWidget_3.columnCount()-1)
+                                               self.tableWidget_3.columnCount() - 1)
                 self.tableWidget_3.setRangeSelected(r, True)
                 log_exception(self)
             finally:
@@ -515,6 +614,8 @@ class MainWindow(QMainWindow):
 
     def plot_signals(self, signals=None):
         if signals is None:
+            self.calculate_extra_plots()
+            self.signals = self.sort_plots()
             signals = self.signals
         # plot signals
         # t0 = time.time()
@@ -537,6 +638,8 @@ class MainWindow(QMainWindow):
                 mplw.ntb.setIconSize(QSize(18, 18))
                 mplw.ntb.setFixedSize(300, 24)
                 layout.addWidget(mplw, row, col)
+            mplw.my_action = self
+            mplw.my_name = s.name
             col += 1
             if col >= col_count:
                 col = 0
@@ -654,26 +757,30 @@ class MainWindow(QMainWindow):
                 column = self.last_cell_column
             if color is None:
                 color = self.last_cell_background
-            self.tableWidget_3.item(row, column).setBackground(color)
+            if row >= 0 and column >= 0:
+                self.tableWidget_3.item(row, column).setBackground(color)
         except:
             pass
 
     def update_status_bar(self):
         if self.log_file_name is not None and self.log_table is not None:
             self.sb_text.setText('File: %s' % self.log_file_name)
-            if self.checkBox_2.isChecked() and self.last_selection >= 0:
+            if self.last_selection >= 0:
                 self.change_background()
-                # self.tableWidget_3.item(self.last_selection, 0).setBackground(YELLOW)
                 last_sel_time = self.log_table.column("Time")[self.last_selection]
                 self.sb_prev_shot_time.setVisible(True)
                 self.sb_prev_shot_time.setText(last_sel_time)
-                # self.sblbl2.setText('File: %s;    Previous: %s' % (self.log_file_name, last_sel_time))
             else:
+                self.restore_background()
                 self.sb_prev_shot_time.setVisible(False)
                 self.sb_prev_shot_time.setText("**:**:**")
-            green_time = self.log_table.column("Time")[self.current_selection]
-            self.sb_green_time.setVisible(True)
-            self.sb_green_time.setText(green_time)
+            if self.current_selection >= 0:
+                green_time = self.log_table.column("Time")[self.current_selection]
+                self.sb_green_time.setVisible(True)
+                self.sb_green_time.setText(green_time)
+            else:
+                self.sb_green_time.setVisible(False)
+                self.sb_green_time.setText('**:**:**')
         else:
             self.sb_text.setText('Data file not found')
             self.sb_prev_shot_time.setVisible(False)
@@ -682,15 +789,18 @@ class MainWindow(QMainWindow):
             self.sb_green_time.setText('**:**:**')
 
     def file_selection_changed(self, m):
-        # self.logger.debug('Selection changed to %s' % str(m))
+        self.logger.debug('File selection changed to %s' % m)
         if m < 0:
             return
         new_log_file = str(self.comboBox_2.currentText())
+        new_log_file = os.path.abspath(new_log_file)
         if not os.path.exists(new_log_file):
             self.logger.warning('File %s not found' % new_log_file)
             self.comboBox_2.removeItem(m)
             return
         if self.log_file_name != new_log_file:
+            self.logger.debug('New file selected %s' % new_log_file)
+            self.save_local_settings()
             self.log_file_name = new_log_file
             # clear signal list
             self.signal_list = []
@@ -698,11 +808,10 @@ class MainWindow(QMainWindow):
             self.last_selection = -1
             self.current_selection = -1
             self.restore_local_settings()
+            self.plainTextEdit_3.setPlainText('')
+            self.plainTextEdit_6.setPlainText('')
             if self.stackedWidget.currentIndex() == 0:
                 self.parse_folder()
-            else:
-                self.plainTextEdit_3.setPlainText('')
-                self.plainTextEdit_6.setPlainText('')
 
     def get_data_folder(self):
         if self.log_file_name is None:
@@ -796,37 +905,48 @@ class MainWindow(QMainWindow):
                 file_name = self.log_file_name
             if file_name is None:
                 self.sb_text.setText('Data file not found')
-                self.logger.info('Data file not found')
+                self.logger.warning('Data file not found')
                 return
+            file_name = os.path.abspath(file_name)
             self.sb_text.setText('Reading %s' % file_name)
             self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
             self.logger.info('Parsing %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-            if self.log_table.file_name == file_name:
+            if self.log_table is not None and self.log_table.file_name == file_name:
                 self.logger.debug("Appending from log file")
-                # append
                 buf = self.log_table.read_log_to_buf()
+                if not buf:
+                    self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
+                    self.plot_signals()
+                    self.update_status_bar()
+                    return
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
-                # Create displayed columns list
-                self.columns = self.sort_columns()
                 if not append:
                     n = -1
-                self.fill_table_widget(n)
-                # select last row of widget -> tableSelectionChanged will be fired
-                self.select_last_row()
+                # # Create displayed columns list
+                # self.columns = self.sort_columns()
+                # self.fill_table_widget(n)
+                # # select last row of widget -> tableSelectionChanged will be fired
+                # self.select_last_row()
             else:
-                self.logger.debug("Clean log table and refill from new log file")
-                self.log_table.__init__(self.log_file_name, extra_cols=self.extra_cols,
-                                        show_line_flag=self.checkBox_6.isChecked())
+                self.logger.debug("Create new LogTable")
+                self.log_table = LogTable(self.log_file_name, extra_cols=self.extra_cols,
+                                          show_line_flag=self.checkBox_6.isChecked())
+                # self.log_table.__init__(file_name, extra_cols=self.extra_cols,
+                #                         show_line_flag=self.checkBox_6.isChecked())
+                # self.logger.debug("Clean log table and refill")
                 if self.log_table.file_name is None:
                     return
-                self.log_file_name = self.log_table.file_name
-                # Create displayed columns list
-                self.columns = self.sort_columns()
-                self.fill_table_widget(-1)
-                # select last row of widget -> tableSelectionChanged will be fired
-                self.select_last_row()
+                self.log_file_name = file_name
+                n = -1
+                self.last_selection = -1
+                self.current_selection = -1
+            # Create displayed columns list
+            self.columns = self.sort_columns()
+            self.fill_table_widget(n)
+            # select last row of widget -> tableSelectionChanged will be fired
+            self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
         self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
@@ -866,30 +986,30 @@ class MainWindow(QMainWindow):
     #         self.tableWidget_3.horizontalHeaderItem(0).text()
 
     def fill_table_widget(self, append=-1):
+        if append == 0:
+            return
         # disable table widget update events
         self.tableWidget_3.setUpdatesEnabled(False)
         try:
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
-            log_exception()
-        if append == 0:
-            return
-        elif append < 0:
+            log_exception(self)
+        if append < 0:
             # clear table widget
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
             # insert columns
-            cln = 0
-            for column in self.columns:
-                self.tableWidget_3.insertColumn(cln)
-                self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
-                cln += 1
-            row_range = range(self.log_table.rows)
-        else:
-            # insert columns
-            for column in self.columns[self.tableWidget_3.columnCount():]:
-                self.insert_column(column)
-            row_range = range(self.log_table.rows - append, self.log_table.rows)
+            # for column in self.columns:
+            #     self.insert_column(column)
+            # row_range = range(self.log_table.rows)
+        # else:
+        #     # insert columns
+        #     # for column in self.columns[self.tableWidget_3.columnCount():]:
+        #     #     self.insert_column(column)
+        #     row_range = range(self.log_table.rows - append, self.log_table.rows)
+        for column in self.columns[self.tableWidget_3.columnCount():]:
+            self.insert_column(column)
+        row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
         # insert and fill rows
         for row in row_range:
             self.tableWidget_3.insertRow(row)
@@ -929,12 +1049,12 @@ class MainWindow(QMainWindow):
                 n += 1
         # resize Columns
         self.tableWidget_3.resizeColumnsToContents()
-        # enable table widget update events
-        self.tableWidget_3.setUpdatesEnabled(True)
-        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
         #
         self.tableWidget_3.scrollToBottom()
         self.tableWidget_3.setFocus()
+        # enable table widget update events
+        self.tableWidget_3.setUpdatesEnabled(True)
+        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
 
     def save_settings(self, folder='', file_name=None, config=None):
         global CONFIG_FILE
@@ -942,7 +1062,7 @@ class MainWindow(QMainWindow):
             file_name = CONFIG_FILE
         if config is None:
             config = self.conf
-        full_name = os.path.join(str(folder), file_name)
+        full_name = os.path.abspath(os.path.join(str(folder), file_name))
         try:
             # save window size and position
             p = self.pos()
@@ -976,7 +1096,7 @@ class MainWindow(QMainWindow):
         global CONFIG_FILE
         if file_name is None:
             file_name = CONFIG_FILE
-        full_name = os.path.join(str(folder), file_name)
+        full_name = os.path.abspath(os.path.join(str(folder), file_name))
         try:
             with open(full_name, 'r') as configfile:
                 s = configfile.read()
@@ -1056,8 +1176,14 @@ class MainWindow(QMainWindow):
 
     def config_selection_changed(self, index):
         global CONFIG_FILE
+        old_config_file = CONFIG_FILE
         CONFIG_FILE = str(self.sb_combo.currentText())
-        self.restore_settings()
+        self.save_settings()
+        self.save_local_settings()
+        if not self.restore_settings():
+            CONFIG_FILE = old_config_file
+            self.restore_settings()
+            return
         self.restore_local_settings()
         self.table_selection_changed(True)
         self.parse_folder()
@@ -1079,7 +1205,7 @@ class MainWindow(QMainWindow):
             return True
         # look for the file "lock.lock" in the folder of the log file
         folder = os.path.dirname(self.log_file_name)
-        file = os.path.join(folder, "lock.lock")
+        file = os.path.abspath(os.path.join(folder, "lock.lock"))
         if os.path.exists(file):
             return True
         return False
@@ -1131,12 +1257,13 @@ class MainWindow(QMainWindow):
 
     def select_last_row(self):
         # select last row
-        if self.checkBox_4.isChecked():
+        if self.checkBox_4.isChecked() or self.current_selection < 0:
+            self.logger.debug('Selection will be switched to last row')
             self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
             self.last_selection = self.tableWidget_3.rowCount() - 1
-            self.logger.debug('Selection has been switched to last row')
         else:
             self.logger.debug('Selection switch to last row rejected')
+            self.tableWidget_3.selectRow(self.current_selection)
 
 
 class VLine(QFrame):
@@ -1188,7 +1315,7 @@ class LogTable:
             if fs < self.file_size:
                 self.logger.warning('Wrong file size for %s' % fn)
             return None
-        self.logger.info(f'File {fn} will be processed. File length {fs} bytes')
+        self.logger.debug(f'File {fn} will be processed. File length {fs} bytes')
         # read file to buf
         try:
             # with open(fn, "r", encoding='windows-1251') as stream:
@@ -1534,7 +1661,7 @@ class DataFile:
         self.file_name = None
         self.files = []
         self.signals = []
-        full_name = os.path.join(folder, file_name)
+        full_name = os.path.abspath(os.path.join(folder, file_name))
         with zipfile.ZipFile(full_name, 'r') as zip_file:
             self.files = zip_file.namelist()
         self.file_name = full_name
