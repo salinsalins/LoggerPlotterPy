@@ -277,21 +277,16 @@ class MainWindow(QMainWindow):
         text = self.plainTextEdit_6.toPlainText()+ '\n' + signal_name
         self.plainTextEdit_6.setPlainText(text)
         self.sort_text_edit_widget(self.plainTextEdit_6)
-        # add extra plots
-        self.calculate_extra_plots()
-        self.signals = self.sort_plots()
         self.plot_signals()
 
     def show_plot(self, signal_name):
-        print('hide plot')
-        hidden = self.plainTextEdit_6.toPlainText()
-        lines = hidden.split('\n')
         cursor = QtGui.QCursor()
         position = cursor.pos()
-        # position = n
+        hidden = self.plainTextEdit_6.toPlainText()
+        hidden_lines = hidden.split('\n')
         menu = QMenu()
         actions = []
-        for s in lines:
+        for s in hidden_lines:
             if s != '':
                 actions.append(menu.addAction(s))
         action = menu.exec(position)
@@ -299,12 +294,10 @@ class MainWindow(QMainWindow):
             return
         print(action.text(), signal_name)
         displayed = self.plainTextEdit_7.toPlainText()
+        displayed_lines = displayed.split('\n')
         displayed.replace(signal_name, signal_name+'\n'+action.text())
         print(displayed)
         self.plainTextEdit_7.setPlainText(displayed)
-        # add extra plots
-        self.calculate_extra_plots()
-        self.signals = self.sort_plots()
         self.plot_signals()
 
     def table_header_right_click_menu(self, n):
@@ -505,9 +498,6 @@ class MainWindow(QMainWindow):
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list
                 self.signal_list = self.data_file.read_all_signals()
-                # add extra plots
-                self.calculate_extra_plots()
-                self.signals = self.sort_plots()
                 self.plot_signals()
                 self.restore_background()
                 self.last_selection = self.current_selection
@@ -600,6 +590,8 @@ class MainWindow(QMainWindow):
 
     def plot_signals(self, signals=None):
         if signals is None:
+            self.calculate_extra_plots()
+            self.signals = self.sort_plots()
             signals = self.signals
         # plot signals
         # t0 = time.time()
@@ -902,8 +894,6 @@ class MainWindow(QMainWindow):
                 buf = self.log_table.read_log_to_buf()
                 if not buf:
                     self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
-                    self.calculate_extra_plots()
-                    self.signals = self.sort_plots()
                     self.plot_signals()
                     self.update_status_bar()
                     return
