@@ -90,6 +90,11 @@ def remove_from_text(text: str, removed: str):
         return text
 
 
+def remove_from_widget(widget, removed: str):
+    text = widget.toPlainText()
+    widget.setPlainText(remove_from_text(text, removed))
+
+
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -274,7 +279,7 @@ class MainWindow(QMainWindow):
             return
         self.plainTextEdit_7.setPlainText(remove_from_text(text, signal_name))
         # add to hidden columns list
-        text = self.plainTextEdit_6.toPlainText()+ '\n' + signal_name
+        text = self.plainTextEdit_6.toPlainText() + '\n' + signal_name
         self.plainTextEdit_6.setPlainText(text)
         self.sort_text_edit_widget(self.plainTextEdit_6)
         self.plot_signals()
@@ -295,11 +300,35 @@ class MainWindow(QMainWindow):
         # print(action.text(), signal_name)
         displayed = self.plainTextEdit_7.toPlainText()
         # displayed_lines = displayed.split('\n')
-        displayed = displayed.replace(signal_name, signal_name+'\n'+action.text())
+        displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
         # print(displayed)
         self.plainTextEdit_7.setPlainText(displayed)
         self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
         self.plot_signals()
+
+    def show_column(self, n):
+        cursor = QtGui.QCursor()
+        position = cursor.pos()
+        hidden = self.plainTextEdit_3.toPlainText()
+        hidden_lines = hidden.split('\n')
+        menu = QMenu()
+        actions = []
+        for s in hidden_lines:
+            if s != '':
+                actions.append(menu.addAction(s))
+        action = menu.exec(position)
+        if action is None:
+            return
+        displayed = self.plainTextEdit_2.toPlainText()
+        # displayed_lines = displayed.split('\n')
+        current = self.tableWidget_3.horizontalHeaderItem(n).text()
+        displayed = displayed.replace(current, current + '\n' + action.text())
+        self.plainTextEdit_2.setPlainText(displayed)
+        self.plainTextEdit_3.setPlainText(remove_from_text(hidden, action.text()))
+        # self.columns = self.sort_columns()
+        # self.fill_table_widget()
+        # self.tableWidget_3.selectRow(self.current_selection)
+        # self.change_background()
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -341,10 +370,8 @@ class MainWindow(QMainWindow):
             # add to hidden columns list (unsorted!)
             text = self.plainTextEdit_3.toPlainText()
             self.plainTextEdit_3.setPlainText(text + t + '\n')
-            # hide column
-            self.tableWidget_3.hideColumn(n)
         elif action == show_action:
-            pass
+            self.show_column(n)
         elif n > 1 and action == left_action:
             # print("Move Left", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
@@ -354,10 +381,6 @@ class MainWindow(QMainWindow):
             text = text.replace(t2, t1)
             text = text.replace('*+-=*', t2)
             self.plainTextEdit_2.setPlainText(text)
-            self.columns = self.sort_columns()
-            self.fill_table_widget()
-            self.tableWidget_3.selectRow(self.current_selection)
-            self.change_background()
         elif n < self.tableWidget_3.columnCount() - 1 and action == right_action:
             # print("Move Right", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
@@ -367,10 +390,10 @@ class MainWindow(QMainWindow):
             text = text.replace(t2, t1)
             text = text.replace('****', t2)
             self.plainTextEdit_2.setPlainText(text)
-            self.columns = self.sort_columns()
-            self.fill_table_widget()
-            self.tableWidget_3.selectRow(self.current_selection)
-            self.change_background()
+        self.columns = self.sort_columns()
+        self.fill_table_widget()
+        self.tableWidget_3.selectRow(self.current_selection)
+        self.change_background()
 
     def table_header_right_click_menu_wrap(self, a, *args):
         # i = self.tableWidget_3.horizontalHeader().currentIndex()
