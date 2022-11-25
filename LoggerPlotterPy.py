@@ -292,12 +292,13 @@ class MainWindow(QMainWindow):
         action = menu.exec(position)
         if action is None:
             return
-        print(action.text(), signal_name)
+        # print(action.text(), signal_name)
         displayed = self.plainTextEdit_7.toPlainText()
-        displayed_lines = displayed.split('\n')
+        # displayed_lines = displayed.split('\n')
         displayed = displayed.replace(signal_name, signal_name+'\n'+action.text())
-        print(displayed)
+        # print(displayed)
         self.plainTextEdit_7.setPlainText(displayed)
+        self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
         self.plot_signals()
 
     def table_header_right_click_menu(self, n):
