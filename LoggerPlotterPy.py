@@ -314,6 +314,7 @@ class MainWindow(QMainWindow):
         # position = n
         menu = QMenu()
         hide_action = menu.addAction("Hide column")
+        show_action = menu.addAction("Show column")
         if n < self.tableWidget_3.columnCount() - 1:
             right_action = menu.addAction("Move right")
         else:
@@ -325,7 +326,7 @@ class MainWindow(QMainWindow):
         action = menu.exec(position)
         if action is None:
             return
-        if action == hide_action:
+        elif action == hide_action:
             # print("Hide", n)
             # remove from shown columns list
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
@@ -348,7 +349,9 @@ class MainWindow(QMainWindow):
             self.plainTextEdit_3.setPlainText(text + t + '\n')
             # hide column
             self.tableWidget_3.hideColumn(n)
-        if n > 1 and action == left_action:
+        elif action == show_action:
+            pass
+        elif n > 1 and action == left_action:
             # print("Move Left", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
             t2 = self.tableWidget_3.horizontalHeaderItem(n - 1).text()
@@ -361,7 +364,7 @@ class MainWindow(QMainWindow):
             self.fill_table_widget()
             self.tableWidget_3.selectRow(self.current_selection)
             self.change_background()
-        if n < self.tableWidget_3.columnCount() - 1 and action == right_action:
+        elif n < self.tableWidget_3.columnCount() - 1 and action == right_action:
             # print("Move Right", n)
             t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
             t2 = self.tableWidget_3.horizontalHeaderItem(n + 1).text()
