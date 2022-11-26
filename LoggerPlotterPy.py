@@ -120,6 +120,7 @@ class MainWindow(QMainWindow):
         self.old_signal_list = []
         self.signals = []
         self.extra_cols = []
+        self.extra_plots = []
         self.data_file = None
         self.old_size = 0
         self.new_size = 0
@@ -288,6 +289,8 @@ class MainWindow(QMainWindow):
         # add to hidden columns list
         text = self.plainTextEdit_6.toPlainText() + '\n' + signal_name
         self.plainTextEdit_6.setPlainText(text)
+        print(text)
+        self.save_local_settings()
         self.sort_text_edit_widget(self.plainTextEdit_6)
         self.plot_signals()
 
@@ -312,6 +315,7 @@ class MainWindow(QMainWindow):
         displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
         # print(displayed)
         self.plainTextEdit_7.setPlainText(displayed)
+        self.save_local_settings()
         self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
         self.plot_signals()
 
@@ -519,7 +523,8 @@ class MainWindow(QMainWindow):
                 zip_file_name = self.log_table.column("File")[row_s]
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
-                self.old_signal_list = self.signal_list
+                self.old_signal_list = self.signal_list + self.extra_plots
+
                 self.signal_list = self.data_file.read_all_signals()
                 self.plot_signals()
                 self.restore_background()
@@ -544,6 +549,7 @@ class MainWindow(QMainWindow):
             raise ValueError('Signal %s not found' % name)
             # return None
 
+        self.extra_plots = []
         # add extra plots from plainTextEdit_4
         extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
         # show_plots = self.plainTextEdit_6.toPlainText().split('\n')
@@ -587,7 +593,8 @@ class MainWindow(QMainWindow):
                                 s.value = v
                         except:
                             pass
-                        self.signal_list.append(s)
+                        self.extra_plots.append(s)
+                        # self.signal_list.append(s)
                     else:
                         self.logger.info('Can not calculate signal for "%s ..."', p[:10])
                 except:
@@ -597,14 +604,15 @@ class MainWindow(QMainWindow):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
         hidden_plots = []
         ordered_plots = []
+        signal_list = self.signal_list + self.extra_plots
         for p in plot_order:
-            for s in self.signal_list:
+            for s in signal_list:
                 if s.name == p:
-                    ordered_plots.append(self.signal_list.index(s))
+                    ordered_plots.append(signal_list.index(s))
                     break
         # build list of hidden plots
-        for s in self.signal_list:
-            if self.signal_list.index(s) not in ordered_plots:
+        for s in signal_list:
+            if signal_list.index(s) not in ordered_plots:
                 hidden_plots.append(s.name)
         hidden_plots.sort()
         text = ''
@@ -628,8 +636,9 @@ class MainWindow(QMainWindow):
         row = 0
         col_count = 3
         l_count = layout.count()
+        signal_list = self.signal_list + self.extra_plots
         for c in signals:
-            s = self.signal_list[c]
+            s = signal_list[c]
             # Use existing plot widgets or create new
             if jj < l_count:
                 # use existing plot widget
