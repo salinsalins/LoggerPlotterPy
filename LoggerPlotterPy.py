@@ -52,8 +52,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '10.0'
-VERSION_DATE = "25-11-2022"
+APPLICATION_VERSION = '10.1'
+VERSION_DATE = "27-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -169,6 +169,7 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
+
         # status bar
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0;')
@@ -217,11 +218,12 @@ class MainWindow(QMainWindow):
         self.statusBar().addWidget(self.sb_text)
         self.statusBar().addWidget(VLine())  # <---
         self.sb_text.setText("Starting...")
-        # status bar: log show widget and connect logger to status bar
+        # status bar: log show widget
         self.sb_log = QLabel("")
         self.sb_log.setFont(STATUS_BAR_FONT)
         self.sb_log.time = time.time()
         self.statusBar().addWidget(self.sb_log)
+        # status bar: log show widget: log handler
         sbhandler = WidgetLogHandler(self.sb_log)
         sbhandler.setLevel(logging.INFO)
         sbhandler.setFormatter(config_logger.log_formatter)
@@ -230,12 +232,14 @@ class MainWindow(QMainWindow):
 
         # default settings
         self.set_default_settings()
+
         #
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
 
         # restore settings
         self.restore_settings()
         self.restore_local_settings()
+
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
 
@@ -252,46 +256,20 @@ class MainWindow(QMainWindow):
         # # select last row of widget -> tableSelectionChanged will be fired
         # self.select_last_row()
 
-    def focus_out(self, *args, **kwargs):
-        print('********', args)
-        # super().focusOutEvent(*args, **kwargs)
-
-    def plot_click_menu(self, signal_name):
-        if self.stackedWidget.currentIndex() != 0:
-            return
-        # print('menu', n)
-        cursor = QtGui.QCursor()
-        position = cursor.pos()
-        # position = n
-        menu = QMenu()
-        hide_plot = menu.addAction("Hide plot")
-        test_action = menu.addAction("Test action")
-        action = menu.exec(position)
-        if action is None:
-            return
-        if action == hide_plot:
-            print("Hide", signal_name)
-            # remove from shown plots list
-            t = signal_name
-            text = self.plainTextEdit_7.toPlainText()
-            text = text.replace(t, '')
-            text = text.replace('\n\n', '\n')
-            self.plainTextEdit_7.setPlainText(text)
-            # add to hidden columns list (unsorted!)
-            text = self.plainTextEdit_6.toPlainText()
-            self.plainTextEdit_6.setPlainText(text + t + '\n')
-
     def hide_plot(self, signal_name):
         text = self.plainTextEdit_7.toPlainText()
         if signal_name not in text:
             return
-        self.plainTextEdit_7.setPlainText(remove_from_text(text, signal_name))
+        new_text = remove_from_text(text, signal_name)
+        if new_text == '':
+            return
+        self.plainTextEdit_7.setPlainText(new_text)
         # add to hidden columns list
         text = self.plainTextEdit_6.toPlainText() + '\n' + signal_name
         self.plainTextEdit_6.setPlainText(text)
-        print(text)
-        self.save_local_settings()
         self.sort_text_edit_widget(self.plainTextEdit_6)
+        self.save_local_settings()
+        self.save_settings()
         self.plot_signals()
 
     def show_plot(self, signal_name):
@@ -302,21 +280,19 @@ class MainWindow(QMainWindow):
         menu = QMenu()
         actions = []
         for s in hidden_lines:
-            if s != '':
+            if s != '' and s not in actions:
                 actions.append(menu.addAction(s))
         if len(actions) <= 0:
             return
         action = menu.exec(position)
         if action is None:
             return
-        # print(action.text(), signal_name)
         displayed = self.plainTextEdit_7.toPlainText()
-        # displayed_lines = displayed.split('\n')
         displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
-        # print(displayed)
         self.plainTextEdit_7.setPlainText(displayed)
-        self.save_local_settings()
         self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
+        self.save_settings()
+        self.save_local_settings()
         self.plot_signals()
 
     def show_column(self, n):
@@ -924,6 +900,7 @@ class MainWindow(QMainWindow):
             self.logger.info('Parsing %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
+            # process log table
             if self.log_table is not None and self.log_table.file_name == file_name:
                 self.logger.debug("Appending from log file")
                 buf = self.log_table.read_log_to_buf()
@@ -942,7 +919,7 @@ class MainWindow(QMainWindow):
                 # self.select_last_row()
             else:
                 self.logger.debug("Create new LogTable")
-                self.log_table = LogTable(self.log_file_name, extra_cols=self.extra_cols,
+                self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
                                           show_line_flag=self.checkBox_6.isChecked())
                 # self.log_table.__init__(file_name, extra_cols=self.extra_cols,
                 #                         show_line_flag=self.checkBox_6.isChecked())
@@ -1261,17 +1238,14 @@ class MainWindow(QMainWindow):
         if self.new_size <= self.old_size:
             return
         self.logger.debug('New shot detected')
-        # self.select_last_row()
-        # self.restore_background()
-        # self.last_selection = self.log_table.rows - 1
         self.parse_folder()
 
     def select_last_row(self):
         # select last row
         if self.checkBox_4.isChecked() or self.current_selection < 0:
             self.logger.debug('Selection will be switched to last row')
-            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
-            self.last_selection = self.tableWidget_3.rowCount() - 1
+            n = self.tableWidget_3.rowCount() - 1
+            self.tableWidget_3.selectRow(n)
         else:
             self.logger.debug('Selection switch to last row rejected')
             self.tableWidget_3.selectRow(self.current_selection)
