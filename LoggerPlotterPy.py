@@ -244,17 +244,6 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.horizontalHeader().setVisible(True)
 
         self.parse_folder()
-        # self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-        # self.log_table = LogTable(self.log_file_name, extra_cols=self.extra_cols,
-        #                           show_line_flag=self.checkBox_6.isChecked())
-        # if self.log_table.file_name is None:
-        #     return
-        # self.log_file_name = self.log_table.file_name
-        # # Create displayed columns list
-        # self.columns = self.sort_columns()
-        # self.fill_table_widget()
-        # # select last row of widget -> tableSelectionChanged will be fired
-        # self.select_last_row()
 
     def hide_plot(self, signal_name):
         text = self.plainTextEdit_7.toPlainText()
@@ -369,7 +358,7 @@ class MainWindow(QMainWindow):
             text = text.replace(t2, t1)
             text = text.replace('****', t2)
             self.plainTextEdit_2.setPlainText(text)
-        self.columns = self.sort_columns()
+        # self.columns = self.sort_columns()
         self.fill_table_widget()
         self.tableWidget_3.selectRow(self.current_selection)
         self.change_background()
@@ -910,20 +899,12 @@ class MainWindow(QMainWindow):
                     self.update_status_bar()
                     return
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
-                if not append:
-                    n = -1
-                # # Create displayed columns list
-                # self.columns = self.sort_columns()
-                # self.fill_table_widget(n)
-                # # select last row of widget -> tableSelectionChanged will be fired
-                # self.select_last_row()
+                #if not append:
+                #    n = -1
             else:
                 self.logger.debug("Create new LogTable")
                 self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
                                           show_line_flag=self.checkBox_6.isChecked())
-                # self.log_table.__init__(file_name, extra_cols=self.extra_cols,
-                #                         show_line_flag=self.checkBox_6.isChecked())
-                # self.logger.debug("Clean log table and refill")
                 if self.log_table.file_name is None:
                     return
                 self.log_file_name = file_name
@@ -931,7 +912,7 @@ class MainWindow(QMainWindow):
                 self.last_selection = -1
                 self.current_selection = -1
             # Create displayed columns list
-            self.columns = self.sort_columns()
+            # self.columns = self.sort_columns()
             self.fill_table_widget(n)
             # select last row of widget -> tableSelectionChanged will be fired
             self.select_last_row()
@@ -982,6 +963,7 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
             log_exception(self)
+        self.columns = self.sort_columns()
         if append < 0:
             # clear table widget
             self.tableWidget_3.setRowCount(0)
