@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         self.actionAbout.triggered.connect(self.show_about)
         # main window decoration
         self.setWindowIcon(QtGui.QIcon('icon.png'))
-        self.setWindowTitle(APPLICATION_NAME + APPLICATION_VERSION)
+        self.setWindowTitle(APPLICATION_NAME + ' version ' + APPLICATION_VERSION)
         # table: header
         header = self.tableWidget_3.horizontalHeader()
         # header.setSectionResizeMode(QHeaderView.Stretch)
