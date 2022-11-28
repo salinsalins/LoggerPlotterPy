@@ -52,8 +52,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '10.0'
-VERSION_DATE = "25-11-2022"
+APPLICATION_VERSION = '10.1'
+VERSION_DATE = "27-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -75,19 +75,26 @@ config = Configuration(CONFIG_FILE)
 
 
 def remove_from_text(text: str, removed: str):
-    lines = text.split('\n')
-    try:
-        n = lines.index(removed)
-        lines.pop(n)
-        result = '\n'.join(lines)
-        result = result.replace('\n\n', '\n')
-        if result.endswith('\n'):
-            result = result[:-1]
-        if result.startswith('\n'):
-            result = result[1:]
-        return result
-    except:
+    if text == '':
         return text
+    lines = text.split('\n')
+    res = [line.strip() for line in lines if line != removed and line != '']
+    if len(res) <= 0:
+        return ''
+    return '\n'.join(res)
+
+    # try:
+    #     n = lines.index(removed)
+    #     lines.pop(n)
+    #     result = '\n'.join(lines)
+    #     result = result.replace('\n\n', '\n')
+    #     if result.endswith('\n'):
+    #         result = result[:-1]
+    #     if result.startswith('\n'):
+    #         result = result[1:]
+    #     return result
+    # except:
+    #     return text
 
 
 def remove_from_widget(widget, removed: str):
@@ -113,6 +120,7 @@ class MainWindow(QMainWindow):
         self.old_signal_list = []
         self.signals = []
         self.extra_cols = []
+        self.extra_plots = []
         self.data_file = None
         self.old_size = 0
         self.new_size = 0
@@ -142,7 +150,7 @@ class MainWindow(QMainWindow):
         self.actionAbout.triggered.connect(self.show_about)
         # main window decoration
         self.setWindowIcon(QtGui.QIcon('icon.png'))
-        self.setWindowTitle(APPLICATION_NAME + APPLICATION_VERSION)
+        self.setWindowTitle(APPLICATION_NAME + ' version ' + APPLICATION_VERSION)
         # table: header
         header = self.tableWidget_3.horizontalHeader()
         # header.setSectionResizeMode(QHeaderView.Stretch)
@@ -161,6 +169,7 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
+
         # status bar
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0;')
@@ -209,11 +218,12 @@ class MainWindow(QMainWindow):
         self.statusBar().addWidget(self.sb_text)
         self.statusBar().addWidget(VLine())  # <---
         self.sb_text.setText("Starting...")
-        # status bar: log show widget and connect logger to status bar
+        # status bar: log show widget
         self.sb_log = QLabel("")
         self.sb_log.setFont(STATUS_BAR_FONT)
         self.sb_log.time = time.time()
         self.statusBar().addWidget(self.sb_log)
+        # status bar: log show widget: log handler
         sbhandler = WidgetLogHandler(self.sb_log)
         sbhandler.setLevel(logging.INFO)
         sbhandler.setFormatter(config_logger.log_formatter)
@@ -222,66 +232,33 @@ class MainWindow(QMainWindow):
 
         # default settings
         self.set_default_settings()
+
         #
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
 
         # restore settings
         self.restore_settings()
         self.restore_local_settings()
+
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
 
         self.parse_folder()
-        # self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
-        # self.log_table = LogTable(self.log_file_name, extra_cols=self.extra_cols,
-        #                           show_line_flag=self.checkBox_6.isChecked())
-        # if self.log_table.file_name is None:
-        #     return
-        # self.log_file_name = self.log_table.file_name
-        # # Create displayed columns list
-        # self.columns = self.sort_columns()
-        # self.fill_table_widget()
-        # # select last row of widget -> tableSelectionChanged will be fired
-        # self.select_last_row()
-
-    def focus_out(self, *args, **kwargs):
-        print('********', args)
-        # super().focusOutEvent(*args, **kwargs)
-
-    def plot_click_menu(self, signal_name):
-        if self.stackedWidget.currentIndex() != 0:
-            return
-        # print('menu', n)
-        cursor = QtGui.QCursor()
-        position = cursor.pos()
-        # position = n
-        menu = QMenu()
-        hide_plot = menu.addAction("Hide plot")
-        test_action = menu.addAction("Test action")
-        action = menu.exec(position)
-        if action is None:
-            return
-        if action == hide_plot:
-            print("Hide", signal_name)
-            # remove from shown plots list
-            t = signal_name
-            text = self.plainTextEdit_7.toPlainText()
-            text = text.replace(t, '')
-            text = text.replace('\n\n', '\n')
-            self.plainTextEdit_7.setPlainText(text)
-            # add to hidden columns list (unsorted!)
-            text = self.plainTextEdit_6.toPlainText()
-            self.plainTextEdit_6.setPlainText(text + t + '\n')
 
     def hide_plot(self, signal_name):
         text = self.plainTextEdit_7.toPlainText()
         if signal_name not in text:
             return
-        self.plainTextEdit_7.setPlainText(remove_from_text(text, signal_name))
+        new_text = remove_from_text(text, signal_name)
+        if new_text == '':
+            return
+        self.plainTextEdit_7.setPlainText(new_text)
         # add to hidden columns list
         text = self.plainTextEdit_6.toPlainText() + '\n' + signal_name
         self.plainTextEdit_6.setPlainText(text)
         self.sort_text_edit_widget(self.plainTextEdit_6)
+        self.save_local_settings()
+        self.save_settings()
         self.plot_signals()
 
     def show_plot(self, signal_name):
@@ -292,18 +269,19 @@ class MainWindow(QMainWindow):
         menu = QMenu()
         actions = []
         for s in hidden_lines:
-            if s != '':
+            if s != '' and s not in actions:
                 actions.append(menu.addAction(s))
+        if len(actions) <= 0:
+            return
         action = menu.exec(position)
         if action is None:
             return
-        # print(action.text(), signal_name)
         displayed = self.plainTextEdit_7.toPlainText()
-        # displayed_lines = displayed.split('\n')
         displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
-        # print(displayed)
         self.plainTextEdit_7.setPlainText(displayed)
         self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
+        self.save_settings()
+        self.save_local_settings()
         self.plot_signals()
 
     def show_column(self, n):
@@ -316,11 +294,12 @@ class MainWindow(QMainWindow):
         for s in hidden_lines:
             if s != '':
                 actions.append(menu.addAction(s))
+        if len(actions) <= 0:
+            return
         action = menu.exec(position)
         if action is None:
             return
         displayed = self.plainTextEdit_2.toPlainText()
-        # displayed_lines = displayed.split('\n')
         current = self.tableWidget_3.horizontalHeaderItem(n).text()
         displayed = displayed.replace(current, current + '\n' + action.text())
         self.plainTextEdit_2.setPlainText(displayed)
@@ -354,22 +333,11 @@ class MainWindow(QMainWindow):
             # remove from shown columns list
             t = self.tableWidget_3.horizontalHeaderItem(n).text()
             text = self.plainTextEdit_2.toPlainText()
-            t1 = '\n' + t
-            t2 = t + '\n'
-            t3 = t1 + '\n'
-            if t3 in text:
-                text = text.replace(t3, '\n')
-            elif text.startswith(t2):
-                text = text.replace(t2, '')
-            elif text.endswith(t1):
-                text = text.replace(t1, '')
-            else:
-                text = text.replace(t, '')
-            text = text.replace('\n\n', '\n')
-            self.plainTextEdit_2.setPlainText(text)
-            # add to hidden columns list (unsorted!)
+            self.plainTextEdit_2.setPlainText(remove_from_text(text, t))
+            # add to hidden columns list
             text = self.plainTextEdit_3.toPlainText()
             self.plainTextEdit_3.setPlainText(text + t + '\n')
+            self.sort_text_edit_widget(self.plainTextEdit_3)
         elif action == show_action:
             self.show_column(n)
         elif n > 1 and action == left_action:
@@ -390,7 +358,7 @@ class MainWindow(QMainWindow):
             text = text.replace(t2, t1)
             text = text.replace('****', t2)
             self.plainTextEdit_2.setPlainText(text)
-        self.columns = self.sort_columns()
+        # self.columns = self.sort_columns()
         self.fill_table_widget()
         self.tableWidget_3.selectRow(self.current_selection)
         self.change_background()
@@ -520,7 +488,8 @@ class MainWindow(QMainWindow):
                 zip_file_name = self.log_table.column("File")[row_s]
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
-                self.old_signal_list = self.signal_list
+                self.old_signal_list = self.signal_list + self.extra_plots
+
                 self.signal_list = self.data_file.read_all_signals()
                 self.plot_signals()
                 self.restore_background()
@@ -545,10 +514,14 @@ class MainWindow(QMainWindow):
             raise ValueError('Signal %s not found' % name)
             # return None
 
+        self.extra_plots = []
         # add extra plots from plainTextEdit_4
         extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
+        # show_plots = self.plainTextEdit_6.toPlainText().split('\n')
         for p in extra_plots:
             p = p.strip()
+            # if p not in show_plots:
+            #     continue
             if p != "":
                 try:
                     s = None
@@ -585,7 +558,8 @@ class MainWindow(QMainWindow):
                                 s.value = v
                         except:
                             pass
-                        self.signal_list.append(s)
+                        self.extra_plots.append(s)
+                        # self.signal_list.append(s)
                     else:
                         self.logger.info('Can not calculate signal for "%s ..."', p[:10])
                 except:
@@ -595,14 +569,15 @@ class MainWindow(QMainWindow):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
         hidden_plots = []
         ordered_plots = []
+        signal_list = self.signal_list + self.extra_plots
         for p in plot_order:
-            for s in self.signal_list:
+            for s in signal_list:
                 if s.name == p:
-                    ordered_plots.append(self.signal_list.index(s))
+                    ordered_plots.append(signal_list.index(s))
                     break
         # build list of hidden plots
-        for s in self.signal_list:
-            if self.signal_list.index(s) not in ordered_plots:
+        for s in signal_list:
+            if signal_list.index(s) not in ordered_plots:
                 hidden_plots.append(s.name)
         hidden_plots.sort()
         text = ''
@@ -626,8 +601,9 @@ class MainWindow(QMainWindow):
         row = 0
         col_count = 3
         l_count = layout.count()
+        signal_list = self.signal_list + self.extra_plots
         for c in signals:
-            s = self.signal_list[c]
+            s = signal_list[c]
             # Use existing plot widgets or create new
             if jj < l_count:
                 # use existing plot widget
@@ -913,6 +889,7 @@ class MainWindow(QMainWindow):
             self.logger.info('Parsing %s', file_name)
             # get extra columns
             self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
+            # process log table
             if self.log_table is not None and self.log_table.file_name == file_name:
                 self.logger.debug("Appending from log file")
                 buf = self.log_table.read_log_to_buf()
@@ -922,20 +899,12 @@ class MainWindow(QMainWindow):
                     self.update_status_bar()
                     return
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
-                if not append:
-                    n = -1
-                # # Create displayed columns list
-                # self.columns = self.sort_columns()
-                # self.fill_table_widget(n)
-                # # select last row of widget -> tableSelectionChanged will be fired
-                # self.select_last_row()
+                #if not append:
+                #    n = -1
             else:
                 self.logger.debug("Create new LogTable")
-                self.log_table = LogTable(self.log_file_name, extra_cols=self.extra_cols,
+                self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
                                           show_line_flag=self.checkBox_6.isChecked())
-                # self.log_table.__init__(file_name, extra_cols=self.extra_cols,
-                #                         show_line_flag=self.checkBox_6.isChecked())
-                # self.logger.debug("Clean log table and refill")
                 if self.log_table.file_name is None:
                     return
                 self.log_file_name = file_name
@@ -943,7 +912,7 @@ class MainWindow(QMainWindow):
                 self.last_selection = -1
                 self.current_selection = -1
             # Create displayed columns list
-            self.columns = self.sort_columns()
+            # self.columns = self.sort_columns()
             self.fill_table_widget(n)
             # select last row of widget -> tableSelectionChanged will be fired
             self.select_last_row()
@@ -994,6 +963,7 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
             log_exception(self)
+        self.columns = self.sort_columns()
         if append < 0:
             # clear table widget
             self.tableWidget_3.setRowCount(0)
@@ -1233,8 +1203,8 @@ class MainWindow(QMainWindow):
     def timer_handler(self):
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
-        if time.time() > self.sb_log.time:
-            self.sb_log.setText('')
+        # if time.time() > self.sb_log.time:
+        #     self.sb_log.setText('')
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
             return
@@ -1250,17 +1220,14 @@ class MainWindow(QMainWindow):
         if self.new_size <= self.old_size:
             return
         self.logger.debug('New shot detected')
-        # self.select_last_row()
-        # self.restore_background()
-        # self.last_selection = self.log_table.rows - 1
         self.parse_folder()
 
     def select_last_row(self):
         # select last row
         if self.checkBox_4.isChecked() or self.current_selection < 0:
             self.logger.debug('Selection will be switched to last row')
-            self.tableWidget_3.selectRow(self.tableWidget_3.rowCount() - 1)
-            self.last_selection = self.tableWidget_3.rowCount() - 1
+            n = self.tableWidget_3.rowCount() - 1
+            self.tableWidget_3.selectRow(n)
         else:
             self.logger.debug('Selection switch to last row rejected')
             self.tableWidget_3.selectRow(self.current_selection)
