@@ -530,9 +530,9 @@ class MainWindow(QMainWindow):
                         s = result
                     elif isinstance(result, dict):
                         key = result['name']
-                        x = result['x']
-                        y = result['y']
                         if key != '':
+                            x = result['x']
+                            y = result['y']
                             marks = result.get('marks', None)
                             params = result.get('params', None)
                             unit = result.get('unit', '')
@@ -913,7 +913,7 @@ class MainWindow(QMainWindow):
                 self.current_selection = -1
             # Create displayed columns list
             # self.columns = self.sort_columns()
-            self.fill_table_widget(n)
+            self.fill_table_widget(-1)
             # select last row of widget -> tableSelectionChanged will be fired
             self.select_last_row()
         except:
