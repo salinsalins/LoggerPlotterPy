@@ -869,9 +869,6 @@ class MainWindow(QMainWindow):
         hidden.sort()
         # set hidden columns text
         text = '\n'.join(hidden)
-        # for t in hidden:
-        #     text += t
-        #     text += '\n'
         self.plainTextEdit_3.setPlainText(text)
         return columns
 
