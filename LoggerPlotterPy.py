@@ -1794,18 +1794,17 @@ def unify_marks(first: Signal, other: Signal):
 
 
 class NewLogTable:
-    def __init__(self, file_name: str, logger=None):
+    def __init__(self, file_name: str = None, logger=None):
         if logger is None:
             self.logger = config_logger()
         else:
             self.logger = logger
         self.columns = {}
         self.file_name = file_name
-        self.file_size = -1
+        self.file_size = 0
         self.rows = 0
-        self.columns_with_error = []
-        self.keys_with_errors = []
-        self.show_line_flag = False
+        self.show_line_flag = True
+        self.decode = lambda x: bytes.decode(x, 'cp1251')
 
     def column(self, col: str):
         return self.columns[col]
@@ -1842,12 +1841,86 @@ class NewLogTable:
             self.columns[key] = [{}] * self.rows
         return self.columns[key]
 
-    def append(self, row: dict):
-        for (key, val) in row:
-            if key not in self.columns:
-                self.add_column(key)
-            self.columns[key].append(val)
-        self.rows += 1
+    def decode_line(self, line):
+        if self.show_line_flag and ('DO_NOT_SHOW_LINE' in line or
+                                    'DO_NOT_SHOW = True' in line or
+                                    'DO_NOT_SHOW=True' in line):
+            self.logger.info(f'DO_NOT_SHOW tag detected in {line[11:20]}, line skipped')
+            return False
+        # Split line to fields
+        fields = line.split("; ")
+        # First field "date time" should be longer than 18 symbols
+        if len(fields) < 2 or len(fields[0]) < 19:
+            # Wrong line format, skip to next line
+            self.logger.info('Wrong data format in "%s", line skipped' % line[11:20])
+            return False
+        # split time and date
+        tm = fields[0].split(" ")[1].strip()
+        # preserve only time
+        fields[0] = "Time=" + tm
+        # add row to table
+        row = {}
+        # iterate rest fields for key=value pairs
+        keys_with_errors = []
+        for field in fields:
+            kv = field.split("=")
+            key = kv[0].strip()
+            val = kv[1].strip()
+            if key in row:
+                self.logger.warning('Duplicate keys in line %s)', line)
+            else:
+                row[key] = {'text': val}
+                # split value and units
+                vu = val.split(" ")
+                # value
+                try:
+                    v = float(vu[0].strip().replace(',', '.'))
+                    if key in keys_with_errors:
+                        keys_with_errors.remove(key)
+                except:
+                    v = float('nan')
+                    if key != 'Time' and key != 'File' and key not in keys_with_errors:
+                        self.logger.debug('Non float value in "%s"' % field)
+                        keys_with_errors.append(key)
+                row[key]['value'] = v
+                # units
+                try:
+                    u = vu[1].strip()
+                except:
+                    u = ''
+                row[key]['units'] = u
+            self.add_row(row)
+        return True
+
+    def remove_row(self, row):
+        for item in self.data:
+            del item[row]
+        for item in self.values:
+            del item[row]
+        for item in self.units:
+            del item[row]
+        self.rows -= 1
+
+    def append(self, item):
+        if isinstance(item, dict):
+            for key in item:
+                if key not in self.columns:
+                    self.add_column(key)
+                self.columns[key].append(item[key])
+            self.rows += 1
+            return 1
+        elif isinstance(item, str):
+            if not item:
+                self.logger.debug('Empty buffer')
+                return 0
+            lines = item.split('\n')
+            # loop for lines
+            n = 0
+            for line in lines:
+                if line != '' and self.decode_line(line):
+                    n += 1
+            self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
+            return n
 
     def add_row(self, row: dict):
         return self.append(row)
@@ -1864,17 +1937,15 @@ class NewLogTable:
     def __contains__(self, item):
         return item in self.columns
 
-    def read_log_to_buf(self, file_name: str = None, folder: str = None):
-        if folder is None:
-            folder = self.folder
+    def read_file(self, file_name: str = None):
         if file_name is None:
             file_name = self.file_name
-        fn = os.path.abspath(os.path.join(folder, file_name))
+        if file_name is None:
+            return None
+        fn = os.path.abspath(file_name)
         if not os.path.exists(fn):
             self.logger.warning('File %s does not exist' % fn)
             return None
-        # if self.old_file_name == fn:
-        #     pass
         fs = os.path.getsize(fn)
         if fs < 20 or (self.file_name == fn and fs <= self.file_size):
             if fs < self.file_size:
@@ -1883,43 +1954,19 @@ class NewLogTable:
         self.logger.debug(f'File {fn} will be processed. File length {fs} bytes')
         # read file to buf
         try:
-            # with open(fn, "r", encoding='windows-1251') as stream:
             with open(fn, "rb") as stream:
                 if self.file_name == fn:
                     self.logger.debug(f'Positioning to {self.file_size}')
                     stream.seek(self.file_size)
-                    # buf = stream.read(fs - self.old_file_size)
-                # else:
                 buf = stream.read()
             self.logger.debug(f'{len(buf)} bytes has been red')
-            buf1 = buf.decode('cp1251')
-            self.old_file_name = self.file_name
+            bufd = self.decode(buf)
             self.file_name = fn
-            self.folder = folder
-            self.old_file_size = self.file_size
             self.file_size = fs
-            return buf1
+            return bufd
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
             return None
-
-    def append(self, buf, extra_cols=None):
-        if not buf:
-            self.logger.debug('Empty buffer')
-            return 0
-        if extra_cols is None:
-            extra_cols = []
-        lines = buf.split('\n')
-        # loop for lines
-        n = 0
-        self.keys_with_errors = []
-        for line in lines:
-            if line != '' and self.decode_line(line):
-                n += 1
-        # add extra columns
-        self.add_extra_columns(extra_cols)
-        self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
-        return n
 
 
 if __name__ == '__main__':
