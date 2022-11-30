@@ -1811,23 +1811,23 @@ class NewLogTable:
         return self.columns[col]
 
     def row(self, n):
-        result = {}
-        i = 0
-        for (key, val) in self.columns:
-            v = val[n]
-            result[key] = v
-            result[i] = v
-            i += 1
-        return result
-        # return {key: val[n] for (key, val) in self.columns}
+        # result = {}
+        # i = 0
+        # for (key, val) in self.columns:
+        #     v = val[n]
+        #     result[key] = v
+        #     result[i] = v
+        #     i += 1
+        # return result
+        return {key: val[n] for (key, val) in self.columns}
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1:
-            a = args[0]
-            if isinstance(a, str):
-                return self.column(a)
-            elif isinstance(a, int):
-                return self.row(a)
+            a0 = args[0]
+            if isinstance(a0, str):
+                return self.column(a0)
+            elif isinstance(a0, int):
+                return self.row(a0)
         elif len(args) == 2:
             a0 = args[0]
             a1 = args[1]
@@ -1838,22 +1838,28 @@ class NewLogTable:
         return len(self.columns)
 
     def add_column(self, key: str):
-        if key in self.columns:
-            return
-        self.columns[key] = [{}] * self.rows
+        if key not in self.columns:
+            self.columns[key] = [{}] * self.rows
+        return self.columns[key]
 
     def append(self, row: dict):
         for (key, val) in row:
             if key not in self.columns:
                 self.add_column(key)
             self.columns[key].append(val)
-            self.rows += 1
+        self.rows += 1
 
     def add_row(self, row: dict):
         return self.append(row)
 
     def update_row(self, index: int, row: dict):
         self.columns[index].update(row)
+
+    def get_value(self, row, col):
+        return self.__call__(row, col)
+
+    def set_value(self, row, col, value):
+        self.columns[col][row] = value
 
     def __contains__(self, item):
         return item in self.columns
