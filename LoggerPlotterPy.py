@@ -52,8 +52,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '10.1'
-VERSION_DATE = "27-11-2022"
+APPLICATION_VERSION = '10.2'
+VERSION_DATE = "29-11-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -530,9 +530,9 @@ class MainWindow(QMainWindow):
                         s = result
                     elif isinstance(result, dict):
                         key = result['name']
-                        x = result['x']
-                        y = result['y']
                         if key != '':
+                            x = result['x']
+                            y = result['y']
                             marks = result.get('marks', None)
                             params = result.get('params', None)
                             unit = result.get('unit', '')
@@ -869,9 +869,6 @@ class MainWindow(QMainWindow):
         hidden.sort()
         # set hidden columns text
         text = '\n'.join(hidden)
-        # for t in hidden:
-        #     text += t
-        #     text += '\n'
         self.plainTextEdit_3.setPlainText(text)
         return columns
 
@@ -899,7 +896,7 @@ class MainWindow(QMainWindow):
                     self.update_status_bar()
                     return
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
-                #if not append:
+                # if not append:
                 #    n = -1
             else:
                 self.logger.debug("Create new LogTable")
@@ -913,7 +910,7 @@ class MainWindow(QMainWindow):
                 self.current_selection = -1
             # Create displayed columns list
             # self.columns = self.sort_columns()
-            self.fill_table_widget(n)
+            self.fill_table_widget(-1)
             # select last row of widget -> tableSelectionChanged will be fired
             self.select_last_row()
         except:
@@ -1244,6 +1241,7 @@ class LogTable:
     def __init__(self, file_name: str, folder: str = "", extra_cols=None, logger=None, show_line_flag=False):
         if extra_cols is None:
             extra_cols = []
+        self.extra_cols = extra_cols
         if logger is None:
             self.logger = config_logger()
         else:
@@ -1793,6 +1791,129 @@ def unify_marks(first: Signal, other: Signal):
         if mark not in result:
             result[mark] = other.marks[mark]
     return result
+
+
+class NewLogTable:
+    def __init__(self, file_name: str, logger=None):
+        if logger is None:
+            self.logger = config_logger()
+        else:
+            self.logger = logger
+        self.columns = {}
+        self.file_name = file_name
+        self.file_size = -1
+        self.rows = 0
+        self.columns_with_error = []
+        self.keys_with_errors = []
+        self.show_line_flag = False
+
+    def column(self, col: str):
+        return self.columns[col]
+
+    def row(self, n):
+        result = {}
+        i = 0
+        for (key, val) in self.columns:
+            v = val[n]
+            result[key] = v
+            result[i] = v
+            i += 1
+        return result
+        # return {key: val[n] for (key, val) in self.columns}
+
+    def __call__(self, *args, **kwargs):
+        if len(args) == 1:
+            a = args[0]
+            if isinstance(a, str):
+                return self.column(a)
+            elif isinstance(a, int):
+                return self.row(a)
+        elif len(args) == 2:
+            a0 = args[0]
+            a1 = args[1]
+            return self.column(a1)[a0]
+        raise ValueError('Wrong arguments')
+
+    def __len__(self):
+        return len(self.columns)
+
+    def add_column(self, key: str):
+        if key in self.columns:
+            return
+        self.columns[key] = [{}] * self.rows
+
+    def append(self, row: dict):
+        for (key, val) in row:
+            if key not in self.columns:
+                self.add_column(key)
+            self.columns[key].append(val)
+            self.rows += 1
+
+    def add_row(self, row: dict):
+        return self.append(row)
+
+    def update_row(self, index: int, row: dict):
+        self.columns[index].update(row)
+
+    def __contains__(self, item):
+        return item in self.columns
+
+    def read_log_to_buf(self, file_name: str = None, folder: str = None):
+        if folder is None:
+            folder = self.folder
+        if file_name is None:
+            file_name = self.file_name
+        fn = os.path.abspath(os.path.join(folder, file_name))
+        if not os.path.exists(fn):
+            self.logger.warning('File %s does not exist' % fn)
+            return None
+        # if self.old_file_name == fn:
+        #     pass
+        fs = os.path.getsize(fn)
+        if fs < 20 or (self.file_name == fn and fs <= self.file_size):
+            if fs < self.file_size:
+                self.logger.warning('Wrong file size for %s' % fn)
+            return None
+        self.logger.debug(f'File {fn} will be processed. File length {fs} bytes')
+        # read file to buf
+        try:
+            # with open(fn, "r", encoding='windows-1251') as stream:
+            with open(fn, "rb") as stream:
+                if self.file_name == fn:
+                    self.logger.debug(f'Positioning to {self.file_size}')
+                    stream.seek(self.file_size)
+                    # buf = stream.read(fs - self.old_file_size)
+                # else:
+                buf = stream.read()
+            self.logger.debug(f'{len(buf)} bytes has been red')
+            buf1 = buf.decode('cp1251')
+            self.old_file_name = self.file_name
+            self.file_name = fn
+            self.folder = folder
+            self.old_file_size = self.file_size
+            self.file_size = fs
+            return buf1
+        except:
+            log_exception(self.logger, 'Data file %s can not be opened' % fn)
+            return None
+
+    def append(self, buf, extra_cols=None):
+        if not buf:
+            self.logger.debug('Empty buffer')
+            return 0
+        if extra_cols is None:
+            extra_cols = []
+        lines = buf.split('\n')
+        # loop for lines
+        n = 0
+        self.keys_with_errors = []
+        for line in lines:
+            if line != '' and self.decode_line(line):
+                n += 1
+        # add extra columns
+        self.add_extra_columns(extra_cols)
+        self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
+        return n
 
 
 if __name__ == '__main__':
