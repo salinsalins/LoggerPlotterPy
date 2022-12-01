@@ -1803,8 +1803,10 @@ class NewLogTable:
         self.file_name = file_name
         self.file_size = 0
         self.rows = 0
-        self.show_line_flag = True
         self.decode = lambda x: bytes.decode(x, 'cp1251')
+        if file_name:
+            buf = self.read_file()
+            self.append_lines(buf)
 
     def column(self, col: str):
         return self.columns[col]
