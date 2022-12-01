@@ -1800,15 +1800,17 @@ class NewLogTable:
         else:
             self.logger = logger
         self.columns = {}
-        self.file_name = file_name
+        self.file_name = None
         self.file_size = 0
         self.rows = 0
         self.decode = lambda x: bytes.decode(x, 'cp1251')
-        if file_name:
-            buf = self.read_file()
-            self.append_lines(buf)
+        self.read_file(file_name)
 
-    def column(self, col: str):
+    def clear(self):
+        self.columns = {}
+        self.rows = 0
+
+    def column(self, col):
         return self.columns[col]
 
     def row(self, n):
@@ -1838,10 +1840,13 @@ class NewLogTable:
     def __len__(self):
         return len(self.columns)
 
-    def add_column(self, key: str):
+    def add_column(self, key):
         if key not in self.columns:
             self.columns[key] = [{}] * self.rows
         return self.columns[key]
+
+    def remove_column(self, key):
+        del self.columns[key]
 
     def decode_line(self, line):
         row = {}
@@ -1951,9 +1956,8 @@ class NewLogTable:
             self.logger.warning('File %s does not exist' % fn)
             return None
         fs = os.path.getsize(fn)
-        if fs < 20 or (self.file_name == fn and fs <= self.file_size):
-            if fs < self.file_size:
-                self.logger.warning('Wrong file size for %s' % fn)
+        if fs < 20 or (self.file_name == fn and fs < self.file_size):
+            self.logger.warning('Wrong file size for %s' % fn)
             return None
         self.logger.debug(f'File {fn} will be processed. File length {fs} bytes')
         # read file to buf
@@ -1965,8 +1969,11 @@ class NewLogTable:
                 buf = stream.read()
             self.logger.debug(f'{len(buf)} bytes has been red')
             bufd = self.decode(buf)
+            if self.file_name != fn:
+                self.clear()
             self.file_name = fn
             self.file_size = fs
+            self.append_lines(bufd)
             return bufd
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
