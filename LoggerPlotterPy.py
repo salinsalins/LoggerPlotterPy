@@ -1842,24 +1842,24 @@ class NewLogTable:
         return self.columns[key]
 
     def decode_line(self, line):
-        if self.show_line_flag and ('DO_NOT_SHOW_LINE' in line or
-                                    'DO_NOT_SHOW = True' in line or
-                                    'DO_NOT_SHOW=True' in line):
-            self.logger.info(f'DO_NOT_SHOW tag detected in {line[11:20]}, line skipped')
-            return False
+        row = {}
+        #  detect DO_NOT_SHOW tag
+        if 'DO_NOT_SHOW_LINE' in line or 'DO_NOT_SHOW = True' in line or 'DO_NOT_SHOW=True' in line:
+            # self.logger.info(f'DO_NOT_SHOW tag detected in {line[11:20]}')
+            row[-1] = True
+        else:
+            row[-1] = False
         # Split line to fields
         fields = line.split("; ")
         # First field "date time" should be longer than 18 symbols
         if len(fields) < 2 or len(fields[0]) < 19:
             # Wrong line format, skip to next line
             self.logger.info('Wrong data format in "%s", line skipped' % line[11:20])
-            return False
+            return None
         # split time and date
         tm = fields[0].split(" ")[1].strip()
         # preserve only time
         fields[0] = "Time=" + tm
-        # add row to table
-        row = {}
         # iterate rest fields for key=value pairs
         keys_with_errors = []
         for field in fields:
@@ -1868,6 +1868,7 @@ class NewLogTable:
             val = kv[1].strip()
             if key in row:
                 self.logger.warning('Duplicate keys in line %s)', line)
+                keys_with_errors.append(key)
             else:
                 row[key] = {'text': val}
                 # split value and units
@@ -1889,44 +1890,45 @@ class NewLogTable:
                 except:
                     u = ''
                 row[key]['units'] = u
-            self.add_row(row)
-        return True
+            row[-2] = keys_with_errors
+            # add row to table
+            # self.add_row(row)
+        return row
 
-    def remove_row(self, row):
-        for item in self.data:
-            del item[row]
-        for item in self.values:
-            del item[row]
-        for item in self.units:
-            del item[row]
-        self.rows -= 1
-
-    def append(self, item):
-        if isinstance(item, dict):
-            for key in item:
-                if key not in self.columns:
-                    self.add_column(key)
-                self.columns[key].append(item[key])
-            self.rows += 1
-            return 1
-        elif isinstance(item, str):
-            if not item:
-                self.logger.debug('Empty buffer')
-                return 0
-            lines = item.split('\n')
-            # loop for lines
-            n = 0
-            for line in lines:
-                if line != '' and self.decode_line(line):
+    def append_lines(self, buf):
+        if not buf or len(buf) <= 0:
+            self.logger.debug('Empty buffer')
+            return 0
+        lines = buf.split('\n')
+        # loop for lines
+        n = 0
+        for line in lines:
+            line = line.strip()
+            if line != '':
+                row = self.decode_line(line)
+                if row:
+                    self.add_row(row)
                     n += 1
-            self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
-            return n
+        self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
+        return n
 
     def add_row(self, row: dict):
-        return self.append(row)
+        for key in row:
+            if key not in self.columns:
+                self.add_column(key)
+            self.columns[key].append(row[key])
+        self.rows += 1
+        return self.rows
+
+    def remove_row(self, index: int):
+        for key in self.columns:
+            del self.columns[key][index]
+        self.rows -= 1
+        return self.rows
 
     def update_row(self, index: int, row: dict):
         self.columns[index].update(row)
+        return self.rows
 
     def get_value(self, row, col):
         return self.__call__(row, col)
