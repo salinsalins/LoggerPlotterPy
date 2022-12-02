@@ -1977,10 +1977,16 @@ class NewLogTable:
 
     def get_text(self, row, col, fmt=None):
         v = self.columns[col][row]
-        if fmt is None:
+        if not fmt:
             return v['text']
         else:
             return fmt % (v['value'], v['units'])
+
+    def get_value(self, row, col):
+        return self.columns[col][row]['value']
+
+    def get_units(self, row, col):
+        return self.columns[col][row]['units']
 
     def get_cell(self, row, col):
         return self.columns[col][row]
