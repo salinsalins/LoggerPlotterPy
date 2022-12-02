@@ -805,50 +805,48 @@ class MainWindow(QMainWindow):
         return data_folder
 
     def restore_local_settings(self):
-        return True
-        # if not self.checkBox_5.isChecked():
-        #     return
-        # full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
-        # try:
-        #     with open(full_name, 'r') as configfile:
-        #         s = configfile.read()
-        #     conf = json.loads(s)
-        #     if 'included' in conf:
-        #         self.plainTextEdit_2.setPlainText(conf['included'])
-        #         self.conf['included'] = conf['included']
-        #     if 'extra_plot' in conf:
-        #         self.plainTextEdit_4.setPlainText(conf['extra_plot'])
-        #         self.conf['extra_plot'] = conf['extra_plot']
-        #     if 'extra_col' in conf:
-        #         self.plainTextEdit_5.setPlainText(conf['extra_col'])
-        #         self.conf['extra_col'] = conf['extra_col']
-        #     if 'plot_order' in conf:
-        #         self.plainTextEdit_7.setPlainText(conf['plot_order'])
-        #         self.conf['plot_order'] = conf['plot_order']
-        #     self.logger.info('Local configuration restored from %s' % full_name)
-        #     return True
-        # except:
-        #     log_exception('Local configuration restore error from %s' % full_name, level=logging.INFO)
-        #     return False
+        if not self.checkBox_5.isChecked():
+            return
+        full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
+        try:
+            with open(full_name, 'r') as configfile:
+                s = configfile.read()
+            conf = json.loads(s)
+            if 'included' in conf:
+                self.plainTextEdit_2.setPlainText(conf['included'])
+                self.conf['included'] = conf['included']
+            if 'extra_plot' in conf:
+                self.plainTextEdit_4.setPlainText(conf['extra_plot'])
+                self.conf['extra_plot'] = conf['extra_plot']
+            if 'extra_col' in conf:
+                self.plainTextEdit_5.setPlainText(conf['extra_col'])
+                self.conf['extra_col'] = conf['extra_col']
+            if 'plot_order' in conf:
+                self.plainTextEdit_7.setPlainText(conf['plot_order'])
+                self.conf['plot_order'] = conf['plot_order']
+            self.logger.info('Local configuration restored from %s' % full_name)
+            return True
+        except:
+            log_exception('Local configuration restore error from %s' % full_name, level=logging.INFO)
+            return False
 
     def save_local_settings(self):
-        return True
-        # full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
-        # try:
-        #     if not self.checkBox_5.isChecked():
-        #         return
-        #     conf = dict()
-        #     conf['included'] = self.conf['included']
-        #     conf['extra_plot'] = self.conf['extra_plot']
-        #     conf['extra_col'] = self.conf['extra_col']
-        #     conf['plot_order'] = self.conf['plot_order']
-        #     with open(full_name, 'w') as configfile:
-        #         configfile.write(json.dumps(conf, indent=4))
-        #     self.logger.info('Local configuration saved to %s', full_name)
-        #     return True
-        # except:
-        #     log_exception('Local configuration save error to %s' % full_name)
-        #     return False
+        full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
+        try:
+            if not self.checkBox_5.isChecked():
+                return
+            conf = dict()
+            conf['included'] = self.conf['included']
+            conf['extra_plot'] = self.conf['extra_plot']
+            conf['extra_col'] = self.conf['extra_col']
+            conf['plot_order'] = self.conf['plot_order']
+            with open(full_name, 'w') as configfile:
+                configfile.write(json.dumps(conf, indent=4))
+            self.logger.info('Local configuration saved to %s', full_name)
+            return True
+        except:
+            log_exception('Local configuration save error to %s' % full_name)
+            return False
 
     def log_level_index_changed(self, m: int) -> None:
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
