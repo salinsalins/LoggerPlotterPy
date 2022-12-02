@@ -52,8 +52,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '10.2'
-VERSION_DATE = "29-11-2022"
+APPLICATION_VERSION = '10.3'
+VERSION_DATE = "02-12-2022"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -805,48 +805,50 @@ class MainWindow(QMainWindow):
         return data_folder
 
     def restore_local_settings(self):
-        if not self.checkBox_5.isChecked():
-            return
-        full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
-        try:
-            with open(full_name, 'r') as configfile:
-                s = configfile.read()
-            conf = json.loads(s)
-            if 'included' in conf:
-                self.plainTextEdit_2.setPlainText(conf['included'])
-                self.conf['included'] = conf['included']
-            if 'extra_plot' in conf:
-                self.plainTextEdit_4.setPlainText(conf['extra_plot'])
-                self.conf['extra_plot'] = conf['extra_plot']
-            if 'extra_col' in conf:
-                self.plainTextEdit_5.setPlainText(conf['extra_col'])
-                self.conf['extra_col'] = conf['extra_col']
-            if 'plot_order' in conf:
-                self.plainTextEdit_7.setPlainText(conf['plot_order'])
-                self.conf['plot_order'] = conf['plot_order']
-            self.logger.info('Local configuration restored from %s' % full_name)
-            return True
-        except:
-            log_exception('Local configuration restore error from %s' % full_name, level=logging.INFO)
-            return False
+        return True
+        # if not self.checkBox_5.isChecked():
+        #     return
+        # full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
+        # try:
+        #     with open(full_name, 'r') as configfile:
+        #         s = configfile.read()
+        #     conf = json.loads(s)
+        #     if 'included' in conf:
+        #         self.plainTextEdit_2.setPlainText(conf['included'])
+        #         self.conf['included'] = conf['included']
+        #     if 'extra_plot' in conf:
+        #         self.plainTextEdit_4.setPlainText(conf['extra_plot'])
+        #         self.conf['extra_plot'] = conf['extra_plot']
+        #     if 'extra_col' in conf:
+        #         self.plainTextEdit_5.setPlainText(conf['extra_col'])
+        #         self.conf['extra_col'] = conf['extra_col']
+        #     if 'plot_order' in conf:
+        #         self.plainTextEdit_7.setPlainText(conf['plot_order'])
+        #         self.conf['plot_order'] = conf['plot_order']
+        #     self.logger.info('Local configuration restored from %s' % full_name)
+        #     return True
+        # except:
+        #     log_exception('Local configuration restore error from %s' % full_name, level=logging.INFO)
+        #     return False
 
     def save_local_settings(self):
-        full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
-        try:
-            if not self.checkBox_5.isChecked():
-                return
-            conf = dict()
-            conf['included'] = self.conf['included']
-            conf['extra_plot'] = self.conf['extra_plot']
-            conf['extra_col'] = self.conf['extra_col']
-            conf['plot_order'] = self.conf['plot_order']
-            with open(full_name, 'w') as configfile:
-                configfile.write(json.dumps(conf, indent=4))
-            self.logger.info('Local configuration saved to %s', full_name)
-            return True
-        except:
-            log_exception('Local configuration save error to %s' % full_name)
-            return False
+        return True
+        # full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
+        # try:
+        #     if not self.checkBox_5.isChecked():
+        #         return
+        #     conf = dict()
+        #     conf['included'] = self.conf['included']
+        #     conf['extra_plot'] = self.conf['extra_plot']
+        #     conf['extra_col'] = self.conf['extra_col']
+        #     conf['plot_order'] = self.conf['plot_order']
+        #     with open(full_name, 'w') as configfile:
+        #         configfile.write(json.dumps(conf, indent=4))
+        #     self.logger.info('Local configuration saved to %s', full_name)
+        #     return True
+        # except:
+        #     log_exception('Local configuration save error to %s' % full_name)
+        #     return False
 
     def log_level_index_changed(self, m: int) -> None:
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
@@ -916,8 +918,6 @@ class MainWindow(QMainWindow):
         for column in self.columns_with_error:
             self.logger.warning('Can not create extra column for "%s ..."', column[:10])
 
-
-
     def parse_folder(self, file_name: str = None, append=False):
         try:
             if file_name is None:
@@ -936,11 +936,11 @@ class MainWindow(QMainWindow):
             if self.log_table is not None and self.log_table.file_name == file_name:
                 self.logger.debug("Appending from log file")
                 buf = self.log_table.read_log_to_buf()
-                if not buf:
-                    self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
-                    self.plot_signals()
-                    self.update_status_bar()
-                    return
+                # if not buf:
+                #     self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
+                #     self.plot_signals()
+                #     self.update_status_bar()
+                #     return
                 n = self.log_table.append(buf, extra_cols=self.extra_cols)
                 # if not append:
                 #    n = -1
@@ -955,7 +955,7 @@ class MainWindow(QMainWindow):
                 self.last_selection = -1
                 self.current_selection = -1
             # Create displayed columns list
-            # self.columns = self.sort_columns()
+            self.columns = self.sort_columns()
             self.fill_table_widget(-1)
             # select last row of widget -> tableSelectionChanged will be fired
             self.select_last_row()
@@ -1357,6 +1357,7 @@ class LogTable:
     def append(self, buf, extra_cols=None):
         if not buf:
             self.logger.debug('Empty buffer')
+            self.add_extra_columns(extra_cols)
             return 0
         if extra_cols is None:
             extra_cols = []
