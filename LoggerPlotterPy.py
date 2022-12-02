@@ -861,12 +861,24 @@ class MainWindow(QMainWindow):
         self.save_settings()
         timer.stop()
 
+    def list_from_widget(self, widget):
+        columns = widget.toPlainText().split('\n')
+        return [col.strip() for col in columns if col.strip()]
+
+    def get_displayed_columns(self):
+        return self.list_from_widget(self.plainTextEdit_2)
+
     def sort_columns(self):
-        included = self.plainTextEdit_2.toPlainText().split('\n')
+        included = self.get_displayed_columns()
         hidden = []
         columns = []
+        # self.table.clear()
         # add from included
         for t in included:
+            # if t in self.log_table:
+            #   self.table.add_column(t)
+            # else:
+            #   hidden.append(t)
             if t in self.log_table.headers and t not in columns:
                 columns.append(t)
         # create hidden columns list
@@ -879,6 +891,32 @@ class MainWindow(QMainWindow):
         text = '\n'.join(hidden)
         self.plainTextEdit_3.setPlainText(text)
         return columns
+
+    def get_extra_columns(self):
+        return self.list_from_widget(self.plainTextEdit_5)
+
+    def calculate_extra_columns(self, extra_cols):
+        self.columns_with_error = []
+        for row in range(self.rows):
+            for column in extra_cols:
+                if column.strip() != "":
+                    try:
+                        key, value, units = eval(column)
+                        if (key is not None) and (key != ''):
+                            j = self.add_column(key)
+                            self.data[j][row] = str(value) + ' ' + str(units)
+                            self.values[j][row] = float(value)
+                            self.units[j][row] = str(units)
+                        if column in self.columns_with_error:
+                            self.columns_with_error.remove(column)
+                    except:
+                        if column not in self.columns_with_error:
+                            log_exception(self.logger, 'eval() error in "%s ..."', column[:10], level=logging.INFO)
+                            self.columns_with_error.append(column)
+        for column in self.columns_with_error:
+            self.logger.warning('Can not create extra column for "%s ..."', column[:10])
+
+
 
     def parse_folder(self, file_name: str = None, append=False):
         try:
@@ -968,6 +1006,7 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
             log_exception(self)
+        # columns = self.get_displayed_columns()
         self.columns = self.sort_columns()
         if append < 0:
             # clear table widget
@@ -1848,6 +1887,9 @@ class NewLogTable:
         self.file_size = 0
         self.file_name = None
 
+    def keys(self):
+        return self.columns.keys()
+
     def column(self, col):
         return self.columns[col]
 
@@ -1990,6 +2032,9 @@ class NewLogTable:
 
     def get_cell(self, row, col):
         return self.columns[col][row]
+
+    def show_line_flag(self, index: int):
+        return self.columns[-1][index]
 
     def set_cell(self, row, col, value):
         self.columns[col][row] = value
