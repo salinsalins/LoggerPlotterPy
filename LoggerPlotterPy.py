@@ -621,7 +621,7 @@ class MainWindow(QMainWindow):
                 col = 0
                 row += 1
             # Show toolbar
-            if self.checkBox_1.isChecked():
+            if self.show_toolbar:
                 mplw.ntb.show()
             else:
                 mplw.ntb.hide()
@@ -689,6 +689,10 @@ class MainWindow(QMainWindow):
     @property
     def plot_previous_line(self):
         return self.checkBox_2.isChecked()
+
+    @property
+    def show_toolbar(self):
+        return self.checkBox_1.isChecked()
 
     @staticmethod
     def sort_text_edit_widget(widget):
@@ -987,8 +991,12 @@ class MainWindow(QMainWindow):
             n = 0
             for column in self.columns:
                 col = self.log_table.find_column(column)
+                # if column not in self.log_table:
                 if col < 0:
                     continue
+                # cell = self.log_table.get_cell(row, column)
+                # if self.hide_rows_flag and cell[-1]:
+                #   continue
                 try:
                     fmt = self.config['format'][column]
                     txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
@@ -1002,19 +1010,19 @@ class MainWindow(QMainWindow):
                 if row > 0:
                     v = self.log_table.values[col][row]
                     v1 = self.log_table.values[col][row - 1]
-                    flag = True
+                    bold_font_flag = True
                     if math.isnan(v) or math.isnan(v1):
-                        flag = False
+                        bold_font_flag = False
                     else:
                         try:
                             thr = config['thresholds'][column]
                         except:
                             thr = 0.03
                         if thr > 0.0:
-                            flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
+                            bold_font_flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
                         elif thr < 0.0:
-                            flag = abs(v1 - v) > -thr
-                    if flag:
+                            bold_font_flag = abs(v1 - v) > -thr
+                    if bold_font_flag:
                         item.setFont(CELL_FONT_BOLD)
                 self.tableWidget_3.setItem(row, n, item)
                 n += 1
@@ -1864,7 +1872,7 @@ class NewLogTable:
         elif len(args) == 2:
             a0 = args[0]
             a1 = args[1]
-            return self.column(a1)[a0]
+            return self.columns[a1][a0]
         raise ValueError('Wrong arguments')
 
     def __len__(self):
@@ -1967,10 +1975,17 @@ class NewLogTable:
         self.columns[index].update(row)
         return self.rows
 
-    def get_value(self, row, col):
-        return self.__call__(row, col)
+    def get_text(self, row, col, fmt=None):
+        v = self.columns[col][row]
+        if fmt is None:
+            return v['text']
+        else:
+            return fmt % (v['value'], v['units'])
 
-    def set_value(self, row, col, value):
+    def get_cell(self, row, col):
+        return self.columns[col][row]
+
+    def set_cell(self, row, col, value):
         self.columns[col][row] = value
 
     def __contains__(self, item):
