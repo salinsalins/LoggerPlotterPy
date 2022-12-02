@@ -102,6 +102,10 @@ def remove_from_widget(widget, removed: str):
     widget.setPlainText(remove_from_text(text, removed))
 
 
+class SignalNotFoundError(ValueError):
+    pass
+
+
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -485,7 +489,7 @@ class MainWindow(QMainWindow):
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
-                zip_file_name = self.log_table.get_column("File")[row_s]
+                zip_file_name = self.log_table.column("File")[row_s]
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list + self.extra_plots
@@ -511,7 +515,7 @@ class MainWindow(QMainWindow):
             for sg in self.signal_list:
                 if sg.name == name:
                     return sg
-            raise ValueError('Signal %s not found' % name)
+            raise SignalNotFoundError('Signal %s not found' % name)
             # return None
 
         self.extra_plots = []
@@ -561,9 +565,13 @@ class MainWindow(QMainWindow):
                         self.extra_plots.append(s)
                         # self.signal_list.append(s)
                     else:
-                        self.logger.info('Can not calculate signal for "%s ..."', p[:10])
+                        self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
                 except:
-                    log_exception(self, 'Plot eval() error in "%s ..."' % p[:10], level=logging.INFO)
+                    log_exception(self, 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
+        for p in self.extra_plots:
+            self.logger.debug('Plot %s has been added' % p.name)
+        if len(self.extra_plots) <= 0:
+            self.logger.info('No extra plots added')
 
     def sort_plots(self):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -751,7 +759,7 @@ class MainWindow(QMainWindow):
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.last_selection >= 0:
                 self.change_background()
-                last_sel_time = self.log_table.get_column("Time")[self.last_selection]
+                last_sel_time = self.log_table.column("Time")[self.last_selection]
                 self.sb_prev_shot_time.setVisible(True)
                 self.sb_prev_shot_time.setText(last_sel_time)
             else:
@@ -759,7 +767,7 @@ class MainWindow(QMainWindow):
                 self.sb_prev_shot_time.setVisible(False)
                 self.sb_prev_shot_time.setText("**:**:**")
             if self.current_selection >= 0:
-                green_time = self.log_table.get_column("Time")[self.current_selection]
+                green_time = self.log_table.column("Time")[self.current_selection]
                 self.sb_green_time.setVisible(True)
                 self.sb_green_time.setText(green_time)
             else:
@@ -1450,6 +1458,7 @@ class LogTable:
 
     def add_extra_columns(self, extra_cols):
         self.columns_with_error = []
+        added_columns = []
         for row in range(self.rows):
             for column in extra_cols:
                 if column.strip() != "":
@@ -1457,6 +1466,8 @@ class LogTable:
                         key, value, units = eval(column)
                         if (key is not None) and (key != ''):
                             j = self.add_column(key)
+                            if key not in added_columns:
+                                added_columns.append(key)
                             self.data[j][row] = str(value) + ' ' + str(units)
                             self.values[j][row] = float(value)
                             self.units[j][row] = str(units)
@@ -1464,10 +1475,12 @@ class LogTable:
                             self.columns_with_error.remove(column)
                     except:
                         if column not in self.columns_with_error:
-                            log_exception(self.logger, 'eval() error in "%s ..."', column[:10], level=logging.INFO)
+                            log_exception(self.logger, 'eval() error in "%s ..."\n', column[:20], level=logging.INFO)
                             self.columns_with_error.append(column)
         for column in self.columns_with_error:
-            self.logger.warning('Can not create extra column for "%s ..."', column[:10])
+            self.logger.warning('Can not create extra column for "%s ..."', column[:20])
+        for column in added_columns:
+            self.logger.debug('Column "%s has been added..."', column)
 
     def remove_row(self, row):
         for item in self.data:
@@ -1702,8 +1715,8 @@ class DataFile:
     def read_signal(self, signal_name: str):
         signal = Signal()
         if signal_name not in self.signals:
-            self.logger.info("No signal %s in the file %s" % (signal_name, self.file_name))
-            return signal
+            self.logger.debug("No signal %s in the file %s" % (signal_name, self.file_name))
+            return None
         with zipfile.ZipFile(self.file_name, 'r') as zipobj:
             buf = zipobj.read(signal_name)
             # param_name = signal_name.replace('chan', 'paramchan')
@@ -1716,7 +1729,7 @@ class DataFile:
         lines = buf.split(endline)
         n = len(lines)
         if n < 2:
-            self.logger.warning("%s Not a signal" % signal_name)
+            self.logger.debug("%s Not a signal" % signal_name)
             return None
         signal.x = numpy.zeros(n, dtype=numpy.float64)
         signal.y = numpy.zeros(n, dtype=numpy.float64)
@@ -1796,7 +1809,7 @@ class DataFile:
                             mark_length = int(index[-1] - index[0]) + 1
                             signal.marks[mark_name] = (mark_start, mark_length, mark_value)
                 except:
-                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
+                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name), level=logging.INFO)
         # calculate value
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
@@ -1811,7 +1824,12 @@ class DataFile:
     def read_all_signals(self):
         signals = []
         for s in self.signals:
-            signals.append(self.read_signal(s))
+            sig = self.read_signal(s)
+            if sig:
+                signals.append(sig)
+            else:
+                pass
+                # self.logger.debug("Signal %s rejected" % s)
         return signals
 
 
@@ -1890,10 +1908,10 @@ class NewLogTable:
     def keys(self):
         return self.columns.keys()
 
-    def get_column(self, col):
+    def column(self, col):
         return self.columns[col]
 
-    def get_row(self, n):
+    def row(self, n):
         # result = {}
         # i = 0
         # for (key, val) in self.columns:
@@ -1908,9 +1926,9 @@ class NewLogTable:
         if len(args) == 1:
             a0 = args[0]
             if isinstance(a0, str):
-                return self.get_column(a0)
+                return self.column(a0)
             elif isinstance(a0, int):
-                return self.get_row(a0)
+                return self.row(a0)
         elif len(args) == 2:
             a0 = args[0]
             a1 = args[1]
@@ -2017,24 +2035,24 @@ class NewLogTable:
         self.columns[index].update(row)
         return self.rows
 
-    def text(self, row, col, fmt=None):
+    def get_text(self, row, col, fmt=None):
         v = self.columns[col][row]
         if not fmt:
             return v['text']
         else:
             return fmt % (v['value'], v['units'])
 
-    def value(self, row, col):
+    def get_value(self, row, col):
         return self.columns[col][row]['value']
 
-    def units(self, row, col):
+    def get_units(self, row, col):
         return self.columns[col][row]['units']
 
     def get_cell(self, row, col):
         return self.columns[col][row]
 
-    def show_line_flag(self, row: int):
-        return self.columns[-1][row]
+    def show_line_flag(self, index: int):
+        return self.columns[-1][index]
 
     def set_cell(self, row, col, value):
         self.columns[col][row] = value
