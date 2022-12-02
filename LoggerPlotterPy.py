@@ -937,7 +937,7 @@ class MainWindow(QMainWindow):
             self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
             self.logger.info('Parsing %s', file_name)
             # get extra columns
-            self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
+            self.extra_cols = self.get_extra_columns()
             # process log table
             if self.log_table is not None and self.log_table.file_name == file_name:
                 self.logger.debug("Appending from log file")
@@ -1734,6 +1734,7 @@ class DataFile:
         signal.x = numpy.zeros(n, dtype=numpy.float64)
         signal.y = numpy.zeros(n, dtype=numpy.float64)
         error_lines = False
+        xy = []
         for i, line in enumerate(lines):
             xy = line.replace(b',', b'.').split(b'; ')
             if len(xy) > 1:
