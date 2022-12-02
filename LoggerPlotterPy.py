@@ -998,7 +998,7 @@ class MainWindow(QMainWindow):
                 # if self.hide_rows_flag and cell[-1]:
                 #   continue
                 try:
-                    fmt = self.config['format'][column]
+                    fmt = config['format'][column]
                     txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
                 except:
                     txt = self.log_table.data[col][row]
