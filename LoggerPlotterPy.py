@@ -485,7 +485,7 @@ class MainWindow(QMainWindow):
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
-                zip_file_name = self.log_table.column("File")[row_s]
+                zip_file_name = self.log_table.get_column("File")[row_s]
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list + self.extra_plots
@@ -751,7 +751,7 @@ class MainWindow(QMainWindow):
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.last_selection >= 0:
                 self.change_background()
-                last_sel_time = self.log_table.column("Time")[self.last_selection]
+                last_sel_time = self.log_table.get_column("Time")[self.last_selection]
                 self.sb_prev_shot_time.setVisible(True)
                 self.sb_prev_shot_time.setText(last_sel_time)
             else:
@@ -759,7 +759,7 @@ class MainWindow(QMainWindow):
                 self.sb_prev_shot_time.setVisible(False)
                 self.sb_prev_shot_time.setText("**:**:**")
             if self.current_selection >= 0:
-                green_time = self.log_table.column("Time")[self.current_selection]
+                green_time = self.log_table.get_column("Time")[self.current_selection]
                 self.sb_green_time.setVisible(True)
                 self.sb_green_time.setText(green_time)
             else:
@@ -1890,10 +1890,10 @@ class NewLogTable:
     def keys(self):
         return self.columns.keys()
 
-    def column(self, col):
+    def get_column(self, col):
         return self.columns[col]
 
-    def row(self, n):
+    def get_row(self, n):
         # result = {}
         # i = 0
         # for (key, val) in self.columns:
@@ -1908,9 +1908,9 @@ class NewLogTable:
         if len(args) == 1:
             a0 = args[0]
             if isinstance(a0, str):
-                return self.column(a0)
+                return self.get_column(a0)
             elif isinstance(a0, int):
-                return self.row(a0)
+                return self.get_row(a0)
         elif len(args) == 2:
             a0 = args[0]
             a1 = args[1]
@@ -2017,24 +2017,24 @@ class NewLogTable:
         self.columns[index].update(row)
         return self.rows
 
-    def get_text(self, row, col, fmt=None):
+    def text(self, row, col, fmt=None):
         v = self.columns[col][row]
         if not fmt:
             return v['text']
         else:
             return fmt % (v['value'], v['units'])
 
-    def get_value(self, row, col):
+    def value(self, row, col):
         return self.columns[col][row]['value']
 
-    def get_units(self, row, col):
+    def units(self, row, col):
         return self.columns[col][row]['units']
 
     def get_cell(self, row, col):
         return self.columns[col][row]
 
-    def show_line_flag(self, index: int):
-        return self.columns[-1][index]
+    def show_line_flag(self, row: int):
+        return self.columns[-1][row]
 
     def set_cell(self, row, col, value):
         self.columns[col][row] = value
