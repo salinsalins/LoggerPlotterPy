@@ -1195,10 +1195,11 @@ class MainWindow(QMainWindow):
     def config_selection_changed(self, index):
         global CONFIG_FILE
         old_config_file = CONFIG_FILE
-        CONFIG_FILE = str(self.sb_combo.currentText())
         self.save_settings()
         self.save_local_settings()
+        CONFIG_FILE = str(self.sb_combo.currentText())
         if not self.restore_settings():
+            self.logger.error('Wrong config file %s - ignored' % CONFIG_FILE)
             CONFIG_FILE = old_config_file
             self.restore_settings()
             return
