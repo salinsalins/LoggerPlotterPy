@@ -895,29 +895,27 @@ class MainWindow(QMainWindow):
     def get_extra_columns(self):
         return self.list_from_widget(self.plainTextEdit_5)
 
-    def calculate_extra_columns(self, extra_cols):
-        self.columns_with_error = []
-        for row in range(self.rows):
-            for column in extra_cols:
-                if column.strip() != "":
-                    try:
-                        key, value, units = eval(column)
-                        if (key is not None) and (key != ''):
-                            j = self.add_column(key)
-                            self.data[j][row] = str(value) + ' ' + str(units)
-                            self.values[j][row] = float(value)
-                            self.units[j][row] = str(units)
-                        if column in self.columns_with_error:
-                            self.columns_with_error.remove(column)
-                    except:
-                        if column not in self.columns_with_error:
-                            log_exception(self.logger, 'eval() error in "%s ..."', column[:10], level=logging.INFO)
-                            self.columns_with_error.append(column)
-        for column in self.columns_with_error:
-            self.logger.warning('Can not create extra column for "%s ..."', column[:10])
-
-
-
+    # def calculate_extra_columns(self, extra_cols):
+    #     self.columns_with_error = []
+    #     for row in range(self.rows):
+    #         for column in extra_cols:
+    #             if column.strip() != "":
+    #                 try:
+    #                     key, value, units = eval(column)
+    #                     if (key is not None) and (key != ''):
+    #                         j = self.add_column(key)
+    #                         self.data[j][row] = str(value) + ' ' + str(units)
+    #                         self.values[j][row] = float(value)
+    #                         self.units[j][row] = str(units)
+    #                     if column in self.columns_with_error:
+    #                         self.columns_with_error.remove(column)
+    #                 except:
+    #                     if column not in self.columns_with_error:
+    #                         log_exception(self.logger, 'eval() error in "%s ..."', column[:10], level=logging.INFO)
+    #                         self.columns_with_error.append(column)
+    #     for column in self.columns_with_error:
+    #         self.logger.warning('Can not create extra column for "%s ..."', column[:10])
+    #
     def parse_folder(self, file_name: str = None, append=False):
         try:
             if file_name is None:
