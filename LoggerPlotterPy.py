@@ -1810,7 +1810,8 @@ class DataFile:
                             mark_length = int(index[-1] - index[0]) + 1
                             signal.marks[mark_name] = (mark_start, mark_length, mark_value)
                 except:
-                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name), level=logging.INFO)
+                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name),
+                                  level=logging.INFO)
         # calculate value
         if 'zero' in signal.marks:
             zero = signal.marks["zero"][2]
@@ -1899,6 +1900,7 @@ class NewLogTable:
         self.rows = 0
         self.decode = lambda x: bytes.decode(x, 'cp1251')
         self.read_file(file_name)
+        self.exrta_columns = {}
 
     def clear(self):
         self.columns = {}
@@ -1939,9 +1941,14 @@ class NewLogTable:
     def __len__(self):
         return len(self.columns)
 
-    def add_column(self, key):
+    def add_column(self, key, data=None):
         if key not in self.columns:
-            self.columns[key] = [{}] * self.rows
+            if not data:
+                self.columns[key] = [{}] * self.rows
+            else:
+                if len(data) != self.rows:
+                    raise ValueError(f"Wrong data inserting {key}")
+                self.columns[key] = data
         return self.columns[key]
 
     def remove_column(self, key):
@@ -2020,9 +2027,12 @@ class NewLogTable:
 
     def add_row(self, row: dict):
         for key in row:
-            if key not in self.columns:
-                self.add_column(key)
-            self.columns[key].append(row[key])
+            self.add_column(key)
+        for key in self.columns:
+            if key in row:
+                self.columns[key].append(row[key])
+            else:
+                self.columns[key].append({})
         self.rows += 1
         return self.rows
 
@@ -2036,17 +2046,17 @@ class NewLogTable:
         self.columns[index].update(row)
         return self.rows
 
-    def get_text(self, row, col, fmt=None):
+    def text(self, row, col, fmt=None):
         v = self.columns[col][row]
         if not fmt:
             return v['text']
         else:
             return fmt % (v['value'], v['units'])
 
-    def get_value(self, row, col):
+    def value(self, row, col):
         return self.columns[col][row]['value']
 
-    def get_units(self, row, col):
+    def units(self, row, col):
         return self.columns[col][row]['units']
 
     def get_cell(self, row, col):
@@ -2093,6 +2103,46 @@ class NewLogTable:
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
             return None
+
+    def add_extra_columns(self, extra_cols):
+        # nice alias
+        value = lambda x: self.value(x, row)
+        #
+        columns_with_error = []
+        added_columns = []
+        for column in extra_cols:
+            if not column or column.strip() == '':
+                continue
+            h = column.hash()
+            n = 0
+            if h in self.exrta_columns:
+                n = self.exrta_columns[h]['length']
+                if n >= self.rows:
+                    self.logger.debug('Duplicate column %s' % column)
+                    continue
+            key = ''
+            for row in range(n, self.rows):
+                try:
+                    key, value, units = eval(column)
+                    if not key:
+                        self.logger.info('Wrong name for column %s' % column)
+                        break
+                    if key in added_columns:
+                        self.logger.info(f'Duplicate column {key} for {column}')
+                        break
+                    self.add_column(key)
+                    self.column(key)[row] = {'text': str(value), 'value': float(value), 'units': str(units)}
+                    if column in columns_with_error:
+                        columns_with_error.remove(column)
+                except:
+                    if column not in columns_with_error:
+                        log_exception(self.logger, 'eval() error in "%s ..."\n   ', column[:20], level=logging.INFO)
+                        columns_with_error.append(column)
+            self.exrta_columns[h] = {'name': key, 'code': column, 'length': self.rows}
+        for column in columns_with_error:
+            self.logger.warning('Can not create extra column for "%s ..."', column[:20])
+        for column in added_columns:
+            self.logger.debug('Column "%s has been added..."', column)
 
 
 if __name__ == '__main__':
