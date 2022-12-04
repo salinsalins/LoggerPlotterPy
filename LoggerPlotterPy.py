@@ -2106,7 +2106,11 @@ class NewLogTable:
 
     def add_extra_columns(self, extra_cols):
         # nice alias
-        value = lambda x: self.value(x, row)
+        #value = lambda x: self.value(x, row)
+        def value(x, y=None):
+            if y is None:
+                y = row
+            return self.value(x, y)
         #
         columns_with_error = []
         added_columns = []
@@ -2118,31 +2122,34 @@ class NewLogTable:
             if h in self.exrta_columns:
                 n = self.exrta_columns[h]['length']
                 if n >= self.rows:
-                    self.logger.debug('Duplicate column %s' % column)
+                    self.logger.debug('Overwrite attempt for %s' % column)
                     continue
             key = ''
+            key0 = None
             for row in range(n, self.rows):
                 try:
-                    key, value, units = eval(column)
+                    key, v, u = eval(column)
                     if not key:
                         self.logger.info('Wrong name for column %s' % column)
                         break
-                    if key in added_columns:
-                        self.logger.info(f'Duplicate column {key} for {column}')
-                        break
-                    self.add_column(key)
-                    self.column(key)[row] = {'text': str(value), 'value': float(value), 'units': str(units)}
-                    if column in columns_with_error:
-                        columns_with_error.remove(column)
+                    if key0 is None:
+                        if n <= 0 and key in self.columns:
+                            self.logger.info(f'Duplicate column {key} for {column}')
+                            break
+                        key0 = key
+                    else:
+                        if key != key0:
+                            raise ValueError('Wrong name for column %s' % column)
+                    self.add_column(key0)
+                    self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
                 except:
                     if column not in columns_with_error:
                         log_exception(self.logger, 'eval() error in "%s ..."\n   ', column[:20], level=logging.INFO)
                         columns_with_error.append(column)
             self.exrta_columns[h] = {'name': key, 'code': column, 'length': self.rows}
+            self.logger.debug('Column "%s has been added..."', key)
         for column in columns_with_error:
-            self.logger.warning('Can not create extra column for "%s ..."', column[:20])
-        for column in added_columns:
-            self.logger.debug('Column "%s has been added..."', column)
+            self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
 
 
 if __name__ == '__main__':
