@@ -2112,8 +2112,7 @@ class NewLogTable:
                 y = row
             return self.value(x, y)
         #
-        columns_with_error = []
-        added_columns = []
+        rows_with_error = []
         for column in extra_cols:
             if not column or column.strip() == '':
                 continue
@@ -2139,17 +2138,18 @@ class NewLogTable:
                         key0 = key
                     else:
                         if key != key0:
-                            raise ValueError('Wrong name for column %s' % column)
+                            raise KeyError('Wrong name for column %s' % column)
                     self.add_column(key0)
                     self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
                 except:
-                    if column not in columns_with_error:
+                    if not rows_with_error:
                         log_exception(self.logger, 'eval() error in "%s ..."\n   ', column[:20], level=logging.INFO)
-                        columns_with_error.append(column)
-            self.exrta_columns[h] = {'name': key, 'code': column, 'length': self.rows}
-            self.logger.debug('Column "%s has been added..."', key)
-        for column in columns_with_error:
-            self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
+                    rows_with_error.append(row)
+            self.exrta_columns[h] = {'name': key, 'code': column, 'length': self.rows, 'errors': rows_with_error}
+            if not rows_with_error:
+                self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
+            else:
+                self.logger.debug('Column "%s has been added..."', key)
 
 
 if __name__ == '__main__':
