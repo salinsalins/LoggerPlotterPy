@@ -489,7 +489,8 @@ class MainWindow(QMainWindow):
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
-                zip_file_name = self.log_table.column("File")[row_s]
+                ##zip_file_name = self.log_table.column("File")[row_s]
+                zip_file_name = self.log_table(row_s, "File")['text']
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list + self.extra_plots
@@ -759,7 +760,8 @@ class MainWindow(QMainWindow):
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.last_selection >= 0:
                 self.change_background()
-                last_sel_time = self.log_table.column("Time")[self.last_selection]
+                ##last_sel_time = self.log_table.column("Time")[self.last_selection]
+                last_sel_time = self.log_table(self.last_selection, "Time")['text']
                 self.sb_prev_shot_time.setVisible(True)
                 self.sb_prev_shot_time.setText(last_sel_time)
             else:
@@ -767,7 +769,8 @@ class MainWindow(QMainWindow):
                 self.sb_prev_shot_time.setVisible(False)
                 self.sb_prev_shot_time.setText("**:**:**")
             if self.current_selection >= 0:
-                green_time = self.log_table.column("Time")[self.current_selection]
+                ##green_time = self.log_table.column("Time")[self.current_selection]
+                green_time = self.log_table(self.current_selection, "Time")['text']
                 self.sb_green_time.setVisible(True)
                 self.sb_green_time.setText(green_time)
             else:
@@ -887,10 +890,12 @@ class MainWindow(QMainWindow):
             #   self.table.add_column(t)
             # else:
             #   hidden.append(t)
-            if t in self.log_table.headers and t not in columns:
+            ##if t in self.log_table.headers and t not in columns:
+            if t in self.log_table and t not in columns:
                 columns.append(t)
         # create hidden columns list
-        for t in self.log_table.headers:
+        ##for t in self.log_table.headers:
+        for t in self.log_table:
             if t not in columns:
                 hidden.append(t)
         # sort hidden list
@@ -941,18 +946,21 @@ class MainWindow(QMainWindow):
             # process log table
             if self.log_table is not None and self.log_table.file_name == file_name:
                 self.logger.debug("Appending from log file")
-                buf = self.log_table.read_log_to_buf()
+                self.log_table.read_file()
+                self.log_table.add_extra_columns(self.extra_cols)
+                ##buf = self.log_table.read_log_to_buf()
                 # if not buf:
                 #     self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
                 #     self.plot_signals()
                 #     self.update_status_bar()
                 #     return
-                n = self.log_table.append(buf, extra_cols=self.extra_cols)
+                ##n = self.log_table.append(buf, extra_cols=self.extra_cols)
                 # if not append:
                 #    n = -1
             else:
                 self.logger.debug("Create new LogTable")
-                self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
+                ##self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
+                self.log_table = NewLogTable(file_name, extra_cols=self.extra_cols,
                                           show_line_flag=self.checkBox_6.isChecked())
                 if self.log_table.file_name is None:
                     return
@@ -1029,32 +1037,38 @@ class MainWindow(QMainWindow):
         #     row_range = range(self.log_table.rows - append, self.log_table.rows)
         for column in self.columns[self.tableWidget_3.columnCount():]:
             self.insert_column(column)
+        ##row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
         row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
         # insert and fill rows
         for row in row_range:
             self.tableWidget_3.insertRow(row)
             n = 0
             for column in self.columns:
-                col = self.log_table.find_column(column)
+                # col = self.log_table.find_column(column)
                 # if column not in self.log_table:
-                if col < 0:
+                ##if col < 0:
+                if column not in self.log_table:
                     continue
                 # cell = self.log_table.get_cell(row, column)
                 # if self.hide_rows_flag and cell[-1]:
                 #   continue
                 try:
                     fmt = config['format'][column]
-                    txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
+                    ##txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
+                    txt = fmt % (self.log_table.value(row, column), self.log_table.units(row, column))
                 except:
-                    txt = self.log_table.data[col][row]
+                    ##txt = self.log_table.data[col][row]
+                    txt = self.log_table.text(row, column)
                 txt = txt.replace('none', '')
                 txt = txt.replace('None', '')
                 item = QTableWidgetItem(txt)
                 item.setFont(CELL_FONT)
                 # mark changed values
                 if row > 0:
-                    v = self.log_table.values[col][row]
-                    v1 = self.log_table.values[col][row - 1]
+                    ##v = self.log_table.values[col][row]
+                    v = self.log_table.value(row, column)
+                    ##v1 = self.log_table.values[col][row - 1]
+                    v1 = self.log_table.value(row-1, column)
                     bold_font_flag = True
                     if math.isnan(v) or math.isnan(v1):
                         bold_font_flag = False
@@ -1762,7 +1776,7 @@ class DataFile:
         # read parameters
         signal.params = {}
         param_name = signal_name.replace('chan', 'paramchan')
-        if param_name in self.files:
+        if param_name != signal_name and param_name in self.files:
             with zipfile.ZipFile(self.file_name, 'r') as zipobj:
                 pbuf = zipobj.read(param_name)
             lines = pbuf.split(endline)
@@ -1773,9 +1787,9 @@ class DataFile:
                     if len(kv) >= 2:
                         signal.params[kv[0].strip()] = kv[1].strip()
                     else:
-                        error_lines = True
+                        error_lines = kv
             if error_lines:
-                self.logger.debug("Wrong parameter for %s" % signal_name)
+                self.logger.debug(f"Wrong parameter {kv} for {signal_name}")
         # scale to units
         try:
             signal.scale = float(signal.params[b'display_unit'])
@@ -1889,32 +1903,37 @@ def unify_marks(first: Signal, other: Signal):
 
 
 class NewLogTable:
-    def __init__(self, file_name: str = None, logger=None):
+    EMTPY_CELL = {'text': '', 'value': float('nan'), 'units': ''}
+    def __init__(self, file_name: str = None, extra_cols=None, logger=None, **kwargs):
         if logger is None:
             self.logger = config_logger()
         else:
             self.logger = logger
         self.columns = {}
-        self.file_name = None
-        self.file_size = 0
         self.rows = 0
         self.decode = lambda x: bytes.decode(x, 'cp1251')
-        self.read_file(file_name)
+        self.file_name = None
+        self.file_size = 0
+        if file_name is not None:
+            self.read_file(file_name)
         self.exrta_columns = {}
+        if extra_cols is not None:
+            self.add_extra_columns(extra_cols)
 
     def clear(self):
         self.columns = {}
         self.rows = 0
         self.file_size = 0
         self.file_name = None
+        self.exrta_columns = {}
 
     def keys(self):
         return self.columns.keys()
 
-    def column(self, col):
+    def get_column(self, col):
         return self.columns[col]
 
-    def row(self, n):
+    def get_row(self, n):
         # result = {}
         # i = 0
         # for (key, val) in self.columns:
@@ -1929,9 +1948,9 @@ class NewLogTable:
         if len(args) == 1:
             a0 = args[0]
             if isinstance(a0, str):
-                return self.column(a0)
+                return self.get_column(a0)
             elif isinstance(a0, int):
-                return self.row(a0)
+                return self.get_row(a0)
         elif len(args) == 2:
             a0 = args[0]
             a1 = args[1]
@@ -1944,10 +1963,10 @@ class NewLogTable:
     def add_column(self, key, data=None):
         if key not in self.columns:
             if not data:
-                self.columns[key] = [{}] * self.rows
+                self.columns[key] = [self.EMTPY_CELL] * self.rows
             else:
                 if len(data) != self.rows:
-                    raise ValueError(f"Wrong data inserting {key}")
+                    raise ValueError(f"Wrong insert data for {key}")
                 self.columns[key] = data
         return self.columns[key]
 
@@ -2032,7 +2051,7 @@ class NewLogTable:
             if key in row:
                 self.columns[key].append(row[key])
             else:
-                self.columns[key].append({})
+                self.columns[key].append(self.EMTPY_CELL)
         self.rows += 1
         return self.rows
 
@@ -2062,14 +2081,17 @@ class NewLogTable:
     def get_cell(self, row, col):
         return self.columns[col][row]
 
-    def show_line_flag(self, index: int):
-        return self.columns[-1][index]
-
     def set_cell(self, row, col, value):
         self.columns[col][row] = value
 
+    def show_line_flag(self, row: int):
+        return self.columns[-1][row]
+
     def __contains__(self, item):
         return item in self.columns
+
+    def __iter__(self):
+        return [key for key in self.columns if isinstance(key, str)].__iter__()
 
     def read_file(self, file_name: str = None):
         if file_name is None:
@@ -2084,7 +2106,7 @@ class NewLogTable:
         if fs < 20 or (self.file_name == fn and fs < self.file_size):
             self.logger.warning('Wrong file size for %s' % fn)
             return None
-        self.logger.debug(f'File {fn} will be processed. File length {fs} bytes')
+        self.logger.debug(f'File {fn} {fs} bytes will be processed')
         # read file to buf
         try:
             with open(fn, "rb") as stream:
@@ -2116,15 +2138,16 @@ class NewLogTable:
         for column in extra_cols:
             if not column or column.strip() == '':
                 continue
-            h = column.hash()
+            h = column.__hash__()
             n = 0
+            key0 = None
             if h in self.exrta_columns:
                 n = self.exrta_columns[h]['length']
                 if n >= self.rows:
                     self.logger.debug('Overwrite attempt for %s' % column)
                     continue
+                key0 = self.exrta_columns[h]['name']
             key = ''
-            key0 = None
             for row in range(n, self.rows):
                 try:
                     key, v, u = eval(column)
@@ -2132,8 +2155,8 @@ class NewLogTable:
                         self.logger.info('Wrong name for column %s' % column)
                         break
                     if key0 is None:
-                        # if n <= 0 and key in self.columns:
-                        #     self.logger.info(f'Duplicate column {key} for {column}')
+                        if n <= 0 and key in self.columns:
+                            self.logger.debug(f'Column {key} will be overwritten by {column}')
                         #     break
                         key0 = key
                         self.add_column(key0)
@@ -2142,16 +2165,17 @@ class NewLogTable:
                             raise KeyError('Wrong name for column %s' % column)
                         else:
                             self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
+                            n += 1
                 except:
                     if not rows_with_error:
                         log_exception(self.logger, 'eval() error in "%s ..."\n   ', column[:20], level=logging.INFO)
                     rows_with_error.append(row)
-            self.exrta_columns[h] = {'name': key0, 'code': column, 'length': self.rows, 'errors': rows_with_error}
+            self.exrta_columns[h] = {'name': key0, 'code': column, 'length': n, 'errors': rows_with_error}
             self.exrta_columns[key0] = h
-            if not rows_with_error:
+            if rows_with_error:
                 self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
             else:
-                self.logger.debug('Column "%s has been added..."', key)
+                self.logger.debug('Extra column %s has been added', key)
 
 
 if __name__ == '__main__':
