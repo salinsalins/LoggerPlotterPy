@@ -2128,24 +2128,26 @@ class NewLogTable:
             for row in range(n, self.rows):
                 try:
                     key, v, u = eval(column)
-                    if not key:
+                    if not key or not isinstance(key, str):
                         self.logger.info('Wrong name for column %s' % column)
                         break
                     if key0 is None:
-                        if n <= 0 and key in self.columns:
-                            self.logger.info(f'Duplicate column {key} for {column}')
-                            break
+                        # if n <= 0 and key in self.columns:
+                        #     self.logger.info(f'Duplicate column {key} for {column}')
+                        #     break
                         key0 = key
+                        self.add_column(key0)
                     else:
                         if key != key0:
                             raise KeyError('Wrong name for column %s' % column)
-                    self.add_column(key0)
-                    self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
+                        else:
+                            self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
                 except:
                     if not rows_with_error:
                         log_exception(self.logger, 'eval() error in "%s ..."\n   ', column[:20], level=logging.INFO)
                     rows_with_error.append(row)
-            self.exrta_columns[h] = {'name': key, 'code': column, 'length': self.rows, 'errors': rows_with_error}
+            self.exrta_columns[h] = {'name': key0, 'code': column, 'length': self.rows, 'errors': rows_with_error}
+            self.exrta_columns[key0] = h
             if not rows_with_error:
                 self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
             else:
