@@ -1276,6 +1276,7 @@ class MainWindow(QMainWindow):
             n = self.tableWidget_3.rowCount() - 1
             self.tableWidget_3.selectRow(n)
         else:
+            self.tableWidget_3.selectRow(self.current_selection)
             self.logger.debug('Selection switch to last row rejected')
             self.tableWidget_3.selectRow(self.current_selection)
 
