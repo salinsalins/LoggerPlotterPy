@@ -362,7 +362,6 @@ class MainWindow(QMainWindow):
             text = text.replace(t2, t1)
             text = text.replace('****', t2)
             self.plainTextEdit_2.setPlainText(text)
-        # self.columns = self.sort_columns()
         self.fill_table_widget()
         self.tableWidget_3.selectRow(self.current_selection)
         self.change_background()
@@ -969,7 +968,6 @@ class MainWindow(QMainWindow):
                 self.last_selection = -1
                 self.current_selection = -1
             # Create displayed columns list
-            self.columns = self.sort_columns()
             self.fill_table_widget(-1)
             # select last row of widget -> tableSelectionChanged will be fired
             self.select_last_row()
@@ -1020,54 +1018,34 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
             log_exception(self)
-        # columns = self.get_displayed_columns()
         self.columns = self.sort_columns()
         if append < 0:
             # clear table widget
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
-            # insert columns
-            # for column in self.columns:
-            #     self.insert_column(column)
-            # row_range = range(self.log_table.rows)
-        # else:
-        #     # insert columns
-        #     # for column in self.columns[self.tableWidget_3.columnCount():]:
-        #     #     self.insert_column(column)
-        #     row_range = range(self.log_table.rows - append, self.log_table.rows)
         for column in self.columns[self.tableWidget_3.columnCount():]:
-            self.insert_column(column)
-        ##row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
+            index = self.tableWidget_3.columnCount()
+            self.tableWidget_3.insertColumn(index)
+            self.tableWidget_3.setHorizontalHeaderItem(index, QTableWidgetItem(column))
         row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
         # insert and fill rows
         for row in row_range:
             self.tableWidget_3.insertRow(row)
             n = 0
             for column in self.columns:
-                # col = self.log_table.find_column(column)
-                # if column not in self.log_table:
-                ##if col < 0:
                 if column not in self.log_table:
                     continue
-                # cell = self.log_table.get_cell(row, column)
-                # if self.hide_rows_flag and cell[-1]:
-                #   continue
                 try:
                     fmt = config['format'][column]
-                    ##txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
                     txt = fmt % (self.log_table.value(row, column), self.log_table.units(row, column))
                 except:
-                    ##txt = self.log_table.data[col][row]
                     txt = self.log_table.text(row, column)
-                txt = txt.replace('none', '')
-                txt = txt.replace('None', '')
+                txt = txt.replace('none', '').replace('None', '')
                 item = QTableWidgetItem(txt)
                 item.setFont(CELL_FONT)
                 # mark changed values
                 if row > 0:
-                    ##v = self.log_table.values[col][row]
                     v = self.log_table.value(row, column)
-                    ##v1 = self.log_table.values[col][row - 1]
                     v1 = self.log_table.value(row-1, column)
                     bold_font_flag = True
                     if math.isnan(v) or math.isnan(v1):
