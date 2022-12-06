@@ -964,6 +964,10 @@ class MainWindow(QMainWindow):
                 # select last row of widget -> tableSelectionChanged will be fired
                 if n > 0:
                     self.select_last_row()
+                else:
+                    self.tableWidget_3.selectRow(self.current_selection)
+                    self.tableWidget_3.setFocus()
+
         except:
             log_exception(self, 'Exception in parseFolder')
         self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
@@ -1275,6 +1279,7 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.setFocus()
         else:
             self.tableWidget_3.selectRow(self.current_selection)
+            self.tableWidget_3.setFocus()
             self.logger.debug('Selection switch to last row rejected')
 
 
@@ -2121,30 +2126,29 @@ class NewLogTable:
             n = 0
             key0 = None
             if h in self.exrta_columns:
-                n = self.exrta_columns[h]['length']
+                # n = self.exrta_columns[h]['length']
                 key0 = self.exrta_columns[h]['name']
                 # if n >= self.rows and key0 is not None:
                 #     self.logger.debug('Overwrite extra column %s' % column)
                 #     continue
             key = ''
-            for row in range(n, self.rows):
+            for row in range(0, self.rows):
                 try:
                     key, v, u = eval(column)
                     if not key or not isinstance(key, str):
                         self.logger.info('Wrong name for column %s' % column)
                         break
                     if key0 is None:
-                        if n <= 0 and key in self.columns:
+                        if key in self.columns:
                             self.logger.debug(f'Column {key} will be overwritten by {column}')
                         #     break
                         key0 = key
                         self.add_column(key0)
+                    if key != key0:
+                        raise KeyError('Wrong name for column %s' % column)
                     else:
-                        if key != key0:
-                            raise KeyError('Wrong name for column %s' % column)
-                        else:
-                            self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
-                            n += 1
+                        self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
+                        n += 1
                 except:
                     if not rows_with_error:
                         log_exception(self.logger, 'eval() error in "%s ..."\n   ', column[:20], level=logging.INFO)
@@ -2154,7 +2158,7 @@ class NewLogTable:
             if rows_with_error:
                 self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
             else:
-                self.logger.debug('Extra column %s has been added', key)
+                self.logger.debug(f'Extra column {key} has been added {n} lines')
 
 
 if __name__ == '__main__':
