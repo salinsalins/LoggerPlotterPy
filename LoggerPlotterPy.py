@@ -2079,10 +2079,12 @@ class NewLogTable:
             self.logger.warning('File %s does not exist' % fn)
             return None
         fs = os.path.getsize(fn)
-        if fs < 20 or (self.file_name == fn and fs <= self.file_size):
-            if fs != self.file_size:
-                self.logger.warning('Wrong file size for %s' % fn)
+        if fs < 20:
+            self.logger.warning('Wrong file size for %s' % fn)
             return None
+        if self.file_name == fn and fs == self.file_size:
+            self.logger.debug('Nothing to read from %s' % fn)
+            return 0
         self.logger.debug(f'File {fn} {fs} bytes will be processed')
         # read file to buf
         try:
@@ -2120,10 +2122,10 @@ class NewLogTable:
             key0 = None
             if h in self.exrta_columns:
                 n = self.exrta_columns[h]['length']
-                if n >= self.rows:
-                    self.logger.debug('Overwrite attempt for %s' % column)
-                    continue
                 key0 = self.exrta_columns[h]['name']
+                # if n >= self.rows and key0 is not None:
+                #     self.logger.debug('Overwrite extra column %s' % column)
+                #     continue
             key = ''
             for row in range(n, self.rows):
                 try:
