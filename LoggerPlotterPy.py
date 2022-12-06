@@ -946,10 +946,6 @@ class MainWindow(QMainWindow):
             if self.log_table is None:
                 self.logger.debug("Create new LogTable")
                 self.log_table = NewLogTable()
-                # self.log_table = NewLogTable(file_name, extra_cols=self.extra_cols)
-                # if self.log_table.file_name is None:
-                #     return
-                # self.log_file_name = file_name
                 self.last_selection = -1
                 self.current_selection = -1
             elif self.log_table.file_name == file_name:
@@ -964,9 +960,10 @@ class MainWindow(QMainWindow):
                 self.log_table.add_extra_columns(self.extra_cols)
                 self.log_file_name = file_name
                 # Create displayed columns list
-                self.fill_table_widget(-1)
+                self.fill_table_widget()
                 # select last row of widget -> tableSelectionChanged will be fired
-                self.select_last_row()
+                if n > 0:
+                    self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
         self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
@@ -1062,7 +1059,7 @@ class MainWindow(QMainWindow):
         # resize Columns
         self.tableWidget_3.resizeColumnsToContents()
         #
-        self.tableWidget_3.scrollToBottom()
+        # self.tableWidget_3.scrollToBottom()
         self.tableWidget_3.setFocus()
         # enable table widget update events
         self.tableWidget_3.setUpdatesEnabled(True)
@@ -1271,6 +1268,8 @@ class MainWindow(QMainWindow):
             self.logger.debug('Selection will be switched to last row')
             n = self.tableWidget_3.rowCount() - 1
             self.tableWidget_3.selectRow(n)
+            self.tableWidget_3.scrollToBottom()
+            self.tableWidget_3.setFocus()
         else:
             self.tableWidget_3.selectRow(self.current_selection)
             self.logger.debug('Selection switch to last row rejected')
