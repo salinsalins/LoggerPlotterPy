@@ -462,11 +462,11 @@ class MainWindow(QMainWindow):
         # top row of the selection
         row_s = rng[0].topRow()
         # if selected the same row
-        if self.last_selection == row_s:
+        if self.current_selection == row_s:
             self.logger.debug('Selection unchanged')
             return row_s
         # different row selected
-        self.logger.debug('Selection changed from %s to %i', self.last_selection, row_s)
+        self.logger.debug('Selection changed from %s to %i', self.current_selection, row_s)
         return row_s
 
     def sig(self, name):
@@ -520,12 +520,9 @@ class MainWindow(QMainWindow):
 
         self.extra_plots = []
         # add extra plots from plainTextEdit_4
-        extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
-        # show_plots = self.plainTextEdit_6.toPlainText().split('\n')
+        extra_plots = self.get_extra_plots()
         for p in extra_plots:
             p = p.strip()
-            # if p not in show_plots:
-            #     continue
             if p != "":
                 try:
                     s = None
@@ -563,7 +560,6 @@ class MainWindow(QMainWindow):
                         except:
                             pass
                         self.extra_plots.append(s)
-                        # self.signal_list.append(s)
                     else:
                         self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
                 except:
@@ -691,7 +687,6 @@ class MainWindow(QMainWindow):
                 w.deleteLater()
                 del w
         layout.update()
-        # self.logger.info(f'{layout.count()} items remained')
         # self.logger.debug('End %s', time.time() - t0)
 
     @property
@@ -744,7 +739,6 @@ class MainWindow(QMainWindow):
         try:
             if row is None:
                 row = self.last_cell_row
-                # self.last_cell_row = None
             if column is None:
                 column = self.last_cell_column
             if color is None:
@@ -759,7 +753,6 @@ class MainWindow(QMainWindow):
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.last_selection >= 0:
                 self.change_background()
-                ##last_sel_time = self.log_table.column("Time")[self.last_selection]
                 last_sel_time = self.log_table(self.last_selection, "Time")['text']
                 self.sb_prev_shot_time.setVisible(True)
                 self.sb_prev_shot_time.setText(last_sel_time)
@@ -768,7 +761,6 @@ class MainWindow(QMainWindow):
                 self.sb_prev_shot_time.setVisible(False)
                 self.sb_prev_shot_time.setText("**:**:**")
             if self.current_selection >= 0:
-                ##green_time = self.log_table.column("Time")[self.current_selection]
                 green_time = self.log_table(self.current_selection, "Time")['text']
                 self.sb_green_time.setVisible(True)
                 self.sb_green_time.setText(green_time)
@@ -882,18 +874,11 @@ class MainWindow(QMainWindow):
         included = self.get_displayed_columns()
         hidden = []
         columns = []
-        # self.table.clear()
         # add from included
         for t in included:
-            # if t in self.log_table:
-            #   self.table.add_column(t)
-            # else:
-            #   hidden.append(t)
-            ##if t in self.log_table.headers and t not in columns:
             if t in self.log_table and t not in columns:
                 columns.append(t)
         # create hidden columns list
-        ##for t in self.log_table.headers:
         for t in self.log_table:
             if t not in columns:
                 hidden.append(t)
@@ -907,26 +892,8 @@ class MainWindow(QMainWindow):
     def get_extra_columns(self):
         return self.list_from_widget(self.plainTextEdit_5)
 
-    def calculate_extra_columns(self, extra_cols):
-        self.columns_with_error = []
-        for row in range(self.rows):
-            for column in extra_cols:
-                if column.strip() != "":
-                    try:
-                        key, value, units = eval(column)
-                        if (key is not None) and (key != ''):
-                            j = self.add_column(key)
-                            self.data[j][row] = str(value) + ' ' + str(units)
-                            self.values[j][row] = float(value)
-                            self.units[j][row] = str(units)
-                        if column in self.columns_with_error:
-                            self.columns_with_error.remove(column)
-                    except:
-                        if column not in self.columns_with_error:
-                            log_exception(self.logger, 'eval() error in "%s ..."', column[:10], level=logging.INFO)
-                            self.columns_with_error.append(column)
-        for column in self.columns_with_error:
-            self.logger.warning('Can not create extra column for "%s ..."', column[:10])
+    def get_extra_plots(self):
+        return self.list_from_widget(self.plainTextEdit_4)
 
     def parse_folder(self, file_name: str = None, append=False):
         try:
@@ -966,6 +933,8 @@ class MainWindow(QMainWindow):
                     self.select_last_row()
                 else:
                     self.tableWidget_3.selectRow(self.current_selection)
+                    index = self.tableWidget_3.model().index(self.current_selection, 0)
+                    self.tableWidget_3.scrollTo(index)
                     self.tableWidget_3.setFocus()
 
         except:
