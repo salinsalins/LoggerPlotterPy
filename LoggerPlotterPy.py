@@ -2109,7 +2109,7 @@ class NewLogTable:
         def value(x, y=None):
             if y is None:
                 y = row
-            return self.value(x, y)
+            return self.value(y, x)
         #
         rows_with_error = []
         for column in extra_cols:
