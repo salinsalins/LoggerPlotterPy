@@ -1273,7 +1273,6 @@ class MainWindow(QMainWindow):
         else:
             self.tableWidget_3.selectRow(self.current_selection)
             self.logger.debug('Selection switch to last row rejected')
-            self.tableWidget_3.selectRow(self.current_selection)
 
 
 class VLine(QFrame):
