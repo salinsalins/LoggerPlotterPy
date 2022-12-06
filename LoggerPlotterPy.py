@@ -943,34 +943,30 @@ class MainWindow(QMainWindow):
             # get extra columns
             self.extra_cols = self.get_extra_columns()
             # process log table
-            if self.log_table is not None and self.log_table.file_name == file_name:
-                self.logger.debug("Appending from log file")
-                self.log_table.read_file()
-                self.log_table.add_extra_columns(self.extra_cols)
-                ##buf = self.log_table.read_log_to_buf()
-                # if not buf:
-                #     self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
-                #     self.plot_signals()
-                #     self.update_status_bar()
-                #     return
-                ##n = self.log_table.append(buf, extra_cols=self.extra_cols)
-                # if not append:
-                #    n = -1
-            else:
+            if self.log_table is None:
                 self.logger.debug("Create new LogTable")
-                ##self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
-                self.log_table = NewLogTable(file_name, extra_cols=self.extra_cols,
-                                          show_line_flag=self.checkBox_6.isChecked())
-                if self.log_table.file_name is None:
-                    return
-                self.log_file_name = file_name
-                n = -1
+                self.log_table = NewLogTable()
+                # self.log_table = NewLogTable(file_name, extra_cols=self.extra_cols)
+                # if self.log_table.file_name is None:
+                #     return
+                # self.log_file_name = file_name
                 self.last_selection = -1
                 self.current_selection = -1
-            # Create displayed columns list
-            self.fill_table_widget(-1)
-            # select last row of widget -> tableSelectionChanged will be fired
-            self.select_last_row()
+            elif self.log_table.file_name == file_name:
+                self.logger.debug("Appending from log file")
+            else:
+                self.logger.debug("Refill log table from new file")
+                self.log_table.clear()
+                self.last_selection = -1
+                self.current_selection = -1
+            n = self.log_table.read_file(file_name)
+            if n is not None:
+                self.log_table.add_extra_columns(self.extra_cols)
+                self.log_file_name = file_name
+                # Create displayed columns list
+                self.fill_table_widget(-1)
+                # select last row of widget -> tableSelectionChanged will be fired
+                self.select_last_row()
         except:
             log_exception(self, 'Exception in parseFolder')
         self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
@@ -2082,8 +2078,9 @@ class NewLogTable:
             self.logger.warning('File %s does not exist' % fn)
             return None
         fs = os.path.getsize(fn)
-        if fs < 20 or (self.file_name == fn and fs < self.file_size):
-            self.logger.warning('Wrong file size for %s' % fn)
+        if fs < 20 or (self.file_name == fn and fs <= self.file_size):
+            if fs != self.file_size:
+                self.logger.warning('Wrong file size for %s' % fn)
             return None
         self.logger.debug(f'File {fn} {fs} bytes will be processed')
         # read file to buf
@@ -2099,8 +2096,8 @@ class NewLogTable:
                 self.clear()
             self.file_name = fn
             self.file_size = fs
-            self.append_lines(bufd)
-            return bufd
+            n = self.append_lines(bufd)
+            return n
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
             return None
