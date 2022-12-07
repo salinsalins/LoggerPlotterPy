@@ -1743,6 +1743,7 @@ class DataFile:
                 pbuf = zipobj.read(param_name)
             lines = pbuf.split(endline)
             error_lines = False
+            kv = ''
             for line in lines:
                 if line != b'':
                     kv = line.split(b'=')
@@ -1819,8 +1820,7 @@ def justify_signals(first: Signal, other: Signal):
     xmax = np.min(first.x.max(), other.x.max())
     index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
     index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
-    result = (Signal(name=first.name, marks=first.marks, value=first.value),
-              Signal(name=other.name, marks=other.marks, value=other.value))
+    result = (Signal(first), Signal(other))
     if len(index1) >= len(index2):
         x = first.x[index1].copy()
         result[1].y = numpy.interp(x, other.x, other.y)
