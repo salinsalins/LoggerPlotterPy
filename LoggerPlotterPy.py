@@ -201,16 +201,7 @@ class MainWindow(QMainWindow):
         self.sb_combo.setFont(STATUS_BAR_FONT)
         self.statusBar().addWidget(self.sb_combo)
         self.statusBar().addWidget(VLine())  # <---
-        self.sb_combo.disconnect()
-        self.sb_combo.clear()
-        arr = os.listdir()
-        jsonarr = [x for x in arr if x.endswith('.json')]
-        for x in jsonarr:
-            if CONFIG_FILE in x:
-                jsonarr.pop(jsonarr.index(x))
-                jsonarr.insert(0, x)
-        self.sb_combo.addItems(jsonarr)
-        self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
+        self.fill_config_widget()
         # status bar: clock label
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.sb_clock = QLabel(" ")
@@ -248,6 +239,22 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.horizontalHeader().setVisible(True)
 
         self.parse_folder()
+
+    def fill_config_widget(self):
+        global CONFIG_FILE
+        try:
+            self.sb_combo.disconnect()
+        except:
+            pass
+        self.sb_combo.clear()
+        arr = os.listdir()
+        jsonarr = [x for x in arr if x.endswith('.json')]
+        for x in jsonarr:
+            if CONFIG_FILE in x:
+                jsonarr.pop(jsonarr.index(x))
+                jsonarr.insert(0, x)
+        self.sb_combo.addItems(jsonarr)
+        self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
 
     def hide_plot(self, signal_name):
         text = self.plainTextEdit_7.toPlainText()
@@ -395,6 +402,7 @@ class MainWindow(QMainWindow):
         self.actionParameters.setChecked(True)
         self.sort_text_edit_widget(self.plainTextEdit_3)
         self.sort_text_edit_widget(self.plainTextEdit_6)
+        self.fill_config_widget()
 
     def select_log_file(self):
         """Opens a file select dialog"""
