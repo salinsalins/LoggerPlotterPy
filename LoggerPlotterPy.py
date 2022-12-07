@@ -1171,8 +1171,8 @@ class MainWindow(QMainWindow):
             self.restore_settings()
             return
         self.restore_local_settings()
-        self.table_selection_changed(True)
         self.parse_folder()
+        #self.table_selection_changed(True)
 
     def set_default_settings(self):
         try:
