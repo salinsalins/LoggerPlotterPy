@@ -1559,8 +1559,20 @@ class LogTable:
 
 
 class Signal:
-    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params=None, name='empty',
+    def __init__(self, x=None, y=numpy.zeros(1), params=None, name='empty',
                  unit='', scale=1.0, value=float('nan'), marks=None):
+        if x is None:
+            x = numpy.zeros(1)
+        else:
+            if isinstance(x, Signal):
+                marks = x.marks.copy()
+                value = x.value
+                scale = x.scale
+                unit = x.unit
+                name = x.name
+                params = x.params.copy()
+                y = x.y.copy()
+                x = x.x.copy()
         if params is None:
             params = {}
         if marks is None:
@@ -1803,21 +1815,21 @@ def justify_signals(first: Signal, other: Signal):
     if len(first.x) == len(other.x) and \
             first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
         return first, other
-    xmin = max(first.x[0], other.x[0])
-    xmax = min(first.x[-1], other.x[-1])
+    xmin = np.max(first.x.min(), other.x.min())
+    xmax = np.min(first.x.max(), other.x.max())
     index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
     index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
     result = (Signal(name=first.name, marks=first.marks, value=first.value),
               Signal(name=other.name, marks=other.marks, value=other.value))
     if len(index1) >= len(index2):
         x = first.x[index1].copy()
-        result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
+        result[1].y = numpy.interp(x, other.x, other.y)
         result[0].x = x
         result[0].y = first.y[index1].copy()
         result[1].x = x
     else:
         x = first.x[index2].copy()
-        result[0].y = numpy.interp(x, first.x[index1], first.y[index1])
+        result[0].y = numpy.interp(x, first.x, first.y)
         result[0].x = x
         result[1].y = other.y[index2].copy()
         result[1].x = x
