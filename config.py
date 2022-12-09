@@ -23,3 +23,6 @@ TRACE_COLOR = '#00ff00'
 MARK_COLOR = '#ff0000'
 ZERO_COLOR = '#0000ff'
 
+_l1 = locals().copy()
+l2 = _l1.pop('_l0')
+l3 = {x for x in l2 if x not in _l0}
