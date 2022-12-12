@@ -550,6 +550,12 @@ class MainWindow(QMainWindow):
                             x = result['x']
                             y = result['y']
                             marks = result.get('marks', None)
+                            if marks:
+                                for m in marks:
+                                    index = numpy.searchsorted(x, [marks[m][0], marks[m][0] + marks[m][1]])
+                                    marks[m][0] = index[0]
+                                    marks[m][1] = index[1] - index[0]
+                            # mark_value = s.y[index[0]:index[1]].mean()
                             params = result.get('params', None)
                             unit = result.get('unit', '')
                             value = result.get('value', float('nan'))
@@ -653,9 +659,9 @@ class MainWindow(QMainWindow):
                 default_title = s.name
             else:
                 default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
-            axes.set_title(self.from_params('title', s.params, default_title))
-            axes.set_xlabel(self.from_params('xlabel', s.params, 'Time, ms'))
-            axes.set_ylabel(self.from_params('ylabel', s.params, '%s, %s' % (s.name, s.unit)))
+            axes.set_title(self.from_params(b'title', s.params, default_title))
+            axes.set_xlabel(self.from_params(b'xlabel', s.params, 'Time, ms'))
+            axes.set_ylabel(self.from_params(b'ylabel', s.params, '%s, %s' % (s.name, s.unit)))
             # plot previous line
             if self.plot_previous_line and self.last_selection >= 0:
                 for s1 in self.old_signal_list:
@@ -663,11 +669,13 @@ class MainWindow(QMainWindow):
                         axes.plot(s1.x, s1.y, color=self.previous_color)
                         break
             # plot main line
+            ymin = float('inf')
+            ymax = float('-inf')
             try:
                 y_min = float(self.from_params(b'plot_y_min', s.params, 'inf'))
                 y_max = float(self.from_params(b'plot_y_max', s.params, '-inf'))
                 if y_max > y_min:
-                    axes.item.setYRange(y_min, y_max)
+                    mplw.setYRange(y_min, y_max)
             except:
                 pass
             axes.plot(s.x, s.y, color=self.trace_color)
@@ -685,7 +693,8 @@ class MainWindow(QMainWindow):
             try:
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    mplw.autoRange()
+                    if not (y_max > y_min):
+                        mplw.autoRange()
             except:
                 log_exception()
             # mplw.canvas.draw()
