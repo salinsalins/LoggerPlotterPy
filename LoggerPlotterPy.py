@@ -567,9 +567,9 @@ class MainWindow(QMainWindow):
                         try:
                             if math.isnan(s.value) and 'mark' in s.marks and 'zero' in s.marks:
                                 mark = s.marks['mark']
-                                mark_value = s.y[mark[0], mark[0] + mark[1]].mean()
+                                mark_value = s.y[mark[0]: mark[0] + mark[1]].mean()
                                 zero = s.marks['mark']
-                                zero_value = s.y[zero[0], zero[0] + zero[1]].mean()
+                                zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
                                 v = mark_value - zero_value
                                 s.value = v
                         except:
