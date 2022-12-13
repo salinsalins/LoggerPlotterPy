@@ -535,13 +535,18 @@ class MainWindow(QMainWindow):
             # return None
 
         self.extra_plots = []
-        # add extra plots from plainTextEdit_4
+        extra_plots2 = {}
+        hd = self.data_file.file_name.__hash__()
+        # read extra plots from plainTextEdit_4
         extra_plots = self.get_extra_plots()
         for p in extra_plots:
             p = p.strip()
             if p != "":
+                h = p.__hash__()
+                if h in extra_plots2 and extra_plots2[h] == hd:
+                    continue
+                s = None
                 try:
-                    s = None
                     result = eval(p)
                     if isinstance(result, Signal):
                         s = result
@@ -571,6 +576,7 @@ class MainWindow(QMainWindow):
                                 s = result[1]
                                 s.name = result[0]
                     if s is not None:
+                        extra_plots2[h] = hd
                         try:
                             if math.isnan(s.value) and 'mark' in s.marks and 'zero' in s.marks:
                                 mark = s.marks['mark']
