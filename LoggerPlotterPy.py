@@ -527,7 +527,8 @@ class MainWindow(QMainWindow):
 
     def calculate_extra_plots(self):
         def sig(name):
-            for sg in self.signal_list:
+            signal_list = self.signal_list + self.extra_plots
+            for sg in signal_list:
                 if sg.name == name:
                     return sg
             raise SignalNotFoundError('Signal %s not found' % name)
@@ -669,8 +670,8 @@ class MainWindow(QMainWindow):
                         axes.plot(s1.x, s1.y, color=self.previous_color)
                         break
             # plot main line
-            ymin = float('inf')
-            ymax = float('-inf')
+            y_min = float('inf')
+            y_max = float('-inf')
             try:
                 y_min = float(self.from_params(b'plot_y_min', s.params, 'inf'))
                 y_max = float(self.from_params(b'plot_y_max', s.params, '-inf'))
@@ -952,14 +953,16 @@ class MainWindow(QMainWindow):
                 self.log_file_name = file_name
                 # Create displayed columns list
                 self.fill_table_widget()
-                # select last row of widget -> tableSelectionChanged will be fired
+                self.logger.debug(f'{n} lines has been added to table')
                 if n > 0:
+                    # select last row of widget -> tableSelectionChanged will be fired
                     self.select_last_row()
                 else:
                     self.tableWidget_3.selectRow(self.current_selection)
                     index = self.tableWidget_3.model().index(self.current_selection, 0)
                     self.tableWidget_3.scrollTo(index)
                     self.tableWidget_3.setFocus()
+                    self.plot_signals()
 
         except:
             log_exception(self, 'Exception in parseFolder')
@@ -1541,8 +1544,8 @@ def justify_signals(first: Signal, other: Signal):
     if len(first.x) == len(other.x) and \
             first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
         return first, other
-    xmin = np.max(first.x.min(), other.x.min())
-    xmax = np.min(first.x.max(), other.x.max())
+    xmin = max(first.x.min(), other.x.min())
+    xmax = min(first.x.max(), other.x.max())
     index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
     index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
     result = (Signal(first), Signal(other))
@@ -1784,6 +1787,7 @@ class LogTable:
         if file_name is None:
             file_name = self.file_name
         if file_name is None:
+            self.logger.warning(f'None file can not be opened')
             return None
         fn = os.path.abspath(file_name)
         if not os.path.exists(fn):
