@@ -4,7 +4,7 @@ Created on Jul 2, 2017
 
 @author: sanin
 """
-#s='s=%r;print(s%%s)';print(s%s)
+# s='s=%r;print(s%%s)';print(s%s)
 
 import gc
 import json
@@ -51,6 +51,7 @@ np = numpy
 # print(QtCore.QT_VERSION_STR)
 
 from config import *
+
 # g0 = {}
 # exec(open("config.py").read(), g0)
 # l0 = g0.pop('_l0')
@@ -132,6 +133,7 @@ class MainWindow(QMainWindow):
         self.signals = []
         self.extra_cols = []
         self.extra_plots = []
+        self.calculated_plots = {}
         self.data_file = None
         self.old_size = 0
         self.new_size = 0
@@ -535,7 +537,6 @@ class MainWindow(QMainWindow):
             # return None
 
         self.extra_plots = []
-        extra_plots2 = {}
         hd = self.data_file.file_name.__hash__()
         # read extra plots from plainTextEdit_4
         extra_plots = self.get_extra_plots()
@@ -543,7 +544,7 @@ class MainWindow(QMainWindow):
             p = p.strip()
             if p != "":
                 h = p.__hash__()
-                if h in extra_plots2 and extra_plots2[h] == hd:
+                if h in self.calculated_plots and self.calculated_plots[h] == hd:
                     continue
                 s = None
                 try:
@@ -576,7 +577,6 @@ class MainWindow(QMainWindow):
                                 s = result[1]
                                 s.name = result[0]
                     if s is not None:
-                        extra_plots2[h] = hd
                         try:
                             if math.isnan(s.value) and 'mark' in s.marks and 'zero' in s.marks:
                                 mark = s.marks['mark']
@@ -586,16 +586,20 @@ class MainWindow(QMainWindow):
                                 v = mark_value - zero_value
                                 s.value = v
                         except:
-                            pass
+                            self.logger.debug(f'No signal value for {s.name}')
+                        s.code = p
+                        s.file = self.data_file.file_name
+                        self.calculated_plots[h] = hd
                         self.extra_plots.append(s)
                     else:
+                        self.calculated_plots[h] = 0
                         self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
                 except:
                     log_exception(self, 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
         for p in self.extra_plots:
             self.logger.debug('Plot %s has been added' % p.name)
         if len(self.extra_plots) <= 0:
-            self.logger.info('No extra plots added')
+            self.logger.debug('No extra plots added')
 
     def sort_plots(self):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -1045,7 +1049,7 @@ class MainWindow(QMainWindow):
                 # mark changed values
                 if row > 0:
                     v = self.log_table.value(row, column)
-                    v1 = self.log_table.value(row-1, column)
+                    v1 = self.log_table.value(row - 1, column)
                     bold_font_flag = True
                     if math.isnan(v) or math.isnan(v1):
                         bold_font_flag = False
@@ -1071,35 +1075,38 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.setUpdatesEnabled(True)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
 
-    def save_settings(self, folder='', file_name=None, config=None):
+    def save_settings(self, folder: str = '', file_name=None, config=None):
         global CONFIG_FILE
-        if file_name is None:
-            file_name = CONFIG_FILE
         if config is None:
             config = self.conf
+        if file_name is None:
+            file_name = CONFIG_FILE
         full_name = os.path.abspath(os.path.join(str(folder), file_name))
         try:
             # save window size and position
             p = self.pos()
             s = self.size()
             config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
+            # log file history
             config['folder'] = self.log_file_name
             config['history'] = [str(self.comboBox_2.itemText(count)) for count in
                                  range(min(self.comboBox_2.count(), 10))]
             config['history_index'] = min(self.comboBox_2.currentIndex(), 9)
+            # other settings
             config['log_level'] = self.logger.level
             config['included'] = str(self.plainTextEdit_2.toPlainText())
             config['excluded'] = str(self.plainTextEdit_3.toPlainText())
+            config['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
+            config['extra_col'] = str(self.plainTextEdit_5.toPlainText())
+            config['exclude_plots'] = str(self.plainTextEdit_6.toPlainText())
+            config['plot_order'] = str(self.plainTextEdit_7.toPlainText())
             config['cb_1'] = self.checkBox_1.isChecked()
             config['cb_2'] = self.checkBox_2.isChecked()
             config['cb_3'] = self.checkBox_3.isChecked()
             config['cb_4'] = self.checkBox_4.isChecked()
             config['cb_5'] = self.checkBox_6.isChecked()
             config['cb_6'] = self.checkBox_6.isChecked()
-            config['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
-            config['extra_col'] = str(self.plainTextEdit_5.toPlainText())
-            config['exclude_plots'] = str(self.plainTextEdit_6.toPlainText())
-            config['plot_order'] = str(self.plainTextEdit_7.toPlainText())
+            # convert to json and write
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s' % full_name)
@@ -1205,7 +1212,7 @@ class MainWindow(QMainWindow):
             return
         self.restore_local_settings()
         self.parse_folder()
-        #self.table_selection_changed(True)
+        # self.table_selection_changed(True)
 
     def set_default_settings(self):
         try:
@@ -1293,33 +1300,47 @@ class VLine(QFrame):
 
 
 class Signal:
-    def __init__(self, x=None, y=numpy.zeros(1), params=None, name='empty',
-                 unit='', scale=1.0, value=float('nan'), marks=None):
-        if x is None:
-            x = numpy.zeros(1)
-        else:
-            if isinstance(x, Signal):
-                marks = x.marks.copy()
-                value = x.value
-                scale = x.scale
-                unit = x.unit
-                name = x.name
-                params = x.params.copy()
-                y = x.y.copy()
-                x = x.x.copy()
-        if params is None:
-            params = {}
-        if marks is None:
-            marks = {}
-        n = min(len(x), len(y))
-        self.x = x[:n]
-        self.y = y[:n]
+    def __init__(self, x=None, y=numpy.zeros(1), params: dict = None, name='empty_signal',
+                 unit='', scale=1.0, value=float('nan'), marks: dict = None):
+        self.x = x
+        self.y = y
         self.params = params
         self.name = name
         self.unit = unit
         self.scale = scale
         self.value = value
         self.marks = marks
+        if x is None:
+            x = numpy.zeros(1)
+        elif isinstance(x, Signal):
+            marks = x.marks.copy()
+            value = x.value
+            scale = x.scale
+            unit = x.unit
+            name = x.name
+            params = x.params.copy()
+            y = x.y.copy()
+            x = x.x.copy()
+
+        if params is None:
+            params = {}
+        self.params = params
+
+        if marks is None:
+            marks = {}
+        self.marks = marks
+
+        self.name = name
+        self.unit = unit
+        self.scale = scale
+        self.value = value
+
+        self.x = x
+        self.y = y
+        self.trim()
+
+        self.code = ''
+        self.file = ''
 
     def set_name(self, name: str):
         self.name = name
@@ -1390,6 +1411,11 @@ class Signal:
             result.value = self.value / other
         return result
 
+    def __getitem__(self, item):
+        return self.params[item]
+
+    def __setitem__(self, key, value):
+        self.params[key] = value
 
 class DataFile:
     def __init__(self, file_name, folder="", logger=None):
@@ -1466,7 +1492,7 @@ class DataFile:
                     signal.y[i] = numpy.nan
                     error_lines = True
         if len(xy) < 2:
-            signal.params['xlabel'] = 'Index'
+            signal.params[b'xlabel'] = 'Index'
         if error_lines:
             self.logger.debug("Some lines with wrong data in %s", signal_name)
         # read parameters
@@ -1532,6 +1558,8 @@ class DataFile:
             signal.value = signal.marks["mark"][2] - zero
         else:
             signal.value = float('nan')
+        signal.file = self.file_name
+        signal.code = ''
         return signal
 
     def read_all_signals(self):
@@ -1541,8 +1569,8 @@ class DataFile:
             if sig:
                 signals.append(sig)
             else:
-                pass
-                # self.logger.debug("Signal %s rejected" % s)
+                # pass
+                self.logger.debug("Signal %s rejected" % s)
         return signals
 
 
@@ -1600,6 +1628,7 @@ def unify_marks(first: Signal, other: Signal):
 
 class LogTable:
     EMTPY_CELL = {'text': '', 'value': float('nan'), 'units': ''}
+
     def __init__(self, file_name: str = None, extra_cols=None, logger=None, **kwargs):
         if logger is None:
             self.logger = config_logger()
@@ -1828,11 +1857,12 @@ class LogTable:
 
     def add_extra_columns(self, extra_cols):
         # nice alias
-        #value = lambda x: self.value(x, row)
+        # value = lambda x: self.value(x, row)
         def value(x, y=None):
             if y is None:
                 y = row
             return self.value(y, x)
+
         #
         rows_with_error = []
         for column in extra_cols:
@@ -1867,7 +1897,7 @@ class LogTable:
                         n += 1
                 except:
                     if not rows_with_error:
-                        log_exception(self.logger, 'eval() error in "%s ..."\n   ', column[:20], level=logging.INFO)
+                        log_exception(self.logger, 'Column eval() error in "%s ..."\n', column[:20], level=logging.INFO)
                     rows_with_error.append(row)
             self.exrta_columns[h] = {'name': key0, 'code': column, 'length': n, 'errors': rows_with_error}
             self.exrta_columns[key0] = h
