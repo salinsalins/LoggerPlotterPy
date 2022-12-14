@@ -935,8 +935,8 @@ class MainWindow(QMainWindow):
             if file_name is None:
                 file_name = self.log_file_name
             if file_name is None:
-                self.sb_text.setText('Data file not found')
-                self.logger.warning('Data file not found')
+                self.sb_text.setText('Data log file not found')
+                self.logger.warning('Data log file not found')
                 return
             file_name = os.path.abspath(file_name)
             self.sb_text.setText('Reading %s' % file_name)
@@ -951,9 +951,9 @@ class MainWindow(QMainWindow):
                 self.last_selection = -1
                 self.current_selection = -1
             elif self.log_table.file_name == file_name:
-                self.logger.debug("Appending from log file")
+                self.logger.debug("Appending to LogTable")
             else:
-                self.logger.debug("Refill log table from new file")
+                self.logger.debug("Refill LogTable from new file")
                 self.log_table.clear()
                 self.last_selection = -1
                 self.current_selection = -1
