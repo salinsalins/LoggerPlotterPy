@@ -144,6 +144,8 @@ class MainWindow(QMainWindow):
         self.last_cell_row = -1
         self.last_cell_column = -1
         self.log_table = None
+        #
+        # self.plots = {'_data_': {}, '_names_': {}}
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
         # Load the UI
@@ -591,6 +593,12 @@ class MainWindow(QMainWindow):
                         s.file = self.data_file.file_name
                         self.calculated_plots[h] = hd
                         self.extra_plots.append(s)
+                        # if self.data_file.file_name not in self.plots['_data_']:
+                        #     self.plots['_data_'][self.data_file.file_name] = []
+                        # if len(self.plots['_data_'][self.data_file.file_name]) >= 10:
+                        #     del self.plots['_data_'][self.data_file.file_name][0]
+                        # self.plots['_data_'][self.data_file.file_name].append(s)
+                        # self.plots['_names_'][s.name] = s
                     else:
                         self.calculated_plots[h] = 0
                         self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
