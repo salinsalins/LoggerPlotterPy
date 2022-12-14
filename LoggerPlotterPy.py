@@ -693,11 +693,20 @@ class MainWindow(QMainWindow):
             # plot main line
             y_min = float('inf')
             y_max = float('-inf')
+            x_min = float('inf')
+            x_max = float('-inf')
             try:
                 y_min = float(self.from_params(b'plot_y_min', s.params, 'inf'))
                 y_max = float(self.from_params(b'plot_y_max', s.params, '-inf'))
                 if y_max > y_min:
                     mplw.setYRange(y_min, y_max)
+            except:
+                pass
+            try:
+                x_min = float(self.from_params(b'plot_x_min', s.params, 'inf'))
+                x_max = float(self.from_params(b'plot_x_max', s.params, '-inf'))
+                if x_max > x_min:
+                    mplw.setXRange(x_min, x_max)
             except:
                 pass
             axes.plot(s.x, s.y, color=self.trace_color)
@@ -715,7 +724,7 @@ class MainWindow(QMainWindow):
             try:
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    if not (y_max > y_min):
+                    if not (y_max > y_min) or not (x_max > x_min):
                         mplw.autoRange()
             except:
                 log_exception()
