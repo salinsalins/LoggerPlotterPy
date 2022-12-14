@@ -580,11 +580,14 @@ class MainWindow(QMainWindow):
                                 s.name = result[0]
                     if s is not None:
                         try:
-                            if math.isnan(s.value) and 'mark' in s.marks and 'zero' in s.marks:
+                            if math.isnan(s.value) and 'mark' in s.marks:
                                 mark = s.marks['mark']
                                 mark_value = s.y[mark[0]: mark[0] + mark[1]].mean()
-                                zero = s.marks['zero']
-                                zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
+                                if 'zero' in s.marks:
+                                    zero = s.marks['zero']
+                                    zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
+                                else:
+                                    zero_value = 0.0
                                 v = mark_value - zero_value
                                 s.value = v
                         except:
