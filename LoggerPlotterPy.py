@@ -1327,6 +1327,7 @@ class VLine(QFrame):
 class Signal:
     def __init__(self, x=None, y=numpy.zeros(1), params: dict = None, name='empty_signal',
                  unit='', scale=1.0, value=float('nan'), marks: dict = None):
+        self.data_name = name
         self.x = x
         self.y = y
         self.params = params
@@ -1338,6 +1339,7 @@ class Signal:
         if x is None:
             x = numpy.zeros(1)
         elif isinstance(x, Signal):
+            self.data_name = x.data_name
             marks = x.marks.copy()
             value = x.value
             scale = x.scale
@@ -1388,52 +1390,106 @@ class Signal:
         self.x = self.x[:n]
         self.y = self.y[:n]
 
+    def calculate_marks(self):
+        signal = self
+        # find marks
+        for k in signal.params:
+            if k.endswith(b"_start"):
+                mark_name = k.replace(b"_start", b'').decode('ascii')
+                mark_length = k.replace(b"_start", b'_length')
+                try:
+                    if signal.params[k] != b'':
+                        mark_start_value = float(signal.params[k].replace(b',', b'.'))
+                        mark_end_value = mark_start_value + float(signal.params[mark_length].replace(b',', b'.'))
+                        index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_end_value))
+                        index = index[0]
+                        if len(index) > 0:
+                            mark_value = signal.y[index].mean()
+                            mark_start = int(index[0])
+                            mark_length = int(index[-1] - index[0]) + 1
+                            signal.marks[mark_name] = (mark_start, mark_length, mark_value)
+                except:
+                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal.name),
+                                  level=logging.INFO)
+
+    def calculate_value(self):
+        # calculate value
+        if 'zero' in self.marks:
+            zero = self.marks["zero"][2]
+        else:
+            zero = 0.0
+        if 'mark' in self.marks:
+            self.value = self.marks["mark"][2] - zero
+        else:
+            self.value = float('nan')
+        return self.value
+
     def __add__(self, other):
+        result = Signal(self)
         if isinstance(other, Signal):
             args = justify_signals(self, other)
-            result = Signal(args[0].x, args[0].y + args[1].y)
+            result.x = args[0].x
+            result.y = args[0].y + args[1].y
             result.value = self.value + other.value
             result.name = self.name + '+' + other.name
-        else:
-            result = Signal(self.x, self.y + other)
-            if isinstance(other, int) or isinstance(other, float):
-                result.value = self.value + other
+            result.data_name = self.data_name + '+' + other.data_name
+        elif isinstance(other, int) or isinstance(other, float):
+            result.y = self.y + other
+            result.value = self.value + other
+            result.name = self.name + '+' + str(other)
+            result.data_name = self.data_name + '+' + str(other)
         return result
 
     def __sub__(self, other):
+        result = Signal(self)
         if isinstance(other, Signal):
             args = justify_signals(self, other)
-            result = Signal(args[0].x, args[0].y - args[1].y)
+            result.x = args[0].x
+            result.y = args[0].y - args[1].y
             result.value = self.value - other.value
             result.name = self.name + '-' + other.name
-        else:
-            result = Signal(self.x, self.y - other)
-            if isinstance(other, int) or isinstance(other, float):
-                result.value = self.value - other
+            result.data_name = self.data_name + '-' + other.data_name
+        elif isinstance(other, int) or isinstance(other, float):
+            result.y = self.y - other
+            result.value = self.value - other
+            result.name = self.name + '-' + str(other)
+            result.data_name = self.data_name + '-' + str(other)
         return result
 
     def __mul__(self, other):
+        result = Signal(self)
         if isinstance(other, Signal):
             args = justify_signals(self, other)
-            result = Signal(args[0].x, args[0].y * args[1].y)
+            result.x = args[0].x
+            result.y = args[0].y * args[1].y
             result.value = self.value * other.value
+            result.scale = self.scale * other.scale
+            result.unit = self.unit + '*' + other.unit
             result.name = self.name + '*' + other.name
-        else:
-            result = Signal(self.x, self.y * other)
-        if isinstance(other, int) or isinstance(other, float):
+            result.data_name = self.data_name + '*' + other.data_name
+        elif isinstance(other, int) or isinstance(other, float):
+            result.y = self.y * other
             result.value = self.value * other
+            result.name = self.name + '*' + str(other)
+            result.data_name = self.data_name + '+' + str(other)
         return result
 
     def __truediv__(self, other):
+        result = Signal(self)
         if isinstance(other, Signal):
             args = justify_signals(self, other)
-            result = Signal(args[0].x, args[0].y / args[1].y)
+            result.x = args[0].x
+            result.y = args[0].y / args[1].y
             result.value = self.value / other.value
+            result.scale = self.scale / other.scale
+            result.unit = self.unit + '/' + other.unit
             result.name = self.name + '/' + other.name
-        else:
-            result = Signal(self.x, self.y / other)
-        if isinstance(other, int) or isinstance(other, float):
+            result.data_name = self.data_name + '/' + other.data_name
+        elif isinstance(other, int) or isinstance(other, float):
+            result.y = self.y / other
             result.value = self.value / other
+            result.name = self.name + '/' + str(other)
+            result.data_name = self.data_name + '/' + str(other)
         return result
 
     def __getitem__(self, item):
@@ -1558,6 +1614,7 @@ class DataFile:
             signal.name = signal.params[b"name"].decode('ascii')
         else:
             signal.name = signal_name
+        signal.data_name = signal_name
         if b'unit' in signal.params:
             signal.unit = signal.params[b'unit'].decode('ascii')
         else:
@@ -1582,14 +1639,15 @@ class DataFile:
                     log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name),
                                   level=logging.INFO)
         # calculate value
-        if 'zero' in signal.marks:
-            zero = signal.marks["zero"][2]
-        else:
-            zero = 0.0
-        if 'mark' in signal.marks:
-            signal.value = signal.marks["mark"][2] - zero
-        else:
-            signal.value = float('nan')
+        signal.calculate_value()
+        # if 'zero' in signal.marks:
+        #     zero = signal.marks["zero"][2]
+        # else:
+        #     zero = 0.0
+        # if 'mark' in signal.marks:
+        #     signal.value = signal.marks["mark"][2] - zero
+        # else:
+        #     signal.value = float('nan')
         signal.file = self.file_name
         signal.code = ''
         if self.plot_heap:
