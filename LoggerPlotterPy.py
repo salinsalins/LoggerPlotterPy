@@ -511,7 +511,7 @@ class MainWindow(QMainWindow):
                 ##zip_file_name = self.log_table.column("File")[row_s]
                 zip_file_name = self.log_table(row_s, "File")['text']
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
-                self.data_file = DataFile(zip_file_name, folder=folder)
+                self.data_file = DataFile(zip_file_name, folder=folder, plot_heap=self.plot_heap)
                 self.old_signal_list = self.signal_list + self.extra_plots
 
                 self.signal_list = self.data_file.read_all_signals()
@@ -549,7 +549,7 @@ class MainWindow(QMainWindow):
                 h = p.__hash__()
                 # if h in self.calculated_plots and self.calculated_plots[h] == hd:
                 #     continue
-                s = self.plot_heap.get_plot('',self.data_file.file_name, p)
+                s = self.plot_heap.get_plot('',self.data_file.file_name , p)
                 if s:
                     self.extra_plots.append(s)
                     self.logger.debug('Plot %s has been reused' % s.name)
@@ -608,7 +608,7 @@ class MainWindow(QMainWindow):
                         #     del self.plots['_data_'][self.data_file.file_name][0]
                         # self.plots['_data_'][self.data_file.file_name].append(s)
                         # self.plots['_names_'][s.name] = s
-                        self.logger.debug('Plot %s has been added' % p.name)
+                        self.logger.debug('Plot %s has been added' % s.name)
                     else:
                         self.calculated_plots[h] = 0
                         self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
@@ -1444,11 +1444,12 @@ class Signal:
 
 
 class DataFile:
-    def __init__(self, file_name, folder="", logger=None):
+    def __init__(self, file_name, folder="", logger=None, plot_heap=None):
         if logger is None:
             self.logger = config_logger()
         else:
             self.logger = logger
+        self.plot_heap = plot_heap
         self.file_name = None
         self.files = []
         self.signals = []
@@ -1475,6 +1476,11 @@ class DataFile:
         return signals
 
     def read_signal(self, signal_name: str):
+        if self.plot_heap:
+            s = self.plot_heap.get_plot(signal_name, self.file_name, '')
+            if s:
+                self.logger.debug('Reusing signal %s' % signal_name)
+                # return s
         signal = Signal()
         if signal_name not in self.signals:
             self.logger.debug("No signal %s in the file %s" % (signal_name, self.file_name))
@@ -1586,6 +1592,8 @@ class DataFile:
             signal.value = float('nan')
         signal.file = self.file_name
         signal.code = ''
+        if self.plot_heap:
+            self.plot_heap.insert(signal)
         return signal
 
     def read_all_signals(self):
