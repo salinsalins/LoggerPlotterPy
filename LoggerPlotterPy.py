@@ -574,6 +574,7 @@ class MainWindow(QMainWindow):
                             unit = result.get('unit', '')
                             value = result.get('value', float('nan'))
                             s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
+                            s.data_name = s.name
                     elif isinstance(result, list) or isinstance(result, tuple):
                         if len(result) >= 3:
                             key, x_val, y_val = result[:3]
@@ -583,20 +584,22 @@ class MainWindow(QMainWindow):
                             if isinstance(result[1], Signal):
                                 s = result[1]
                                 s.name = result[0]
+                                s.data_name = s.name
                     if s is not None:
-                        try:
-                            if math.isnan(s.value) and 'mark' in s.marks:
-                                mark = s.marks['mark']
-                                mark_value = s.y[mark[0]: mark[0] + mark[1]].mean()
-                                if 'zero' in s.marks:
-                                    zero = s.marks['zero']
-                                    zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
-                                else:
-                                    zero_value = 0.0
-                                v = mark_value - zero_value
-                                s.value = v
-                        except:
-                            self.logger.debug(f'No signal value for {s.name}')
+                        # try:
+                        #     if math.isnan(s.value) and 'mark' in s.marks:
+                        #         mark = s.marks['mark']
+                        #         mark_value = s.y[mark[0]: mark[0] + mark[1]].mean()
+                        #         if 'zero' in s.marks:
+                        #             zero = s.marks['zero']
+                        #             zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
+                        #         else:
+                        #             zero_value = 0.0
+                        #         v = mark_value - zero_value
+                        #         s.value = v
+                        # except:
+                        #     self.logger.debug(f'No signal value for {s.name}')
+                        s.calculate_value()
                         s.code = p
                         s.file = self.data_file.file_name
                         self.calculated_plots[h] = hd
@@ -1369,6 +1372,9 @@ class Signal:
         self.code = ''
         self.file = ''
 
+    def __str__(self):
+        return f'Signal<{self.data_name}>'
+
     def set_name(self, name: str):
         self.name = name
         return self
@@ -1414,14 +1420,29 @@ class Signal:
 
     def calculate_value(self):
         # calculate value
-        if 'zero' in self.marks:
-            zero = self.marks["zero"][2]
-        else:
-            zero = 0.0
-        if 'mark' in self.marks:
-            self.value = self.marks["mark"][2] - zero
-        else:
+        s = self
+        try:
+            if math.isnan(s.value) and 'mark' in s.marks:
+                mark = s.marks['mark']
+                mark_value = s.y[mark[0]: mark[0] + mark[1]].mean()
+                if 'zero' in s.marks:
+                    zero = s.marks['zero']
+                    zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
+                else:
+                    zero_value = 0.0
+                v = mark_value - zero_value
+                s.value = v
+        except:
             self.value = float('nan')
+            # self.logger.debug(f'No signal value for {s.name}')
+        # if 'zero' in self.marks:
+        #     zero = self.marks["zero"][2]
+        # else:
+        #     zero = 0.0
+        # if 'mark' in self.marks:
+        #     self.value = self.marks["mark"][2] - zero
+        # else:
+        #     self.value = float('nan')
         return self.value
 
     def __add__(self, other):
@@ -1438,6 +1459,8 @@ class Signal:
             result.value = self.value + other
             result.name = self.name + '+' + str(other)
             result.data_name = self.data_name + '+' + str(other)
+        result.calculate_value()
+        result.calculate_marks()
         return result
 
     def __sub__(self, other):
@@ -1454,6 +1477,8 @@ class Signal:
             result.value = self.value - other
             result.name = self.name + '-' + str(other)
             result.data_name = self.data_name + '-' + str(other)
+        result.calculate_value()
+        result.calculate_marks()
         return result
 
     def __mul__(self, other):
@@ -1472,6 +1497,8 @@ class Signal:
             result.value = self.value * other
             result.name = self.name + '*' + str(other)
             result.data_name = self.data_name + '+' + str(other)
+        result.calculate_value()
+        result.calculate_marks()
         return result
 
     def __truediv__(self, other):
@@ -1490,6 +1517,8 @@ class Signal:
             result.value = self.value / other
             result.name = self.name + '/' + str(other)
             result.data_name = self.data_name + '/' + str(other)
+        result.calculate_value()
+        result.calculate_marks()
         return result
 
     def __getitem__(self, item):
@@ -1620,24 +1649,25 @@ class DataFile:
         else:
             signal.unit = ''
         # find marks
-        for k in signal.params:
-            if k.endswith(b"_start"):
-                mark_name = k.replace(b"_start", b'').decode('ascii')
-                mark_length = k.replace(b"_start", b'_length')
-                try:
-                    if signal.params[k] != b'':
-                        mark_start_value = float(signal.params[k].replace(b',', b'.'))
-                        mark_end_value = mark_start_value + float(signal.params[mark_length].replace(b',', b'.'))
-                        index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_end_value))
-                        index = index[0]
-                        if len(index) > 0:
-                            mark_value = signal.y[index].mean()
-                            mark_start = int(index[0])
-                            mark_length = int(index[-1] - index[0]) + 1
-                            signal.marks[mark_name] = (mark_start, mark_length, mark_value)
-                except:
-                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name),
-                                  level=logging.INFO)
+        signal.calculate_marks()
+        # for k in signal.params:
+        #     if k.endswith(b"_start"):
+        #         mark_name = k.replace(b"_start", b'').decode('ascii')
+        #         mark_length = k.replace(b"_start", b'_length')
+        #         try:
+        #             if signal.params[k] != b'':
+        #                 mark_start_value = float(signal.params[k].replace(b',', b'.'))
+        #                 mark_end_value = mark_start_value + float(signal.params[mark_length].replace(b',', b'.'))
+        #                 index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_end_value))
+        #                 index = index[0]
+        #                 if len(index) > 0:
+        #                     mark_value = signal.y[index].mean()
+        #                     mark_start = int(index[0])
+        #                     mark_length = int(index[-1] - index[0]) + 1
+        #                     signal.marks[mark_name] = (mark_start, mark_length, mark_value)
+        #         except:
+        #             log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name),
+        #                           level=logging.INFO)
         # calculate value
         signal.calculate_value()
         # if 'zero' in signal.marks:
@@ -2024,7 +2054,7 @@ class ItemHeap:
 
 
 class PlotHeap(ItemHeap):
-    def __init__(self, max_items=100):
+    def __init__(self, max_items=256):
         super().__init__(max_items)
         self.last_file = ''
 
@@ -2032,7 +2062,7 @@ class PlotHeap(ItemHeap):
         for i in self.data:
             if i:
                 if name:
-                    if i.name == name and i.code == code and i.file == file:
+                    if i.data_name == name and i.code == code and i.file == file:
                         self.last_file = file
                         return i
                 else:
