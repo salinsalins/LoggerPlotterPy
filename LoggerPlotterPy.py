@@ -546,8 +546,8 @@ class MainWindow(QMainWindow):
             p = p.strip()
             if p != "":
                 h = p.__hash__()
-                if h in self.calculated_plots and self.calculated_plots[h] == hd:
-                    continue
+                # if h in self.calculated_plots and self.calculated_plots[h] == hd:
+                #     continue
                 s = None
                 try:
                     result = eval(p)
@@ -1590,7 +1590,7 @@ class DataFile:
                 signals.append(sig)
             else:
                 # pass
-                self.logger.debug("Signal %s rejected" % s)
+                self.logger.debug("Empty signal %s rejected" % s)
         return signals
 
 
