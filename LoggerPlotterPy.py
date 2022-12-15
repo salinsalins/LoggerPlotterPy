@@ -144,6 +144,7 @@ class MainWindow(QMainWindow):
         self.last_cell_row = -1
         self.last_cell_column = -1
         self.log_table = None
+        self.plot_heap = PlotHeap()
         #
         # self.plots = {'_data_': {}, '_names_': {}}
         # Configure logging
@@ -548,7 +549,11 @@ class MainWindow(QMainWindow):
                 h = p.__hash__()
                 # if h in self.calculated_plots and self.calculated_plots[h] == hd:
                 #     continue
-                s = None
+                s = self.plot_heap.get_plot('',self.data_file.file_name, p)
+                if s:
+                    self.extra_plots.append(s)
+                    self.logger.debug('Plot %s has been reused' % s.name)
+                    continue
                 try:
                     result = eval(p)
                     if isinstance(result, Signal):
@@ -596,19 +601,19 @@ class MainWindow(QMainWindow):
                         s.file = self.data_file.file_name
                         self.calculated_plots[h] = hd
                         self.extra_plots.append(s)
+                        self.plot_heap.insert(s)
                         # if self.data_file.file_name not in self.plots['_data_']:
                         #     self.plots['_data_'][self.data_file.file_name] = []
                         # if len(self.plots['_data_'][self.data_file.file_name]) >= 10:
                         #     del self.plots['_data_'][self.data_file.file_name][0]
                         # self.plots['_data_'][self.data_file.file_name].append(s)
                         # self.plots['_names_'][s.name] = s
+                        self.logger.debug('Plot %s has been added' % p.name)
                     else:
                         self.calculated_plots[h] = 0
                         self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
                 except:
                     log_exception(self, 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
-        for p in self.extra_plots:
-            self.logger.debug('Plot %s has been added' % p.name)
         if len(self.extra_plots) <= 0:
             self.logger.debug('No extra plots added')
 
@@ -1437,6 +1442,7 @@ class Signal:
     def __setitem__(self, key, value):
         self.params[key] = value
 
+
 class DataFile:
     def __init__(self, file_name, folder="", logger=None):
         if logger is None:
@@ -1925,6 +1931,49 @@ class LogTable:
                 self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
             else:
                 self.logger.debug(f'Extra column {key} has been added {n} lines')
+
+
+class ItemHeap:
+    def __init__(self, max_items=100):
+        self.max_items = max_items
+        self.data = [None] * max_items
+        self.index = 0
+
+    def insert(self, item):
+        self.data[self.index] = item
+        self.index += 1
+        if self.index >= self.max_items:
+            self.index = 0
+
+    def get(self, index):
+        return self.data[index]
+
+    def delete(self, index):
+        d = self.data[index]
+        self.data[index] = None
+        return d
+
+    # def __call__(self, item, *args, **kwargs):
+    #     self.insert(item)
+
+
+class PlotHeap(ItemHeap):
+    def __init__(self, max_items=100):
+        super().__init__(max_items)
+        self.last_file = ''
+
+    def get_plot(self, name, file, code=''):
+        for i in self.data:
+            if i:
+                if name:
+                    if i.name == name and i.code == code and i.file == file:
+                        self.last_file = file
+                        return i
+                else:
+                    if i.code == code and i.file == file:
+                        self.last_file = file
+                        return i
+        return None
 
 
 if __name__ == '__main__':

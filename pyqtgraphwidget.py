@@ -68,6 +68,10 @@ class CustomViewBox(pyqtgraph.ViewBox):
         # zoom = (s, s) if in_or_out == "in" else (1 / s, 1 / s)
         # self.plot.vb.scaleBy(zoom)
 
+    def resetScaleHistory(self):
+        if len(self.axHistory) > 0:
+            self.showAxRect(self.axHistory[0])
+
     def action(self):
         print('action')
 
