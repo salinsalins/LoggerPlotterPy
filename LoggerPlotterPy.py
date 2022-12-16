@@ -511,7 +511,7 @@ class MainWindow(QMainWindow):
                 ##zip_file_name = self.log_table.column("File")[row_s]
                 zip_file_name = self.log_table(row_s, "File")['text']
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
-                self.data_file = DataFile(zip_file_name, folder=folder, plot_heap=self.plot_heap)
+                self.data_file = DataFile(zip_file_name, folder=folder, plot_cache=self.plot_heap)
                 self.old_signal_list = self.signal_list + self.extra_plots
 
                 self.signal_list = self.data_file.read_all_signals()
@@ -1529,20 +1529,27 @@ class Signal:
 
 
 class DataFile:
-    def __init__(self, file_name, folder="", logger=None, plot_heap=None):
+    signals = {}
+    files = {}
+    def __init__(self, file_name, folder="", logger=None, plot_cache=None):
         if logger is None:
             self.logger = config_logger()
         else:
             self.logger = logger
-        self.plot_heap = plot_heap
+        self.plot_cache = plot_cache
         self.file_name = None
         self.files = []
         self.signals = []
         full_name = os.path.abspath(os.path.join(folder, file_name))
+        # if full_name in DataFile.signals:
+        #     self.signals = DataFile.signals[full_name]
+        #     self.files = DataFile.files[full_name]
+        # else:
         with zipfile.ZipFile(full_name, 'r') as zip_file:
             self.files = zip_file.namelist()
-        self.file_name = full_name
+            # DataFile.files[full_name] = self.files
         self.signals = self.find_signals()
+        self.file_name = full_name
 
     def find_signals(self):
         signals = []
@@ -1561,8 +1568,8 @@ class DataFile:
         return signals
 
     def read_signal(self, signal_name: str):
-        if self.plot_heap:
-            s = self.plot_heap.get_plot(signal_name, self.file_name, '')
+        if self.plot_cache:
+            s = self.plot_cache.get_plot(signal_name, self.file_name, '')
             if s:
                 self.logger.debug('Reusing signal %s' % signal_name)
                 # return s
@@ -1680,19 +1687,22 @@ class DataFile:
         #     signal.value = float('nan')
         signal.file = self.file_name
         signal.code = ''
-        if self.plot_heap:
-            self.plot_heap.insert(signal)
+        if self.plot_cache:
+            self.plot_cache.insert(signal)
         return signal
 
     def read_all_signals(self):
         signals = []
+        signal_names = []
         for s in self.signals:
             sig = self.read_signal(s)
             if sig:
                 signals.append(sig)
+                signal_names.append(s)
             else:
                 # pass
                 self.logger.debug("Empty signal %s rejected" % s)
+        # DataFile.signals[self.file_name] = signal_names
         return signals
 
 
