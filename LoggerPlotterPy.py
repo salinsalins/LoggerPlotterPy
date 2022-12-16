@@ -1572,7 +1572,7 @@ class DataFile:
             s = self.plot_cache.get_plot(signal_name, self.file_name, '')
             if s:
                 self.logger.debug('Reusing signal %s' % signal_name)
-                # return s
+                return s
         signal = Signal()
         if signal_name not in self.signals:
             self.logger.debug("No signal %s in the file %s" % (signal_name, self.file_name))
