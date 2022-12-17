@@ -115,8 +115,12 @@ class SignalNotFoundError(ValueError):
     pass
 
 
+global sigg
+
+
 @lru_cache(maxsize=256)
-def calculate_extra_plot(p, file_name, sig):
+def calculate_extra_plot(p, file_name):
+    sig = sigg
     print('Calculate', p)
     p = p.strip()
     s = None
@@ -160,13 +164,6 @@ def calculate_extra_plot(p, file_name, sig):
     except:
         log_exception(logging.getLogger(), 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
     return s
-
-
-def sig(name, signal_list):
-    for sg in signal_list:
-        if sg.name == name:
-            return sg
-    raise SignalNotFoundError('Signal %s not found' % name)
 
 
 class MainWindow(QMainWindow):
@@ -594,18 +591,20 @@ class MainWindow(QMainWindow):
                     return sg
             raise SignalNotFoundError('Signal %s not found' % name)
             # return None
+        global sigg
+        sigg = sig
 
         self.extra_plots = []
         # read extra plots from plainTextEdit_4
         extra_plots = self.get_extra_plots()
         for p in extra_plots:
             p = p.strip()
-            # s = calculate_extra_plot(p, self.data_file.file_name, sig)
-            # if s is not None:
-            #     self.extra_plots.append(s)
-            #     self.plot_heap.insert(s)
-            #     self.logger.debug('Plot %s has been added' % s.name)
-            # continue
+            s = calculate_extra_plot(p, self.data_file.file_name)
+            if s is not None:
+                self.extra_plots.append(s)
+                self.plot_heap.insert(s)
+                self.logger.debug('Plot %s has been added' % s.name)
+            continue
             if p != "":
                 s = self.plot_heap.get_plot('', self.data_file.file_name, p)
                 if s:
