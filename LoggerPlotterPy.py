@@ -732,7 +732,7 @@ class MainWindow(QMainWindow):
             try:
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    if not (y_max > y_min) or not (x_max > x_min):
+                    if not (y_max > y_min) and not (x_max > x_min):
                         mplw.autoRange()
             except:
                 log_exception()
@@ -1657,34 +1657,8 @@ class DataFile:
             signal.unit = ''
         # find marks
         signal.calculate_marks()
-        # for k in signal.params:
-        #     if k.endswith(b"_start"):
-        #         mark_name = k.replace(b"_start", b'').decode('ascii')
-        #         mark_length = k.replace(b"_start", b'_length')
-        #         try:
-        #             if signal.params[k] != b'':
-        #                 mark_start_value = float(signal.params[k].replace(b',', b'.'))
-        #                 mark_end_value = mark_start_value + float(signal.params[mark_length].replace(b',', b'.'))
-        #                 index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_end_value))
-        #                 index = index[0]
-        #                 if len(index) > 0:
-        #                     mark_value = signal.y[index].mean()
-        #                     mark_start = int(index[0])
-        #                     mark_length = int(index[-1] - index[0]) + 1
-        #                     signal.marks[mark_name] = (mark_start, mark_length, mark_value)
-        #         except:
-        #             log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name),
-        #                           level=logging.INFO)
         # calculate value
         signal.calculate_value()
-        # if 'zero' in signal.marks:
-        #     zero = signal.marks["zero"][2]
-        # else:
-        #     zero = 0.0
-        # if 'mark' in signal.marks:
-        #     signal.value = signal.marks["mark"][2] - zero
-        # else:
-        #     signal.value = float('nan')
         signal.file = self.file_name
         signal.code = ''
         if self.plot_cache:
