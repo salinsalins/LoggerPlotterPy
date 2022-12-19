@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
         self.last_cell_row = -1
         self.last_cell_column = -1
         self.log_table = None
-        self.plot_heap = PlotHeap()
+        self.plot_heap = PlotCache()
         #
         # self.plots = {'_data_': {}, '_names_': {}}
         # Configure logging
@@ -2039,7 +2039,7 @@ class LogTable:
                 self.logger.debug(f'Extra column {key} has been added {n} lines')
 
 
-class ItemHeap:
+class ItemCache:
     def __init__(self, max_items=100):
         self.max_items = max_items
         self.data = [None] * max_items
@@ -2051,8 +2051,10 @@ class ItemHeap:
         if self.index >= self.max_items:
             self.index = 0
 
-    def get(self, index):
-        return self.data[index]
+    def get(self, *args, **kwargs):
+        if len(args) <= 0:
+            return self.data[self.index]
+        return self.data[int(args[0])]
 
     def delete(self, index):
         d = self.data[index]
@@ -2063,10 +2065,21 @@ class ItemHeap:
     #     self.insert(item)
 
 
-class PlotHeap(ItemHeap):
+class PlotCache(ItemCache):
+    class PlotItem:
+        def __init__(self):
+            self.data_name = ''
+            self.name = ''
+            self.file = ''
+            self.code = ''
+
     def __init__(self, max_items=256):
         super().__init__(max_items)
+        self.data = [PlotCache.PlotItem()] * max_items
         self.last_file = ''
+
+    def get(self, name, file, code=''):
+        return self.get_plot(name, file, code)
 
     def get_plot(self, name, file, code=''):
         for i in self.data:
