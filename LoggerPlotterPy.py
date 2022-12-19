@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
         self.last_cell_row = -1
         self.last_cell_column = -1
         self.log_table = None
-        self.plot_heap = PlotCache()
+        # self.plot_heap = PlotCache()
         #
         # self.plots = {'_data_': {}, '_names_': {}}
         # Configure logging
@@ -563,7 +563,8 @@ class MainWindow(QMainWindow):
                 ##zip_file_name = self.log_table.column("File")[row_s]
                 zip_file_name = self.log_table(row_s, "File")['text']
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
-                self.data_file = DataFile(zip_file_name, folder=folder, plot_cache=self.plot_heap)
+                self.data_file = DataFile(zip_file_name, folder=folder)
+                # self.data_file = DataFile(zip_file_name, folder=folder, plot_cache=self.plot_heap)
                 self.old_signal_list = self.signal_list + self.extra_plots
 
                 self.signal_list = self.data_file.read_all_signals()
@@ -602,57 +603,57 @@ class MainWindow(QMainWindow):
             s = calculate_extra_plot(p, self.data_file.file_name)
             if s is not None:
                 self.extra_plots.append(s)
-                self.plot_heap.insert(s)
+                # self.plot_heap.insert(s)
                 self.logger.debug('Plot %s has been added' % s.name)
             continue
-            if p != "":
-                s = self.plot_heap.get_plot('', self.data_file.file_name, p)
-                if s:
-                    self.extra_plots.append(s)
-                    self.logger.debug('Plot %s has been reused' % s.name)
-                    continue
-                try:
-                    result = eval(p)
-                    if isinstance(result, Signal):
-                        s = result
-                    elif isinstance(result, dict):
-                        key = result['name']
-                        if key != '':
-                            x = result['x']
-                            y = result['y']
-                            marks = result.get('marks', None)
-                            if marks:
-                                for m in marks:
-                                    index = numpy.searchsorted(x, [marks[m][0], marks[m][0] + marks[m][1]])
-                                    marks[m][0] = index[0]
-                                    marks[m][1] = index[1] - index[0]
-                            # mark_value = s.y[index[0]:index[1]].mean()
-                            params = result.get('params', None)
-                            unit = result.get('unit', '')
-                            value = result.get('value', float('nan'))
-                            s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
-                            s.data_name = s.name
-                    elif isinstance(result, list) or isinstance(result, tuple):
-                        if len(result) >= 3:
-                            key, x_val, y_val = result[:3]
-                            if key != '':
-                                s = Signal(x_val, y_val, name=key)
-                        elif len(result) == 2:
-                            if isinstance(result[1], Signal):
-                                s = result[1]
-                                s.name = result[0]
-                                s.data_name = s.name
-                    if s is not None:
-                        s.calculate_value()
-                        s.code = p
-                        s.file = self.data_file.file_name
-                        self.extra_plots.append(s)
-                        self.plot_heap.insert(s)
-                        self.logger.debug('Plot %s has been added' % s.name)
-                    else:
-                        self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
-                except:
-                    log_exception(self, 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
+            # if p != "":
+            #     s = self.plot_heap.get_plot('', self.data_file.file_name, p)
+            #     if s:
+            #         self.extra_plots.append(s)
+            #         self.logger.debug('Plot %s has been reused' % s.name)
+            #         continue
+            #     try:
+            #         result = eval(p)
+            #         if isinstance(result, Signal):
+            #             s = result
+            #         elif isinstance(result, dict):
+            #             key = result['name']
+            #             if key != '':
+            #                 x = result['x']
+            #                 y = result['y']
+            #                 marks = result.get('marks', None)
+            #                 if marks:
+            #                     for m in marks:
+            #                         index = numpy.searchsorted(x, [marks[m][0], marks[m][0] + marks[m][1]])
+            #                         marks[m][0] = index[0]
+            #                         marks[m][1] = index[1] - index[0]
+            #                 # mark_value = s.y[index[0]:index[1]].mean()
+            #                 params = result.get('params', None)
+            #                 unit = result.get('unit', '')
+            #                 value = result.get('value', float('nan'))
+            #                 s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
+            #                 s.data_name = s.name
+            #         elif isinstance(result, list) or isinstance(result, tuple):
+            #             if len(result) >= 3:
+            #                 key, x_val, y_val = result[:3]
+            #                 if key != '':
+            #                     s = Signal(x_val, y_val, name=key)
+            #             elif len(result) == 2:
+            #                 if isinstance(result[1], Signal):
+            #                     s = result[1]
+            #                     s.name = result[0]
+            #                     s.data_name = s.name
+            #         if s is not None:
+            #             s.calculate_value()
+            #             s.code = p
+            #             s.file = self.data_file.file_name
+            #             self.extra_plots.append(s)
+            #             self.plot_heap.insert(s)
+            #             self.logger.debug('Plot %s has been added' % s.name)
+            #         else:
+            #             self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
+            #     except:
+            #         log_exception(self, 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
         if len(self.extra_plots) <= 0:
             self.logger.debug('No extra plots added')
 
@@ -1679,9 +1680,10 @@ class DataFile:
         #     self.signals = DataFile.signals[full_name]
         #     self.files = DataFile.files[full_name]
         # else:
-        with zipfile.ZipFile(full_name, 'r') as zip_file:
-            self.files = zip_file.namelist()
-            # DataFile.files[full_name] = self.files
+        # with zipfile.ZipFile(full_name, 'r') as zip_file:
+        #     self.files = zip_file.namelist()
+        #     # DataFile.files[full_name] = self.files
+        self.files = read_signal_list(full_name)
         self.signals = self.find_signals()
         self.file_name = full_name
 
@@ -1796,18 +1798,18 @@ class DataFile:
         # signal.calculate_value()
         # signal.file = self.file_name
         # signal.code = ''
-        if self.plot_cache:
-            self.plot_cache.insert(signal)
+        # if self.plot_cache:
+        #     self.plot_cache.insert(signal)
         return signal
 
     def read_all_signals(self):
         signals = []
-        signal_names = []
+        # signal_names = []
         for s in self.signals:
             sig = self.read_signal(s)
             if sig:
                 signals.append(sig)
-                signal_names.append(s)
+                # signal_names.append(s)
             else:
                 # pass
                 self.logger.debug("Empty signal %s rejected" % s)
