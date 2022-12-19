@@ -1410,7 +1410,7 @@ class Signal:
         self.file = ''
 
     def __str__(self):
-        return f'Signal:<{self.data_name}; length = {len(self.x)}; value={self.value} {self.unit}>'
+        return f'Signal:<{self.data_name} = {self.name}; length = {len(self.x)}; value={self.value} {self.unit}>'
 
     def set_name(self, name: str):
         self.name = name
@@ -1833,7 +1833,7 @@ def justify_signals(first: Signal, other: Signal):
         result[0].y = first.y[index1].copy()
         result[1].x = x
     else:
-        x = first.x[index2].copy()
+        x = other.x[index2].copy()
         result[0].y = numpy.interp(x, first.x, first.y)
         result[0].x = x
         result[1].y = other.y[index2].copy()
