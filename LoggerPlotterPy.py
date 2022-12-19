@@ -16,6 +16,7 @@ import sys
 import time
 import zipfile
 import datetime
+from functools import lru_cache
 
 import numpy
 
@@ -44,7 +45,7 @@ from pyqtgraphwidget import MplWidget
 sys.path.append('../TangoUtils')
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
-from log_exception import log_exception
+from log_exception import log_exception, log
 
 np = numpy
 
@@ -112,6 +113,57 @@ def remove_from_widget(widget, removed: str):
 
 class SignalNotFoundError(ValueError):
     pass
+
+
+global sigg
+
+
+@lru_cache(maxsize=256)
+def calculate_extra_plot(p, file_name):
+    sig = sigg
+    print('Calculate', p)
+    p = p.strip()
+    s = None
+    try:
+        result = eval(p)
+        if isinstance(result, Signal):
+            s = result
+        elif isinstance(result, dict):
+            key = result['name']
+            if key != '':
+                x = result['x']
+                y = result['y']
+                marks = result.get('marks', None)
+                # convert mark time to index
+                if marks:
+                    for m in marks:
+                        index = numpy.searchsorted(x, [marks[m][0], marks[m][0] + marks[m][1]])
+                        marks[m][0] = index[0]
+                        marks[m][1] = index[1] - index[0]
+                params = result.get('params', None)
+                unit = result.get('unit', '')
+                value = result.get('value', float('nan'))
+                s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
+        elif isinstance(result, list) or isinstance(result, tuple):
+            if len(result) >= 3:
+                key, x_val, y_val = result[:3]
+                if key != '':
+                    s = Signal(x_val, y_val, name=key)
+            elif len(result) == 2:
+                if isinstance(result[1], Signal):
+                    s = result[1]
+                    s.name = result[0]
+                    s.data_name = s.name
+        if s:
+            s.calculate_value()
+            s.code = p
+            s.file = file_name
+            logging.getLogger().debug('Plot %s has been calculated' % s.name)
+        else:
+            logging.getLogger().info('Can not calculate signal for "%s ..."\n', p[:20])
+    except:
+        log_exception(logging.getLogger(), 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
+    return s
 
 
 class MainWindow(QMainWindow):
@@ -531,6 +583,7 @@ class MainWindow(QMainWindow):
                 # self.update_status_bar()
 
     def calculate_extra_plots(self):
+
         def sig(name):
             signal_list = self.signal_list + self.extra_plots
             for sg in signal_list:
@@ -538,18 +591,22 @@ class MainWindow(QMainWindow):
                     return sg
             raise SignalNotFoundError('Signal %s not found' % name)
             # return None
+        global sigg
+        sigg = sig
 
         self.extra_plots = []
-        hd = self.data_file.file_name.__hash__()
         # read extra plots from plainTextEdit_4
         extra_plots = self.get_extra_plots()
         for p in extra_plots:
             p = p.strip()
+            s = calculate_extra_plot(p, self.data_file.file_name)
+            if s is not None:
+                self.extra_plots.append(s)
+                self.plot_heap.insert(s)
+                self.logger.debug('Plot %s has been added' % s.name)
+            continue
             if p != "":
-                h = p.__hash__()
-                # if h in self.calculated_plots and self.calculated_plots[h] == hd:
-                #     continue
-                s = self.plot_heap.get_plot('',self.data_file.file_name , p)
+                s = self.plot_heap.get_plot('', self.data_file.file_name, p)
                 if s:
                     self.extra_plots.append(s)
                     self.logger.debug('Plot %s has been reused' % s.name)
@@ -586,34 +643,13 @@ class MainWindow(QMainWindow):
                                 s.name = result[0]
                                 s.data_name = s.name
                     if s is not None:
-                        # try:
-                        #     if math.isnan(s.value) and 'mark' in s.marks:
-                        #         mark = s.marks['mark']
-                        #         mark_value = s.y[mark[0]: mark[0] + mark[1]].mean()
-                        #         if 'zero' in s.marks:
-                        #             zero = s.marks['zero']
-                        #             zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
-                        #         else:
-                        #             zero_value = 0.0
-                        #         v = mark_value - zero_value
-                        #         s.value = v
-                        # except:
-                        #     self.logger.debug(f'No signal value for {s.name}')
                         s.calculate_value()
                         s.code = p
                         s.file = self.data_file.file_name
-                        self.calculated_plots[h] = hd
                         self.extra_plots.append(s)
                         self.plot_heap.insert(s)
-                        # if self.data_file.file_name not in self.plots['_data_']:
-                        #     self.plots['_data_'][self.data_file.file_name] = []
-                        # if len(self.plots['_data_'][self.data_file.file_name]) >= 10:
-                        #     del self.plots['_data_'][self.data_file.file_name][0]
-                        # self.plots['_data_'][self.data_file.file_name].append(s)
-                        # self.plots['_names_'][s.name] = s
                         self.logger.debug('Plot %s has been added' % s.name)
                     else:
-                        self.calculated_plots[h] = 0
                         self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
                 except:
                     log_exception(self, 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
@@ -732,7 +768,7 @@ class MainWindow(QMainWindow):
             try:
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    if not (y_max > y_min) or not (x_max > x_min):
+                    if not (y_max > y_min) and not (x_max > x_min):
                         mplw.autoRange()
             except:
                 log_exception()
@@ -1373,7 +1409,7 @@ class Signal:
         self.file = ''
 
     def __str__(self):
-        return f'Signal<{self.data_name}>'
+        return f'Signal:<{self.data_name}; length = {len(self.x)}; value={self.value} {self.unit}>'
 
     def set_name(self, name: str):
         self.name = name
@@ -1528,9 +1564,100 @@ class Signal:
         self.params[key] = value
 
 
+@lru_cache(maxsize=512)
+def read_signal(signal_name: str, file_name: str):
+    print('Reading', signal_name, 'from', file_name)
+    signal = Signal()
+    with zipfile.ZipFile(file_name, 'r') as zipobj:
+        files = zipobj.namelist()
+        buf = zipobj.read(signal_name)
+    if b'\r\n' in buf:
+        endline = b"\r\n"
+    else:
+        buf = buf.replace(b'\r', b'\n')
+        endline = b'\n'
+    lines = buf.split(endline)
+    n = len(lines)
+    if n < 2:
+        # log("%s Not a signal" % signal_name)
+        return None
+    signal.x = numpy.zeros(n, dtype=numpy.float64)
+    signal.y = numpy.zeros(n, dtype=numpy.float64)
+    error_lines = False
+    xy = []
+    for i, line in enumerate(lines):
+        xy = line.replace(b',', b'.').split(b'; ')
+        if len(xy) > 1:
+            try:
+                signal.x[i] = float(xy[0])
+            except:
+                signal.x[i] = numpy.nan
+                error_lines = True
+            try:
+                signal.y[i] = float(xy[1])
+            except:
+                signal.y[i] = numpy.nan
+                error_lines = True
+        elif len(xy) > 0:
+            signal.x[i] = i
+            try:
+                signal.y[i] = float(xy[0])
+            except:
+                signal.y[i] = numpy.nan
+                error_lines = True
+    if len(xy) < 2:
+        signal.params[b'xlabel'] = 'Index'
+    # if error_lines:
+    #     log("Some lines with wrong data in %s", signal_name)
+    # read parameters
+    signal.params = {}
+    param_name = signal_name.replace('chan', 'paramchan')
+    if param_name != signal_name and param_name in files:
+        with zipfile.ZipFile(file_name, 'r') as zipobj:
+            pbuf = zipobj.read(param_name)
+        lines = pbuf.split(endline)
+        error_lines = False
+        kv = ''
+        for line in lines:
+            if line != b'':
+                kv = line.split(b'=')
+                if len(kv) >= 2:
+                    signal.params[kv[0].strip()] = kv[1].strip()
+                else:
+                    error_lines = kv
+        # if error_lines:
+        #     log(f"Wrong parameter {kv} for {signal_name}")
+    # scale to units
+    try:
+        signal.scale = float(signal.params[b'display_unit'])
+    except:
+        signal.scale = 1.0
+    signal.y *= signal.scale
+    # name of the signal
+    if b"label" in signal.params:
+        signal.name = signal.params[b"label"].decode('ascii')
+    elif b"name" in signal.params:
+        signal.name = signal.params[b"name"].decode('ascii')
+    else:
+        signal.name = signal_name
+    signal.data_name = signal_name
+    if b'unit' in signal.params:
+        signal.unit = signal.params[b'unit'].decode('ascii')
+    else:
+        signal.unit = ''
+    # find marks
+    signal.calculate_marks()
+    # calculate value
+    signal.calculate_value()
+    signal.file = file_name
+    signal.code = ''
+    return signal
+
+
 class DataFile:
     signals = {}
     files = {}
+
     def __init__(self, file_name, folder="", logger=None, plot_cache=None):
         if logger is None:
             self.logger = config_logger()
@@ -1568,125 +1695,100 @@ class DataFile:
         return signals
 
     def read_signal(self, signal_name: str):
-        if self.plot_cache:
-            s = self.plot_cache.get_plot(signal_name, self.file_name, '')
-            if s:
-                self.logger.debug('Reusing signal %s' % signal_name)
-                return s
-        signal = Signal()
-        if signal_name not in self.signals:
-            self.logger.debug("No signal %s in the file %s" % (signal_name, self.file_name))
-            return None
-        with zipfile.ZipFile(self.file_name, 'r') as zipobj:
-            buf = zipobj.read(signal_name)
-            # param_name = signal_name.replace('chan', 'paramchan')
-            # pbuf = zipobj.read(param_name)
-        if b'\r\n' in buf:
-            endline = b"\r\n"
-        else:
-            buf = buf.replace(b'\r', b'\n')
-            endline = b'\n'
-        lines = buf.split(endline)
-        n = len(lines)
-        if n < 2:
-            self.logger.debug("%s Not a signal" % signal_name)
-            return None
-        signal.x = numpy.zeros(n, dtype=numpy.float64)
-        signal.y = numpy.zeros(n, dtype=numpy.float64)
-        error_lines = False
-        xy = []
-        for i, line in enumerate(lines):
-            xy = line.replace(b',', b'.').split(b'; ')
-            if len(xy) > 1:
-                try:
-                    signal.x[i] = float(xy[0])
-                except:
-                    signal.x[i] = numpy.nan
-                    error_lines = True
-                try:
-                    signal.y[i] = float(xy[1])
-                except:
-                    signal.y[i] = numpy.nan
-                    error_lines = True
-            elif len(xy) > 0:
-                signal.x[i] = i
-                try:
-                    signal.y[i] = float(xy[0])
-                except:
-                    signal.y[i] = numpy.nan
-                    error_lines = True
-        if len(xy) < 2:
-            signal.params[b'xlabel'] = 'Index'
-        if error_lines:
-            self.logger.debug("Some lines with wrong data in %s", signal_name)
-        # read parameters
-        signal.params = {}
-        param_name = signal_name.replace('chan', 'paramchan')
-        if param_name != signal_name and param_name in self.files:
-            with zipfile.ZipFile(self.file_name, 'r') as zipobj:
-                pbuf = zipobj.read(param_name)
-            lines = pbuf.split(endline)
-            error_lines = False
-            kv = ''
-            for line in lines:
-                if line != b'':
-                    kv = line.split(b'=')
-                    if len(kv) >= 2:
-                        signal.params[kv[0].strip()] = kv[1].strip()
-                    else:
-                        error_lines = kv
-            if error_lines:
-                self.logger.debug(f"Wrong parameter {kv} for {signal_name}")
-        # scale to units
-        try:
-            signal.scale = float(signal.params[b'display_unit'])
-        except:
-            signal.scale = 1.0
-        signal.y *= signal.scale
-        # name of the signal
-        if b"label" in signal.params:
-            signal.name = signal.params[b"label"].decode('ascii')
-        elif b"name" in signal.params:
-            signal.name = signal.params[b"name"].decode('ascii')
-        else:
-            signal.name = signal_name
-        signal.data_name = signal_name
-        if b'unit' in signal.params:
-            signal.unit = signal.params[b'unit'].decode('ascii')
-        else:
-            signal.unit = ''
-        # find marks
-        signal.calculate_marks()
-        # for k in signal.params:
-        #     if k.endswith(b"_start"):
-        #         mark_name = k.replace(b"_start", b'').decode('ascii')
-        #         mark_length = k.replace(b"_start", b'_length')
+        signal = read_signal(signal_name, self.file_name)
+        # if self.plot_cache:
+        #     s = self.plot_cache.get_plot(signal_name, self.file_name, '')
+        #     if s:
+        #         self.logger.debug('Reusing signal %s' % signal_name)
+        #         return s
+        # signal = Signal()
+        # if signal_name not in self.signals:
+        #     self.logger.debug("No signal %s in the file %s" % (signal_name, self.file_name))
+        #     return None
+        # with zipfile.ZipFile(self.file_name, 'r') as zipobj:
+        #     buf = zipobj.read(signal_name)
+        #     # param_name = signal_name.replace('chan', 'paramchan')
+        #     # pbuf = zipobj.read(param_name)
+        # if b'\r\n' in buf:
+        #     endline = b"\r\n"
+        # else:
+        #     buf = buf.replace(b'\r', b'\n')
+        #     endline = b'\n'
+        # lines = buf.split(endline)
+        # n = len(lines)
+        # if n < 2:
+        #     self.logger.debug("%s Not a signal" % signal_name)
+        #     return None
+        # signal.x = numpy.zeros(n, dtype=numpy.float64)
+        # signal.y = numpy.zeros(n, dtype=numpy.float64)
+        # error_lines = False
+        # xy = []
+        # for i, line in enumerate(lines):
+        #     xy = line.replace(b',', b'.').split(b'; ')
+        #     if len(xy) > 1:
         #         try:
-        #             if signal.params[k] != b'':
-        #                 mark_start_value = float(signal.params[k].replace(b',', b'.'))
-        #                 mark_end_value = mark_start_value + float(signal.params[mark_length].replace(b',', b'.'))
-        #                 index = numpy.where(numpy.logical_and(signal.x >= mark_start_value, signal.x <= mark_end_value))
-        #                 index = index[0]
-        #                 if len(index) > 0:
-        #                     mark_value = signal.y[index].mean()
-        #                     mark_start = int(index[0])
-        #                     mark_length = int(index[-1] - index[0]) + 1
-        #                     signal.marks[mark_name] = (mark_start, mark_length, mark_value)
+        #             signal.x[i] = float(xy[0])
         #         except:
-        #             log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name),
-        #                           level=logging.INFO)
-        # calculate value
-        signal.calculate_value()
-        # if 'zero' in signal.marks:
-        #     zero = signal.marks["zero"][2]
+        #             signal.x[i] = numpy.nan
+        #             error_lines = True
+        #         try:
+        #             signal.y[i] = float(xy[1])
+        #         except:
+        #             signal.y[i] = numpy.nan
+        #             error_lines = True
+        #     elif len(xy) > 0:
+        #         signal.x[i] = i
+        #         try:
+        #             signal.y[i] = float(xy[0])
+        #         except:
+        #             signal.y[i] = numpy.nan
+        #             error_lines = True
+        # if len(xy) < 2:
+        #     signal.params[b'xlabel'] = 'Index'
+        # if error_lines:
+        #     self.logger.debug("Some lines with wrong data in %s", signal_name)
+        # # read parameters
+        # signal.params = {}
+        # param_name = signal_name.replace('chan', 'paramchan')
+        # if param_name != signal_name and param_name in self.files:
+        #     with zipfile.ZipFile(self.file_name, 'r') as zipobj:
+        #         pbuf = zipobj.read(param_name)
+        #     lines = pbuf.split(endline)
+        #     error_lines = False
+        #     kv = ''
+        #     for line in lines:
+        #         if line != b'':
+        #             kv = line.split(b'=')
+        #             if len(kv) >= 2:
+        #                 signal.params[kv[0].strip()] = kv[1].strip()
+        #             else:
+        #                 error_lines = kv
+        #     if error_lines:
+        #         self.logger.debug(f"Wrong parameter {kv} for {signal_name}")
+        # # scale to units
+        # try:
+        #     signal.scale = float(signal.params[b'display_unit'])
+        # except:
+        #     signal.scale = 1.0
+        # signal.y *= signal.scale
+        # # name of the signal
+        # if b"label" in signal.params:
+        #     signal.name = signal.params[b"label"].decode('ascii')
+        # elif b"name" in signal.params:
+        #     signal.name = signal.params[b"name"].decode('ascii')
         # else:
-        #     zero = 0.0
-        # if 'mark' in signal.marks:
-        #     signal.value = signal.marks["mark"][2] - zero
+        #     signal.name = signal_name
+        # signal.data_name = signal_name
+        # if b'unit' in signal.params:
+        #     signal.unit = signal.params[b'unit'].decode('ascii')
         # else:
-        #     signal.value = float('nan')
-        signal.file = self.file_name
-        signal.code = ''
+        #     signal.unit = ''
+        # # find marks
+        # signal.calculate_marks()
+        # # calculate value
+        # signal.calculate_value()
+        # signal.file = self.file_name
+        # signal.code = ''
         if self.plot_cache:
             self.plot_cache.insert(signal)
         return signal
