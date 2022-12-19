@@ -1564,12 +1564,19 @@ class Signal:
         self.params[key] = value
 
 
+@lru_cache()
+def read_signal_list(file_name: str):
+    # print('Reading from', file_name)
+    with zipfile.ZipFile(file_name, 'r') as zipobj:
+        files = zipobj.namelist()
+    return files
+
 @lru_cache(maxsize=512)
 def read_signal(signal_name: str, file_name: str):
     # print('Reading', signal_name, 'from', file_name)
+    files = read_signal_list(file_name)
     signal = Signal()
     with zipfile.ZipFile(file_name, 'r') as zipobj:
-        files = zipobj.namelist()
         buf = zipobj.read(signal_name)
     if b'\r\n' in buf:
         endline = b"\r\n"
