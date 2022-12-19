@@ -121,7 +121,7 @@ global sigg
 @lru_cache(maxsize=256)
 def calculate_extra_plot(p, file_name):
     sig = sigg
-    print('Calculate', p)
+    # print('Calculate', p)
     p = p.strip()
     s = None
     try:
@@ -1566,7 +1566,7 @@ class Signal:
 
 @lru_cache(maxsize=512)
 def read_signal(signal_name: str, file_name: str):
-    print('Reading', signal_name, 'from', file_name)
+    # print('Reading', signal_name, 'from', file_name)
     signal = Signal()
     with zipfile.ZipFile(file_name, 'r') as zipobj:
         files = zipobj.namelist()
