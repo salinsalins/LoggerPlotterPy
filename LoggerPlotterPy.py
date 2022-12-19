@@ -568,10 +568,10 @@ class MainWindow(QMainWindow):
                 self.old_signal_list = self.signal_list + self.extra_plots
 
                 self.signal_list = self.data_file.read_all_signals()
-                self.plot_signals()
-                self.restore_background()
                 self.last_selection = self.current_selection
                 self.current_selection = row_s
+                self.restore_background()
+                self.plot_signals()
                 self.update_status_bar()
             except:
                 r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
