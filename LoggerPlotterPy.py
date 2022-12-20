@@ -592,6 +592,7 @@ class MainWindow(QMainWindow):
                     return sg
             raise SignalNotFoundError('Signal %s not found' % name)
             # return None
+
         global sigg
         sigg = sig
 
@@ -1409,6 +1410,19 @@ class Signal:
         self.code = ''
         self.file = ''
 
+    def __copy__(self):
+        result = Signal()
+        result.data_name = self.data_name
+        result.marks = self.marks.copy()
+        result.value = self.value
+        result.scale = self.scale
+        result.unit = self.unit
+        result.name = self.name
+        result.params = self.params.copy()
+        result.y = self.y.copy()
+        result.x = self.x.copy()
+        return result
+
     def __str__(self):
         return f'Signal:<{self.data_name} = {self.name}; length = {len(self.x)}; value={self.value} {self.unit}>'
 
@@ -1426,6 +1440,12 @@ class Signal:
 
     def set_unit(self, unit: str):
         self.unit = unit
+        return self
+
+    def set_data(self, x, y):
+        self.x = x
+        self.y = y
+        self.trim()
         return self
 
     def trim(self):
@@ -1571,6 +1591,7 @@ def read_signal_list(file_name: str):
     with zipfile.ZipFile(file_name, 'r') as zipobj:
         files = zipobj.namelist()
     return files
+
 
 @lru_cache(maxsize=512)
 def read_signal(signal_name: str, file_name: str):
