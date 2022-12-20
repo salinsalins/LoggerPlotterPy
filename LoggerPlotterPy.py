@@ -1584,6 +1584,96 @@ class Signal:
     def __setitem__(self, key, value):
         self.params[key] = value
 
+    def read_from_file(self, signal_name: str, file_name: str):
+        if file_name.endswith('.zip'):
+            with zipfile.ZipFile(file_name, 'r') as zipobj:
+                buf = zipobj.read(signal_name)
+                param_name = signal_name.replace('chan', 'paramchan')
+                pbuf = zipobj.read(param_name)
+        else:
+            with open(file_name, 'rb') as datafile:
+                buf = datafile.read()
+                pbuf = b''
+        signal = self
+        if b'\r\n' in buf:
+            endline = b"\r\n"
+        else:
+            buf = buf.replace(b'\r', b'\n')
+            endline = b'\n'
+        lines = buf.split(endline)
+        n = len(lines)
+        if n < 2:
+            # self.logger.debug("%s Not a signal" % signal_name)
+            return None
+        signal.x = numpy.zeros(n, dtype=numpy.float64)
+        signal.y = numpy.zeros(n, dtype=numpy.float64)
+        error_lines = False
+        xy = []
+        for i, line in enumerate(lines):
+            xy = line.replace(b',', b'.').split(b'; ')
+            if len(xy) > 1:
+                try:
+                    signal.x[i] = float(xy[0])
+                except:
+                    signal.x[i] = numpy.nan
+                    error_lines = True
+                try:
+                    signal.y[i] = float(xy[1])
+                except:
+                    signal.y[i] = numpy.nan
+                    error_lines = True
+            elif len(xy) > 0:
+                signal.x[i] = i
+                try:
+                    signal.y[i] = float(xy[0])
+                except:
+                    signal.y[i] = numpy.nan
+                    error_lines = True
+        if len(xy) < 2:
+            signal.params[b'xlabel'] = 'Index'
+        # if error_lines:
+        #     self.logger.debug("Some lines with wrong data in %s", signal_name)
+        # # read parameters
+        signal.params = {}
+        lines = pbuf.split(endline)
+        error_lines = False
+        kv = ''
+        for line in lines:
+            if line != b'':
+                kv = line.split(b'=')
+                if len(kv) >= 2:
+                    signal.params[kv[0].strip()] = kv[1].strip()
+                else:
+                    error_lines = kv
+        # if error_lines:
+        #     self.logger.debug(f"Wrong parameter {kv} for {signal_name}")
+        # scale to units
+        try:
+            signal.scale = float(signal.params[b'display_unit'])
+        except:
+            signal.scale = 1.0
+        signal.y *= signal.scale
+        # name of the signal
+        if b"label" in signal.params:
+            signal.name = signal.params[b"label"].decode('ascii')
+        elif b"name" in signal.params:
+            signal.name = signal.params[b"name"].decode('ascii')
+        else:
+            signal.name = signal_name
+        signal.data_name = signal_name
+        if b'unit' in signal.params:
+            signal.unit = signal.params[b'unit'].decode('ascii')
+        else:
+            signal.unit = ''
+        # find marks
+        signal.calculate_marks()
+        # calculate value
+        signal.calculate_value()
+        signal.file = file_name
+        signal.code = ''
+        # if self.plot_cache:
+        #     self.plot_cache.insert(signal)
+        return signal
 
 @lru_cache()
 def read_signal_list(file_name: str):
