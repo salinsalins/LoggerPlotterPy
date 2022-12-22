@@ -1675,6 +1675,68 @@ class Signal:
         #     self.plot_cache.insert(signal)
         return signal
 
+    def decode_data(self, buf: bytes):
+        signal = self
+        if b'\r\n' in buf:
+            endline = b"\r\n"
+        else:
+            buf = buf.replace(b'\r', b'\n')
+            endline = b'\n'
+        lines = buf.split(endline)
+        n = len(lines)
+        if n < 2:
+            # self.logger.debug("%s Not a signal" % signal_name)
+            return None
+        signal.x = numpy.zeros(n, dtype=numpy.float64)
+        signal.y = numpy.zeros(n, dtype=numpy.float64)
+        error_lines = False
+        xy = []
+        for i, line in enumerate(lines):
+            xy = line.replace(b',', b'.').split(b'; ')
+            if len(xy) > 1:
+                try:
+                    signal.x[i] = float(xy[0])
+                except:
+                    signal.x[i] = numpy.nan
+                    error_lines = True
+                try:
+                    signal.y[i] = float(xy[1])
+                except:
+                    signal.y[i] = numpy.nan
+                    error_lines = True
+            elif len(xy) > 0:
+                signal.x[i] = i
+                try:
+                    signal.y[i] = float(xy[0])
+                except:
+                    signal.y[i] = numpy.nan
+                    error_lines = True
+        if len(xy) < 2:
+            signal.params[b'xlabel'] = 'Index'
+        # if error_lines:
+        #     self.logger.debug("Some lines with wrong data in %s", signal_name)
+        return signal
+
+    def decode_parameters(self, buf: bytes):
+        signal = self
+        if b'\r\n' in buf:
+            endline = b"\r\n"
+        else:
+            buf = buf.replace(b'\r', b'\n')
+            endline = b'\n'
+        signal.params = {}
+        lines = buf.split(endline)
+        error_lines = False
+        kv = ''
+        for line in lines:
+            if line != b'':
+                kv = line.split(b'=')
+                if len(kv) >= 2:
+                    signal.params[kv[0].strip()] = kv[1].strip()
+                else:
+                    error_lines = kv
+        return signal
+
 @lru_cache()
 def read_signal_list(file_name: str):
     # print('Reading from', file_name)
