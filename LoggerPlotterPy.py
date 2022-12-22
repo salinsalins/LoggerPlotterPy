@@ -606,7 +606,7 @@ class MainWindow(QMainWindow):
                 self.extra_plots.append(s)
                 # self.plot_heap.insert(s)
                 self.logger.debug('Plot %s has been added' % s.name)
-            continue
+            # continue
             # if p != "":
             #     s = self.plot_heap.get_plot('', self.data_file.file_name, p)
             #     if s:
