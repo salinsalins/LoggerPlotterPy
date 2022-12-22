@@ -1984,9 +1984,9 @@ class DataFile:
             if sig:
                 signals.append(sig)
                 # signal_names.append(s)
-            else:
-                # pass
-                self.logger.debug("Empty signal %s rejected" % s)
+            # else:
+            #     # pass
+            #     self.logger.debug("Empty signal %s rejected" % s)
         # DataFile.signals[self.file_name] = signal_names
         return signals
 
