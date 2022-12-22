@@ -1737,6 +1737,7 @@ class Signal:
                     error_lines = kv
         return signal
 
+
 @lru_cache()
 def read_signal_list(file_name: str):
     # print('Reading from', file_name)
