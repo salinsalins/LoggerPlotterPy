@@ -196,12 +196,8 @@ class MainWindow(QMainWindow):
         self.last_cell_row = -1
         self.last_cell_column = -1
         self.log_table = None
-        # self.plot_heap = PlotCache()
-        #
-        # self.plots = {'_data_': {}, '_names_': {}}
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
-        info('TestLOg')
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # Connect signals with the slots
@@ -238,7 +234,7 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
-
+        #
         # status bar
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0;')
@@ -292,17 +288,16 @@ class MainWindow(QMainWindow):
 
         # default settings
         self.set_default_settings()
-
         #
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
-
+        #
         # restore settings
         self.restore_settings()
         self.restore_local_settings()
-
+        #
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
-
+        #
         self.parse_folder()
 
     def fill_config_widget(self):
@@ -380,10 +375,6 @@ class MainWindow(QMainWindow):
         displayed = displayed.replace(current, current + '\n' + action.text())
         self.plainTextEdit_2.setPlainText(displayed)
         self.plainTextEdit_3.setPlainText(remove_from_text(hidden, action.text()))
-        # self.columns = self.sort_columns()
-        # self.fill_table_widget()
-        # self.tableWidget_3.selectRow(self.current_selection)
-        # self.change_background()
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -439,11 +430,6 @@ class MainWindow(QMainWindow):
         self.change_background()
 
     def table_header_right_click_menu_wrap(self, a, *args):
-        # i = self.tableWidget_3.horizontalHeader().currentIndex()
-        # print('test', a, args)
-        # h = self.tableWidget_3.horizontalHeader()
-        # mouse_state = app.mouseButtons()
-        # print(int(mouse_state))
         n = self.tableWidget_3.columnAt(a.x())
         if n > 0:
             self.table_header_right_click_menu(n)
@@ -495,7 +481,6 @@ class MainWindow(QMainWindow):
             # add file name to history
             self.comboBox_2.insertItem(-1, fn)
             i = 0
-            # self.comboBox_2.setCurrentIndex(i)
         # change selection and fire callback
         if self.comboBox_2.currentIndex() != i:
             self.comboBox_2.setCurrentIndex(i)
@@ -547,7 +532,6 @@ class MainWindow(QMainWindow):
             if sg.name == name:
                 return sg
         raise ValueError('Signal %s not found' % name)
-        # return None
 
     def table_selection_changed(self, force=False):
         sig = self.sig
@@ -561,13 +545,10 @@ class MainWindow(QMainWindow):
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
-                ##zip_file_name = self.log_table.column("File")[row_s]
                 zip_file_name = self.log_table(row_s, "File")['text']
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
-                # self.data_file = DataFile(zip_file_name, folder=folder, plot_cache=self.plot_heap)
                 self.old_signal_list = self.signal_list + self.extra_plots
-
                 self.signal_list = self.data_file.read_all_signals()
                 self.last_selection = self.current_selection
                 self.current_selection = row_s
@@ -582,7 +563,6 @@ class MainWindow(QMainWindow):
             finally:
                 self.tableWidget_3.setUpdatesEnabled(True)
                 self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
-                # self.update_status_bar()
 
     def calculate_extra_plots(self):
 
@@ -605,57 +585,7 @@ class MainWindow(QMainWindow):
             s = calculate_extra_plot(p, self.data_file.file_name)
             if s is not None:
                 self.extra_plots.append(s)
-                # self.plot_heap.insert(s)
                 self.logger.debug('Plot %s has been added' % s.name)
-            # continue
-            # if p != "":
-            #     s = self.plot_heap.get_plot('', self.data_file.file_name, p)
-            #     if s:
-            #         self.extra_plots.append(s)
-            #         self.logger.debug('Plot %s has been reused' % s.name)
-            #         continue
-            #     try:
-            #         result = eval(p)
-            #         if isinstance(result, Signal):
-            #             s = result
-            #         elif isinstance(result, dict):
-            #             key = result['name']
-            #             if key != '':
-            #                 x = result['x']
-            #                 y = result['y']
-            #                 marks = result.get('marks', None)
-            #                 if marks:
-            #                     for m in marks:
-            #                         index = numpy.searchsorted(x, [marks[m][0], marks[m][0] + marks[m][1]])
-            #                         marks[m][0] = index[0]
-            #                         marks[m][1] = index[1] - index[0]
-            #                 # mark_value = s.y[index[0]:index[1]].mean()
-            #                 params = result.get('params', None)
-            #                 unit = result.get('unit', '')
-            #                 value = result.get('value', float('nan'))
-            #                 s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
-            #                 s.data_name = s.name
-            #         elif isinstance(result, list) or isinstance(result, tuple):
-            #             if len(result) >= 3:
-            #                 key, x_val, y_val = result[:3]
-            #                 if key != '':
-            #                     s = Signal(x_val, y_val, name=key)
-            #             elif len(result) == 2:
-            #                 if isinstance(result[1], Signal):
-            #                     s = result[1]
-            #                     s.name = result[0]
-            #                     s.data_name = s.name
-            #         if s is not None:
-            #             s.calculate_value()
-            #             s.code = p
-            #             s.file = self.data_file.file_name
-            #             self.extra_plots.append(s)
-            #             self.plot_heap.insert(s)
-            #             self.logger.debug('Plot %s has been added' % s.name)
-            #         else:
-            #             self.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
-            #     except:
-            #         log_exception(self, 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
         if len(self.extra_plots) <= 0:
             self.logger.debug('No extra plots added')
 
@@ -686,7 +616,6 @@ class MainWindow(QMainWindow):
             self.calculate_extra_plots()
             self.signals = self.sort_plots()
             signals = self.signals
-        # plot signals
         # t0 = time.time()
         # self.logger.debug('Begin')
         layout = self.scrollAreaWidgetContents_3.layout()
@@ -1068,16 +997,6 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.insertColumn(index)
         self.tableWidget_3.setHorizontalHeaderItem(index, QTableWidgetItem(label))
 
-    # def insert_columns(self):
-    #     cln = 0
-    #     for column in self.columns:
-    #         #n = self.tableWidget_3.columnCount()
-    #         #i = self.tableWidget_3.horizontalHeaderItem(n)
-    #         #i = self.tableWidget_3.setHorizontalHeaderLabels(labels)
-    #         self.tableWidget_3.insertColumn(cln)
-    #         self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
-    #         cln += 1
-    #         self.tableWidget_3.horizontalHeaderItem(0).text()
 
     def fill_table_widget(self, append=-1):
         if append == 0:
@@ -1260,7 +1179,7 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
             if 'history_index' in self.conf:
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
-            self.logger.log(logging.INFO, 'Configuration restored from %s' % full_name)
+            self.logger.debug('Configuration restored from %s' % full_name)
             return True
         except:
             log_exception('Configuration restore error from %s' % full_name)
@@ -1326,8 +1245,6 @@ class MainWindow(QMainWindow):
     def timer_handler(self):
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
-        # if time.time() > self.sb_log.time:
-        #     self.sb_log.setText('')
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
             return
@@ -1493,14 +1410,6 @@ class Signal:
         except:
             self.value = float('nan')
             # self.logger.debug(f'No signal value for {s.name}')
-        # if 'zero' in self.marks:
-        #     zero = self.marks["zero"][2]
-        # else:
-        #     zero = 0.0
-        # if 'mark' in self.marks:
-        #     self.value = self.marks["mark"][2] - zero
-        # else:
-        #     self.value = float('nan')
         return self.value
 
     def __add__(self, other):
@@ -1632,9 +1541,7 @@ class Signal:
                     error_lines = True
         if len(xy) < 2:
             signal.params[b'xlabel'] = 'Index'
-        # if error_lines:
-        #     self.logger.debug("Some lines with wrong data in %s", signal_name)
-        # # read parameters
+        # read parameters
         signal.params = {}
         lines = pbuf.split(endline)
         error_lines = False
@@ -1646,8 +1553,6 @@ class Signal:
                     signal.params[kv[0].strip()] = kv[1].strip()
                 else:
                     error_lines = kv
-        # if error_lines:
-        #     self.logger.debug(f"Wrong parameter {kv} for {signal_name}")
         # scale to units
         try:
             signal.scale = float(signal.params[b'display_unit'])
@@ -1672,8 +1577,6 @@ class Signal:
         signal.calculate_value()
         signal.file = file_name
         signal.code = ''
-        # if self.plot_cache:
-        #     self.plot_cache.insert(signal)
         return signal
 
     def decode_data(self, buf: bytes):
@@ -1690,7 +1593,6 @@ class Signal:
             return None
         signal.x = numpy.zeros(n, dtype=numpy.float64)
         signal.y = numpy.zeros(n, dtype=numpy.float64)
-        error_lines = False
         xy = []
         for i, line in enumerate(lines):
             xy = line.replace(b',', b'.').split(b'; ')
@@ -1711,11 +1613,8 @@ class Signal:
                     signal.y[i] = float(xy[0])
                 except:
                     signal.y[i] = numpy.nan
-                    error_lines = True
         if len(xy) < 2:
             signal.params[b'xlabel'] = 'Index'
-        # if error_lines:
-        #     self.logger.debug("Some lines with wrong data in %s", signal_name)
         return signal
 
     def decode_parameters(self, buf: bytes):
@@ -1727,15 +1626,11 @@ class Signal:
             endline = b'\n'
         signal.params = {}
         lines = buf.split(endline)
-        error_lines = False
-        kv = ''
         for line in lines:
             if line != b'':
                 kv = line.split(b'=')
                 if len(kv) >= 2:
                     signal.params[kv[0].strip()] = kv[1].strip()
-                else:
-                    error_lines = kv
         return signal
 
 
@@ -1766,7 +1661,6 @@ def read_signal(signal_name: str, file_name: str):
         return None
     signal.x = numpy.zeros(n, dtype=numpy.float64)
     signal.y = numpy.zeros(n, dtype=numpy.float64)
-    error_lines = False
     xy = []
     for i, line in enumerate(lines):
         xy = line.replace(b',', b'.').split(b'; ')
@@ -1790,8 +1684,6 @@ def read_signal(signal_name: str, file_name: str):
                 error_lines = True
     if len(xy) < 2:
         signal.params[b'xlabel'] = 'Index'
-    # if error_lines:
-    #     log("Some lines with wrong data in %s", signal_name)
     # read parameters
     signal.params = {}
     param_name = signal_name.replace('chan', 'paramchan')
@@ -1799,8 +1691,6 @@ def read_signal(signal_name: str, file_name: str):
         with zipfile.ZipFile(file_name, 'r') as zipobj:
             pbuf = zipobj.read(param_name)
         lines = pbuf.split(endline)
-        error_lines = False
-        kv = ''
         for line in lines:
             if line != b'':
                 kv = line.split(b'=')
@@ -1808,8 +1698,6 @@ def read_signal(signal_name: str, file_name: str):
                     signal.params[kv[0].strip()] = kv[1].strip()
                 else:
                     error_lines = kv
-        # if error_lines:
-        #     log(f"Wrong parameter {kv} for {signal_name}")
     # scale to units
     try:
         signal.scale = float(signal.params[b'display_unit'])
@@ -1851,13 +1739,6 @@ class DataFile:
         self.files = []
         self.signals = []
         full_name = os.path.abspath(os.path.join(folder, file_name))
-        # if full_name in DataFile.signals:
-        #     self.signals = DataFile.signals[full_name]
-        #     self.files = DataFile.files[full_name]
-        # else:
-        # with zipfile.ZipFile(full_name, 'r') as zip_file:
-        #     self.files = zip_file.namelist()
-        #     # DataFile.files[full_name] = self.files
         self.files = read_signal_list(full_name)
         self.signals = self.find_signals()
         self.file_name = full_name
@@ -1868,113 +1749,10 @@ class DataFile:
             if 'param' not in f:
                 if f not in self.signals:
                     signals.append(f)
-            # if 'param' in f:
-            #     cn = f.replace('param', '')
-            #     if cn in self.files:
-            #         signals.append(cn)
-            # if "chan" in f:
-            #     if f.replace('chan', "paramchan") in self.files:
-            #         if f not in self.signals:
-            #             signals.append(f)
         return signals
 
     def read_signal(self, signal_name: str):
         signal = read_signal(signal_name, self.file_name)
-        # if self.plot_cache:
-        #     s = self.plot_cache.get_plot(signal_name, self.file_name, '')
-        #     if s:
-        #         self.logger.debug('Reusing signal %s' % signal_name)
-        #         return s
-        # signal = Signal()
-        # if signal_name not in self.signals:
-        #     self.logger.debug("No signal %s in the file %s" % (signal_name, self.file_name))
-        #     return None
-        # with zipfile.ZipFile(self.file_name, 'r') as zipobj:
-        #     buf = zipobj.read(signal_name)
-        #     # param_name = signal_name.replace('chan', 'paramchan')
-        #     # pbuf = zipobj.read(param_name)
-        # if b'\r\n' in buf:
-        #     endline = b"\r\n"
-        # else:
-        #     buf = buf.replace(b'\r', b'\n')
-        #     endline = b'\n'
-        # lines = buf.split(endline)
-        # n = len(lines)
-        # if n < 2:
-        #     self.logger.debug("%s Not a signal" % signal_name)
-        #     return None
-        # signal.x = numpy.zeros(n, dtype=numpy.float64)
-        # signal.y = numpy.zeros(n, dtype=numpy.float64)
-        # error_lines = False
-        # xy = []
-        # for i, line in enumerate(lines):
-        #     xy = line.replace(b',', b'.').split(b'; ')
-        #     if len(xy) > 1:
-        #         try:
-        #             signal.x[i] = float(xy[0])
-        #         except:
-        #             signal.x[i] = numpy.nan
-        #             error_lines = True
-        #         try:
-        #             signal.y[i] = float(xy[1])
-        #         except:
-        #             signal.y[i] = numpy.nan
-        #             error_lines = True
-        #     elif len(xy) > 0:
-        #         signal.x[i] = i
-        #         try:
-        #             signal.y[i] = float(xy[0])
-        #         except:
-        #             signal.y[i] = numpy.nan
-        #             error_lines = True
-        # if len(xy) < 2:
-        #     signal.params[b'xlabel'] = 'Index'
-        # if error_lines:
-        #     self.logger.debug("Some lines with wrong data in %s", signal_name)
-        # # read parameters
-        # signal.params = {}
-        # param_name = signal_name.replace('chan', 'paramchan')
-        # if param_name != signal_name and param_name in self.files:
-        #     with zipfile.ZipFile(self.file_name, 'r') as zipobj:
-        #         pbuf = zipobj.read(param_name)
-        #     lines = pbuf.split(endline)
-        #     error_lines = False
-        #     kv = ''
-        #     for line in lines:
-        #         if line != b'':
-        #             kv = line.split(b'=')
-        #             if len(kv) >= 2:
-        #                 signal.params[kv[0].strip()] = kv[1].strip()
-        #             else:
-        #                 error_lines = kv
-        #     if error_lines:
-        #         self.logger.debug(f"Wrong parameter {kv} for {signal_name}")
-        # # scale to units
-        # try:
-        #     signal.scale = float(signal.params[b'display_unit'])
-        # except:
-        #     signal.scale = 1.0
-        # signal.y *= signal.scale
-        # # name of the signal
-        # if b"label" in signal.params:
-        #     signal.name = signal.params[b"label"].decode('ascii')
-        # elif b"name" in signal.params:
-        #     signal.name = signal.params[b"name"].decode('ascii')
-        # else:
-        #     signal.name = signal_name
-        # signal.data_name = signal_name
-        # if b'unit' in signal.params:
-        #     signal.unit = signal.params[b'unit'].decode('ascii')
-        # else:
-        #     signal.unit = ''
-        # # find marks
-        # signal.calculate_marks()
-        # # calculate value
-        # signal.calculate_value()
-        # signal.file = self.file_name
-        # signal.code = ''
-        # if self.plot_cache:
-        #     self.plot_cache.insert(signal)
         return signal
 
     def read_all_signals(self):
@@ -1984,11 +1762,6 @@ class DataFile:
             sig = self.read_signal(s)
             if sig:
                 signals.append(sig)
-                # signal_names.append(s)
-            # else:
-            #     # pass
-            #     self.logger.debug("Empty signal %s rejected" % s)
-        # DataFile.signals[self.file_name] = signal_names
         return signals
 
 
@@ -2077,14 +1850,6 @@ class LogTable:
         return self.columns[col]
 
     def get_row(self, n):
-        # result = {}
-        # i = 0
-        # for (key, val) in self.columns:
-        #     v = val[n]
-        #     result[key] = v
-        #     result[i] = v
-        #     i += 1
-        # return result
         return {key: val[n] for (key, val) in self.columns}
 
     def __call__(self, *args, **kwargs):
@@ -2166,8 +1931,6 @@ class LogTable:
                     u = ''
                 row[key]['units'] = u
             row[-2] = keys_with_errors
-            # add row to table
-            # self.add_row(row)
         return row
 
     def append_lines(self, buf):
@@ -2274,8 +2037,7 @@ class LogTable:
             return None
 
     def add_extra_columns(self, extra_cols):
-        # nice alias
-        # value = lambda x: self.value(x, row)
+
         def value(x, y=None):
             if y is None:
                 y = row
@@ -2290,11 +2052,7 @@ class LogTable:
             n = 0
             key0 = None
             if h in self.exrta_columns:
-                # n = self.exrta_columns[h]['length']
                 key0 = self.exrta_columns[h]['name']
-                # if n >= self.rows and key0 is not None:
-                #     self.logger.debug('Overwrite extra column %s' % column)
-                #     continue
             key = ''
             for row in range(0, self.rows):
                 try:
@@ -2346,9 +2104,6 @@ class ItemCache:
         d = self.data[index]
         self.data[index] = None
         return d
-
-    # def __call__(self, item, *args, **kwargs):
-    #     self.insert(item)
 
 
 class PlotCache(ItemCache):
