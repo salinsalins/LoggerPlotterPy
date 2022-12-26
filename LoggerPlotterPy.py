@@ -45,7 +45,7 @@ from pyqtgraphwidget import MplWidget
 sys.path.append('../TangoUtils')
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
-from log_exception import log_exception, log
+from log_exception import log_exception, log, info
 
 np = numpy
 
@@ -201,6 +201,7 @@ class MainWindow(QMainWindow):
         # self.plots = {'_data_': {}, '_names_': {}}
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
+        info('TestLOg')
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # Connect signals with the slots

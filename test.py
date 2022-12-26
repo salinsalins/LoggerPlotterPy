@@ -1,12 +1,52 @@
+﻿# coding: utf-8
 import sys
 import time
 
-import time
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtChart import QChart, QChartView, QLineSeries, QCategoryAxis
-from PyQt5.QtCore import QPoint
-from PyQt5.Qt import QPen, QFont, Qt, QSize
-from PyQt5.QtGui import QColor, QBrush, QLinearGradient, QGradient, QPainter
+
+
+def countdown(n):
+    print("Counting down from", n)
+    while n >= 0:
+        newvalue = (yield n)
+        # If a new value got sent in, reset n with it
+        if newvalue is not None:
+            n = newvalue
+        else:
+            n -= 1
+
+c = countdown(5)
+for n in c:
+    print(n)
+    if n == 5:
+        c.send(3)
+
+from PySide6.QtWidgets import QApplication, QWidget
+
+# Only needed for access to command line arguments
+import sys
+
+# You need one (and only one) QApplication instance per application.
+# Pass in sys.argv to allow command line arguments for your app.
+# If you know you won't use command line arguments QApplication([]) works too.
+app = QApplication(sys.argv)
+
+# Create a Qt widget, which will be our window.
+window = QWidget()
+window.show()  # IMPORTANT!!!!! Windows are hidden by default.
+
+# Start the event loop.
+app.exec_()
+
+# Your application won't reach here until you exit and the event
+# loop has stopped.
+
+import PySide6
+from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtCharts import QLineSeries, QChart, QCategoryAxis, QChartView
+# from PySide6.QtChart import QChart, QChartView, QLineSeries, QCategoryAxis
+from PySide6.QtCore import QPoint
+# from PySide6.Qt import QPen, QFont, Qt, QSize
+from PySide6.QtGui import QColor, QBrush, QLinearGradient, QGradient, QPainter, QPen, QFont, Qt
 
 import numpy as np
 
