@@ -607,7 +607,7 @@ class MainWindow(QMainWindow):
                 self.extra_plots.append(s)
                 # self.plot_heap.insert(s)
                 self.logger.debug('Plot %s has been added' % s.name)
-            continue
+            # continue
             # if p != "":
             #     s = self.plot_heap.get_plot('', self.data_file.file_name, p)
             #     if s:
@@ -1985,9 +1985,9 @@ class DataFile:
             if sig:
                 signals.append(sig)
                 # signal_names.append(s)
-            else:
-                # pass
-                self.logger.debug("Empty signal %s rejected" % s)
+            # else:
+            #     # pass
+            #     self.logger.debug("Empty signal %s rejected" % s)
         # DataFile.signals[self.file_name] = signal_names
         return signals
 
