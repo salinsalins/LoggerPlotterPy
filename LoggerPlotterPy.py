@@ -997,7 +997,6 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.insertColumn(index)
         self.tableWidget_3.setHorizontalHeaderItem(index, QTableWidgetItem(label))
 
-
     def fill_table_widget(self, append=-1):
         if append == 0:
             return
@@ -2081,59 +2080,6 @@ class LogTable:
                 self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
             else:
                 self.logger.debug(f'Extra column {key} has been added {n} lines')
-
-
-class ItemCache:
-    def __init__(self, max_items=100):
-        self.max_items = max_items
-        self.data = [None] * max_items
-        self.index = 0
-
-    def insert(self, item):
-        self.data[self.index] = item
-        self.index += 1
-        if self.index >= self.max_items:
-            self.index = 0
-
-    def get(self, *args, **kwargs):
-        if len(args) <= 0:
-            return self.data[self.index]
-        return self.data[int(args[0])]
-
-    def delete(self, index):
-        d = self.data[index]
-        self.data[index] = None
-        return d
-
-
-class PlotCache(ItemCache):
-    class PlotItem:
-        def __init__(self):
-            self.data_name = ''
-            self.name = ''
-            self.file = ''
-            self.code = ''
-
-    def __init__(self, max_items=256):
-        super().__init__(max_items)
-        self.data = [PlotCache.PlotItem()] * max_items
-        self.last_file = ''
-
-    def get(self, name, file, code=''):
-        return self.get_plot(name, file, code)
-
-    def get_plot(self, name, file, code=''):
-        for i in self.data:
-            if i:
-                if name:
-                    if i.data_name == name and i.code == code and i.file == file:
-                        self.last_file = file
-                        return i
-                else:
-                    if i.code == code and i.file == file:
-                        self.last_file = file
-                        return i
-        return None
 
 
 if __name__ == '__main__':
