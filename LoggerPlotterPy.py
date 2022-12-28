@@ -4,6 +4,7 @@ Created on Jul 2, 2017
 
 @author: sanin
 """
+# s='s=%r;print(s%%s)';print(s%s)
 
 import gc
 import json
@@ -15,6 +16,7 @@ import sys
 import time
 import zipfile
 import datetime
+from functools import lru_cache
 
 import numpy
 
@@ -36,39 +38,46 @@ from PyQt5.QtWidgets import QFrame, QMenu
 from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 
+from QtUtils import WidgetLogHandler
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
 
 sys.path.append('../TangoUtils')
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
-from log_exception import log_exception
-from QtUtils import WidgetLogHandler
+from log_exception import log_exception, log, info
 
 np = numpy
 
 # print(QtCore.QT_VERSION_STR)
 
-ORGANIZATION_NAME = 'BINP'
-APPLICATION_NAME = 'Plotter for Signals from Dumper'
-APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '10.2'
-VERSION_DATE = "29-11-2022"
-CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
-UI_FILE = APPLICATION_NAME_SHORT + '.ui'
-# fonts
-CELL_FONT = QFont('Open Sans', 14)
-CELL_FONT_BOLD = QFont('Open Sans', 14, weight=QFont.Bold)
-STATUS_BAR_FONT = CELL_FONT
-CLOCK_FONT = CELL_FONT_BOLD
-# colors
-WHITE = QtGui.QColor(255, 255, 255)
-YELLOW = QtGui.QColor(255, 255, 0)
-GREEN = QtGui.QColor(0, 255, 0)
-PREVIOUS_COLOR = '#ffff00'
-TRACE_COLOR = '#00ff00'
-MARK_COLOR = '#ff0000'
-ZERO_COLOR = '#0000ff'
+from config import *
+
+# g0 = {}
+# exec(open("config.py").read(), g0)
+# l0 = g0.pop('_l0')
+# g1 = [x for x in g0 if x not in l0]
+# print(g1)
+# ORGANIZATION_NAME = 'BINP'
+# APPLICATION_NAME = 'Plotter for Signals from Dumper'
+# APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
+# APPLICATION_VERSION = '10.5'
+# VERSION_DATE = "08-12-2022"
+# CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
+# UI_FILE = APPLICATION_NAME_SHORT + '.ui'
+# # fonts
+# CELL_FONT = QFont('Open Sans', 14)
+# CELL_FONT_BOLD = QFont('Open Sans', 14, weight=QFont.Bold)
+# STATUS_BAR_FONT = CELL_FONT
+# CLOCK_FONT = CELL_FONT_BOLD
+# # colors
+# WHITE = QtGui.QColor(255, 255, 255)
+# YELLOW = QtGui.QColor(255, 255, 0)
+# GREEN = QtGui.QColor(0, 255, 0)
+# PREVIOUS_COLOR = '#ffff00'
+# TRACE_COLOR = '#00ff00'
+# MARK_COLOR = '#ff0000'
+# ZERO_COLOR = '#0000ff'
 
 # Global configuration dictionary
 config = Configuration(CONFIG_FILE)
@@ -102,6 +111,61 @@ def remove_from_widget(widget, removed: str):
     widget.setPlainText(remove_from_text(text, removed))
 
 
+class SignalNotFoundError(ValueError):
+    pass
+
+
+global sigg
+
+
+@lru_cache(maxsize=256)
+def calculate_extra_plot(p, file_name):
+    sig = sigg
+    # print('Calculate', p)
+    p = p.strip()
+    s = None
+    try:
+        result = eval(p)
+        if isinstance(result, Signal):
+            s = result
+        elif isinstance(result, dict):
+            key = result['name']
+            if key != '':
+                x = result['x']
+                y = result['y']
+                marks = result.get('marks', None)
+                # convert mark time to index
+                if marks:
+                    for m in marks:
+                        index = numpy.searchsorted(x, [marks[m][0], marks[m][0] + marks[m][1]])
+                        marks[m][0] = index[0]
+                        marks[m][1] = index[1] - index[0]
+                params = result.get('params', None)
+                unit = result.get('unit', '')
+                value = result.get('value', float('nan'))
+                s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
+        elif isinstance(result, list) or isinstance(result, tuple):
+            if len(result) >= 3:
+                key, x_val, y_val = result[:3]
+                if key != '':
+                    s = Signal(x_val, y_val, name=key)
+            elif len(result) == 2:
+                if isinstance(result[1], Signal):
+                    s = result[1]
+                    s.name = result[0]
+                    s.data_name = s.name
+        if s:
+            s.calculate_value()
+            s.code = p
+            s.file = file_name
+            logging.getLogger().debug('Plot %s has been calculated' % s.name)
+        else:
+            logging.getLogger().info('Can not calculate signal for "%s ..."\n', p[:20])
+    except:
+        log_exception(logging.getLogger(), 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
+    return s
+
+
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -121,6 +185,7 @@ class MainWindow(QMainWindow):
         self.signals = []
         self.extra_cols = []
         self.extra_plots = []
+        self.calculated_plots = {}
         self.data_file = None
         self.old_size = 0
         self.new_size = 0
@@ -169,7 +234,7 @@ class MainWindow(QMainWindow):
                     border: 1px solid black;
                 }
             """)
-
+        #
         # status bar
         self.statusBar().reformat()
         self.statusBar().setStyleSheet('border: 0;')
@@ -197,16 +262,7 @@ class MainWindow(QMainWindow):
         self.sb_combo.setFont(STATUS_BAR_FONT)
         self.statusBar().addWidget(self.sb_combo)
         self.statusBar().addWidget(VLine())  # <---
-        self.sb_combo.disconnect()
-        self.sb_combo.clear()
-        arr = os.listdir()
-        jsonarr = [x for x in arr if x.endswith('.json')]
-        for x in jsonarr:
-            if CONFIG_FILE in x:
-                jsonarr.pop(jsonarr.index(x))
-                jsonarr.insert(0, x)
-        self.sb_combo.addItems(jsonarr)
-        self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
+        self.fill_config_widget()
         # status bar: clock label
         self.statusBar().addPermanentWidget(VLine())  # <---
         self.sb_clock = QLabel(" ")
@@ -232,18 +288,33 @@ class MainWindow(QMainWindow):
 
         # default settings
         self.set_default_settings()
-
         #
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
-
+        #
         # restore settings
         self.restore_settings()
         self.restore_local_settings()
-
+        #
         # additional decorations
         self.tableWidget_3.horizontalHeader().setVisible(True)
-
+        #
         self.parse_folder()
+
+    def fill_config_widget(self):
+        global CONFIG_FILE
+        try:
+            self.sb_combo.disconnect()
+        except:
+            pass
+        self.sb_combo.clear()
+        arr = os.listdir()
+        jsonarr = [x for x in arr if x.endswith('.json')]
+        for x in jsonarr:
+            if CONFIG_FILE in x:
+                jsonarr.pop(jsonarr.index(x))
+                jsonarr.insert(0, x)
+        self.sb_combo.addItems(jsonarr)
+        self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
 
     def hide_plot(self, signal_name):
         text = self.plainTextEdit_7.toPlainText()
@@ -304,10 +375,6 @@ class MainWindow(QMainWindow):
         displayed = displayed.replace(current, current + '\n' + action.text())
         self.plainTextEdit_2.setPlainText(displayed)
         self.plainTextEdit_3.setPlainText(remove_from_text(hidden, action.text()))
-        # self.columns = self.sort_columns()
-        # self.fill_table_widget()
-        # self.tableWidget_3.selectRow(self.current_selection)
-        # self.change_background()
 
     def table_header_right_click_menu(self, n):
         # print('menu', n)
@@ -358,17 +425,11 @@ class MainWindow(QMainWindow):
             text = text.replace(t2, t1)
             text = text.replace('****', t2)
             self.plainTextEdit_2.setPlainText(text)
-        # self.columns = self.sort_columns()
         self.fill_table_widget()
         self.tableWidget_3.selectRow(self.current_selection)
         self.change_background()
 
     def table_header_right_click_menu_wrap(self, a, *args):
-        # i = self.tableWidget_3.horizontalHeader().currentIndex()
-        # print('test', a, args)
-        # h = self.tableWidget_3.horizontalHeader()
-        # mouse_state = app.mouseButtons()
-        # print(int(mouse_state))
         n = self.tableWidget_3.columnAt(a.x())
         if n > 0:
             self.table_header_right_click_menu(n)
@@ -392,6 +453,7 @@ class MainWindow(QMainWindow):
         self.actionParameters.setChecked(True)
         self.sort_text_edit_widget(self.plainTextEdit_3)
         self.sort_text_edit_widget(self.plainTextEdit_6)
+        self.fill_config_widget()
 
     def select_log_file(self):
         """Opens a file select dialog"""
@@ -419,7 +481,6 @@ class MainWindow(QMainWindow):
             # add file name to history
             self.comboBox_2.insertItem(-1, fn)
             i = 0
-            # self.comboBox_2.setCurrentIndex(i)
         # change selection and fire callback
         if self.comboBox_2.currentIndex() != i:
             self.comboBox_2.setCurrentIndex(i)
@@ -459,11 +520,11 @@ class MainWindow(QMainWindow):
         # top row of the selection
         row_s = rng[0].topRow()
         # if selected the same row
-        if self.last_selection == row_s:
+        if self.current_selection == row_s:
             self.logger.debug('Selection unchanged')
             return row_s
         # different row selected
-        self.logger.debug('Selection changed from %s to %i', self.last_selection, row_s)
+        self.logger.debug('Selection changed from %s to %i', self.current_selection, row_s)
         return row_s
 
     def sig(self, name):
@@ -471,7 +532,6 @@ class MainWindow(QMainWindow):
             if sg.name == name:
                 return sg
         raise ValueError('Signal %s not found' % name)
-        # return None
 
     def table_selection_changed(self, force=False):
         sig = self.sig
@@ -485,16 +545,15 @@ class MainWindow(QMainWindow):
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
-                zip_file_name = self.log_table.column("File")[row_s]
+                zip_file_name = self.log_table(row_s, "File")['text']
                 self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list + self.extra_plots
-
                 self.signal_list = self.data_file.read_all_signals()
-                self.plot_signals()
-                self.restore_background()
                 self.last_selection = self.current_selection
                 self.current_selection = row_s
+                self.restore_background()
+                self.plot_signals()
                 self.update_status_bar()
             except:
                 r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
@@ -504,66 +563,31 @@ class MainWindow(QMainWindow):
             finally:
                 self.tableWidget_3.setUpdatesEnabled(True)
                 self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
-                # self.update_status_bar()
 
     def calculate_extra_plots(self):
+
         def sig(name):
-            for sg in self.signal_list:
+            signal_list = self.signal_list + self.extra_plots
+            for sg in signal_list:
                 if sg.name == name:
                     return sg
-            raise ValueError('Signal %s not found' % name)
+            raise SignalNotFoundError('Signal %s not found' % name)
             # return None
 
+        global sigg
+        sigg = sig
+
         self.extra_plots = []
-        # add extra plots from plainTextEdit_4
-        extra_plots = self.plainTextEdit_4.toPlainText().split('\n')
-        # show_plots = self.plainTextEdit_6.toPlainText().split('\n')
+        # read extra plots from plainTextEdit_4
+        extra_plots = self.get_extra_plots()
         for p in extra_plots:
             p = p.strip()
-            # if p not in show_plots:
-            #     continue
-            if p != "":
-                try:
-                    s = None
-                    result = eval(p)
-                    if isinstance(result, Signal):
-                        s = result
-                    elif isinstance(result, dict):
-                        key = result['name']
-                        if key != '':
-                            x = result['x']
-                            y = result['y']
-                            marks = result.get('marks', None)
-                            params = result.get('params', None)
-                            unit = result.get('unit', '')
-                            value = result.get('value', float('nan'))
-                            s = Signal(x, y, name=key, params=params, marks=marks, unit=unit, value=value)
-                    elif isinstance(result, list) or isinstance(result, tuple):
-                        if len(result) >= 3:
-                            key, x_val, y_val = result[:3]
-                            if key != '':
-                                s = Signal(x_val, y_val, name=key)
-                        elif len(result) == 2:
-                            if isinstance(result[1], Signal):
-                                s = result[1]
-                                s.name = result[0]
-                    if s is not None:
-                        try:
-                            if math.isnan(s.value) and 'mark' in s.marks and 'zero' in s.marks:
-                                mark = s.marks['mark']
-                                mark_value = s.y[mark[0], mark[0] + mark[1]].mean()
-                                zero = s.marks['mark']
-                                zero_value = s.y[zero[0], zero[0] + zero[1]].mean()
-                                v = mark_value - zero_value
-                                s.value = v
-                        except:
-                            pass
-                        self.extra_plots.append(s)
-                        # self.signal_list.append(s)
-                    else:
-                        self.logger.info('Can not calculate signal for "%s ..."', p[:10])
-                except:
-                    log_exception(self, 'Plot eval() error in "%s ..."' % p[:10], level=logging.INFO)
+            s = calculate_extra_plot(p, self.data_file.file_name)
+            if s is not None:
+                self.extra_plots.append(s)
+                self.logger.debug('Plot %s has been added' % s.name)
+        if len(self.extra_plots) <= 0:
+            self.logger.debug('No extra plots added')
 
     def sort_plots(self):
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -592,7 +616,6 @@ class MainWindow(QMainWindow):
             self.calculate_extra_plots()
             self.signals = self.sort_plots()
             signals = self.signals
-        # plot signals
         # t0 = time.time()
         # self.logger.debug('Begin')
         layout = self.scrollAreaWidgetContents_3.layout()
@@ -621,7 +644,7 @@ class MainWindow(QMainWindow):
                 col = 0
                 row += 1
             # Show toolbar
-            if self.checkBox_1.isChecked():
+            if self.show_toolbar:
                 mplw.ntb.show()
             else:
                 mplw.ntb.hide()
@@ -634,21 +657,32 @@ class MainWindow(QMainWindow):
                 default_title = s.name
             else:
                 default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
-            axes.set_title(self.from_params('title', s.params, default_title))
-            axes.set_xlabel(self.from_params('xlabel', s.params, 'Time, ms'))
-            axes.set_ylabel(self.from_params('ylabel', s.params, '%s, %s' % (s.name, s.unit)))
+            axes.set_title(self.from_params(b'title', s.params, default_title))
+            axes.set_xlabel(self.from_params(b'xlabel', s.params, 'Time, ms'))
+            axes.set_ylabel(self.from_params(b'ylabel', s.params, '%s, %s' % (s.name, s.unit)))
             # plot previous line
-            if self.checkBox_2.isChecked() and self.last_selection >= 0:
+            if self.plot_previous_line and self.last_selection >= 0:
                 for s1 in self.old_signal_list:
                     if s1.name == s.name:
                         axes.plot(s1.x, s1.y, color=self.previous_color)
                         break
             # plot main line
+            y_min = float('inf')
+            y_max = float('-inf')
+            x_min = float('inf')
+            x_max = float('-inf')
             try:
                 y_min = float(self.from_params(b'plot_y_min', s.params, 'inf'))
                 y_max = float(self.from_params(b'plot_y_max', s.params, '-inf'))
                 if y_max > y_min:
-                    axes.item.setYRange(y_min, y_max)
+                    mplw.setYRange(y_min, y_max)
+            except:
+                pass
+            try:
+                x_min = float(self.from_params(b'plot_x_min', s.params, 'inf'))
+                x_max = float(self.from_params(b'plot_x_max', s.params, '-inf'))
+                if x_max > x_min:
+                    mplw.setXRange(x_min, x_max)
             except:
                 pass
             axes.plot(s.x, s.y, color=self.trace_color)
@@ -666,7 +700,8 @@ class MainWindow(QMainWindow):
             try:
                 if self.checkBox_3.isChecked():
                     mplw.clearScaleHistory()
-                    mplw.autoRange()
+                    if not (y_max > y_min) and not (x_max > x_min):
+                        mplw.autoRange()
             except:
                 log_exception()
             # mplw.canvas.draw()
@@ -683,8 +718,15 @@ class MainWindow(QMainWindow):
                 w.deleteLater()
                 del w
         layout.update()
-        # self.logger.info(f'{layout.count()} items remained')
         # self.logger.debug('End %s', time.time() - t0)
+
+    @property
+    def plot_previous_line(self):
+        return self.checkBox_2.isChecked()
+
+    @property
+    def show_toolbar(self):
+        return self.checkBox_1.isChecked()
 
     @staticmethod
     def sort_text_edit_widget(widget):
@@ -728,7 +770,6 @@ class MainWindow(QMainWindow):
         try:
             if row is None:
                 row = self.last_cell_row
-                # self.last_cell_row = None
             if column is None:
                 column = self.last_cell_column
             if color is None:
@@ -743,7 +784,7 @@ class MainWindow(QMainWindow):
             self.sb_text.setText('File: %s' % self.log_file_name)
             if self.last_selection >= 0:
                 self.change_background()
-                last_sel_time = self.log_table.column("Time")[self.last_selection]
+                last_sel_time = self.log_table(self.last_selection, "Time")['text']
                 self.sb_prev_shot_time.setVisible(True)
                 self.sb_prev_shot_time.setText(last_sel_time)
             else:
@@ -751,7 +792,7 @@ class MainWindow(QMainWindow):
                 self.sb_prev_shot_time.setVisible(False)
                 self.sb_prev_shot_time.setText("**:**:**")
             if self.current_selection >= 0:
-                green_time = self.log_table.column("Time")[self.current_selection]
+                green_time = self.log_table(self.current_selection, "Time")['text']
                 self.sb_green_time.setVisible(True)
                 self.sb_green_time.setText(green_time)
             else:
@@ -853,16 +894,23 @@ class MainWindow(QMainWindow):
         self.save_settings()
         timer.stop()
 
+    def list_from_widget(self, widget):
+        columns = widget.toPlainText().split('\n')
+        return [col.strip() for col in columns if col.strip()]
+
+    def get_displayed_columns(self):
+        return self.list_from_widget(self.plainTextEdit_2)
+
     def sort_columns(self):
-        included = self.plainTextEdit_2.toPlainText().split('\n')
+        included = self.get_displayed_columns()
         hidden = []
         columns = []
         # add from included
         for t in included:
-            if t in self.log_table.headers and t not in columns:
+            if t in self.log_table and t not in columns:
                 columns.append(t)
         # create hidden columns list
-        for t in self.log_table.headers:
+        for t in self.log_table:
             if t not in columns:
                 hidden.append(t)
         # sort hidden list
@@ -872,47 +920,56 @@ class MainWindow(QMainWindow):
         self.plainTextEdit_3.setPlainText(text)
         return columns
 
+    def get_extra_columns(self):
+        return self.list_from_widget(self.plainTextEdit_5)
+
+    def get_extra_plots(self):
+        return self.list_from_widget(self.plainTextEdit_4)
+
     def parse_folder(self, file_name: str = None, append=False):
         try:
             if file_name is None:
                 file_name = self.log_file_name
             if file_name is None:
-                self.sb_text.setText('Data file not found')
-                self.logger.warning('Data file not found')
+                self.sb_text.setText('Data log file not found')
+                self.logger.warning('Data log file not found')
                 return
             file_name = os.path.abspath(file_name)
             self.sb_text.setText('Reading %s' % file_name)
             self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
             self.logger.info('Parsing %s', file_name)
             # get extra columns
-            self.extra_cols = self.plainTextEdit_5.toPlainText().split('\n')
+            self.extra_cols = self.get_extra_columns()
             # process log table
-            if self.log_table is not None and self.log_table.file_name == file_name:
-                self.logger.debug("Appending from log file")
-                buf = self.log_table.read_log_to_buf()
-                if not buf:
-                    self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
-                    self.plot_signals()
-                    self.update_status_bar()
-                    return
-                n = self.log_table.append(buf, extra_cols=self.extra_cols)
-                # if not append:
-                #    n = -1
-            else:
+            if self.log_table is None:
                 self.logger.debug("Create new LogTable")
-                self.log_table = LogTable(file_name, extra_cols=self.extra_cols,
-                                          show_line_flag=self.checkBox_6.isChecked())
-                if self.log_table.file_name is None:
-                    return
-                self.log_file_name = file_name
-                n = -1
+                self.log_table = LogTable()
                 self.last_selection = -1
                 self.current_selection = -1
-            # Create displayed columns list
-            # self.columns = self.sort_columns()
-            self.fill_table_widget(-1)
-            # select last row of widget -> tableSelectionChanged will be fired
-            self.select_last_row()
+            elif self.log_table.file_name == file_name:
+                self.logger.debug("Appending to LogTable")
+            else:
+                self.logger.debug("Refill LogTable from new file")
+                self.log_table.clear()
+                self.last_selection = -1
+                self.current_selection = -1
+            n = self.log_table.read_file(file_name)
+            if n is not None:
+                self.log_table.add_extra_columns(self.extra_cols)
+                self.log_file_name = file_name
+                # Create displayed columns list
+                self.fill_table_widget()
+                self.logger.debug(f'{n} lines has been added to table')
+                if n > 0:
+                    # select last row of widget -> tableSelectionChanged will be fired
+                    self.select_last_row()
+                else:
+                    self.tableWidget_3.selectRow(self.current_selection)
+                    index = self.tableWidget_3.model().index(self.current_selection, 0)
+                    self.tableWidget_3.scrollTo(index)
+                    self.tableWidget_3.setFocus()
+                    self.plot_signals()
+
         except:
             log_exception(self, 'Exception in parseFolder')
         self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
@@ -940,17 +997,6 @@ class MainWindow(QMainWindow):
         self.tableWidget_3.insertColumn(index)
         self.tableWidget_3.setHorizontalHeaderItem(index, QTableWidgetItem(label))
 
-    # def insert_columns(self):
-    #     cln = 0
-    #     for column in self.columns:
-    #         #n = self.tableWidget_3.columnCount()
-    #         #i = self.tableWidget_3.horizontalHeaderItem(n)
-    #         #i = self.tableWidget_3.setHorizontalHeaderLabels(labels)
-    #         self.tableWidget_3.insertColumn(cln)
-    #         self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
-    #         cln += 1
-    #         self.tableWidget_3.horizontalHeaderItem(0).text()
-
     def fill_table_widget(self, append=-1):
         if append == 0:
             return
@@ -965,92 +1011,87 @@ class MainWindow(QMainWindow):
             # clear table widget
             self.tableWidget_3.setRowCount(0)
             self.tableWidget_3.setColumnCount(0)
-            # insert columns
-            # for column in self.columns:
-            #     self.insert_column(column)
-            # row_range = range(self.log_table.rows)
-        # else:
-        #     # insert columns
-        #     # for column in self.columns[self.tableWidget_3.columnCount():]:
-        #     #     self.insert_column(column)
-        #     row_range = range(self.log_table.rows - append, self.log_table.rows)
         for column in self.columns[self.tableWidget_3.columnCount():]:
-            self.insert_column(column)
+            index = self.tableWidget_3.columnCount()
+            self.tableWidget_3.insertColumn(index)
+            self.tableWidget_3.setHorizontalHeaderItem(index, QTableWidgetItem(column))
         row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
         # insert and fill rows
         for row in row_range:
             self.tableWidget_3.insertRow(row)
             n = 0
             for column in self.columns:
-                col = self.log_table.find_column(column)
-                if col < 0:
+                if column not in self.log_table:
                     continue
                 try:
-                    fmt = self.config['format'][column]
-                    txt = fmt % (self.log_table.values[col][row], self.log_table.units[col][row])
+                    fmt = config['format'][column]
+                    txt = fmt % (self.log_table.value(row, column), self.log_table.units(row, column))
                 except:
-                    txt = self.log_table.data[col][row]
-                txt = txt.replace('none', '')
-                txt = txt.replace('None', '')
+                    txt = self.log_table.text(row, column)
+                txt = txt.replace('none', '').replace('None', '')
                 item = QTableWidgetItem(txt)
                 item.setFont(CELL_FONT)
                 # mark changed values
                 if row > 0:
-                    v = self.log_table.values[col][row]
-                    v1 = self.log_table.values[col][row - 1]
-                    flag = True
+                    v = self.log_table.value(row, column)
+                    v1 = self.log_table.value(row - 1, column)
+                    bold_font_flag = True
                     if math.isnan(v) or math.isnan(v1):
-                        flag = False
+                        bold_font_flag = False
                     else:
                         try:
                             thr = config['thresholds'][column]
                         except:
                             thr = 0.03
                         if thr > 0.0:
-                            flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
+                            bold_font_flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
                         elif thr < 0.0:
-                            flag = abs(v1 - v) > -thr
-                    if flag:
+                            bold_font_flag = abs(v1 - v) > -thr
+                    if bold_font_flag:
                         item.setFont(CELL_FONT_BOLD)
                 self.tableWidget_3.setItem(row, n, item)
                 n += 1
         # resize Columns
         self.tableWidget_3.resizeColumnsToContents()
         #
-        self.tableWidget_3.scrollToBottom()
+        # self.tableWidget_3.scrollToBottom()
         self.tableWidget_3.setFocus()
         # enable table widget update events
         self.tableWidget_3.setUpdatesEnabled(True)
         self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
 
-    def save_settings(self, folder='', file_name=None, config=None):
+    def save_settings(self, folder: str = '', file_name=None, config=None):
         global CONFIG_FILE
-        if file_name is None:
-            file_name = CONFIG_FILE
         if config is None:
             config = self.conf
+        if file_name is None:
+            file_name = CONFIG_FILE
         full_name = os.path.abspath(os.path.join(str(folder), file_name))
         try:
             # save window size and position
             p = self.pos()
             s = self.size()
             config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
+            # log file history
             config['folder'] = self.log_file_name
             config['history'] = [str(self.comboBox_2.itemText(count)) for count in
                                  range(min(self.comboBox_2.count(), 10))]
             config['history_index'] = min(self.comboBox_2.currentIndex(), 9)
+            # other settings
             config['log_level'] = self.logger.level
             config['included'] = str(self.plainTextEdit_2.toPlainText())
             config['excluded'] = str(self.plainTextEdit_3.toPlainText())
-            config['cb_1'] = self.checkBox_1.isChecked()
-            config['cb_2'] = self.checkBox_2.isChecked()
-            config['cb_3'] = self.checkBox_3.isChecked()
-            config['cb_4'] = self.checkBox_4.isChecked()
-            config['cb_6'] = self.checkBox_6.isChecked()
             config['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
             config['extra_col'] = str(self.plainTextEdit_5.toPlainText())
             config['exclude_plots'] = str(self.plainTextEdit_6.toPlainText())
             config['plot_order'] = str(self.plainTextEdit_7.toPlainText())
+            config['cb_1'] = self.checkBox_1.isChecked()
+            config['cb_2'] = self.checkBox_2.isChecked()
+            config['cb_3'] = self.checkBox_3.isChecked()
+            config['cb_4'] = self.checkBox_4.isChecked()
+            config['cb_5'] = self.checkBox_6.isChecked()
+            config['cb_6'] = self.checkBox_6.isChecked()
+            # convert to json and write
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
             self.logger.info('Configuration saved to %s' % full_name)
@@ -1126,6 +1167,8 @@ class MainWindow(QMainWindow):
                 self.checkBox_3.setChecked(self.conf['cb_3'])
             if 'cb_4' in self.conf:
                 self.checkBox_4.setChecked(self.conf['cb_4'])
+            if 'cb_5' in self.conf:
+                self.checkBox_4.setChecked(self.conf['cb_5'])
             if 'cb_6' in self.conf:
                 self.checkBox_6.setChecked(self.conf['cb_6'])
             if 'history' in self.conf:
@@ -1135,7 +1178,7 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
             if 'history_index' in self.conf:
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
-            self.logger.log(logging.INFO, 'Configuration restored from %s' % full_name)
+            self.logger.debug('Configuration restored from %s' % full_name)
             return True
         except:
             log_exception('Configuration restore error from %s' % full_name)
@@ -1144,16 +1187,17 @@ class MainWindow(QMainWindow):
     def config_selection_changed(self, index):
         global CONFIG_FILE
         old_config_file = CONFIG_FILE
-        CONFIG_FILE = str(self.sb_combo.currentText())
         self.save_settings()
         self.save_local_settings()
+        CONFIG_FILE = str(self.sb_combo.currentText())
         if not self.restore_settings():
+            self.logger.error('Wrong config file %s - ignored' % CONFIG_FILE)
             CONFIG_FILE = old_config_file
             self.restore_settings()
             return
         self.restore_local_settings()
-        self.table_selection_changed(True)
         self.parse_folder()
+        # self.table_selection_changed(True)
 
     def set_default_settings(self):
         try:
@@ -1200,8 +1244,6 @@ class MainWindow(QMainWindow):
     def timer_handler(self):
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
-        # if time.time() > self.sb_log.time:
-        #     self.sb_log.setText('')
         # check if in parameters edit mode
         if self.stackedWidget.currentIndex() != 0:
             return
@@ -1225,9 +1267,12 @@ class MainWindow(QMainWindow):
             self.logger.debug('Selection will be switched to last row')
             n = self.tableWidget_3.rowCount() - 1
             self.tableWidget_3.selectRow(n)
+            self.tableWidget_3.scrollToBottom()
+            self.tableWidget_3.setFocus()
         else:
-            self.logger.debug('Selection switch to last row rejected')
             self.tableWidget_3.selectRow(self.current_selection)
+            self.tableWidget_3.setFocus()
+            self.logger.debug('Selection switch to last row rejected')
 
 
 class VLine(QFrame):
@@ -1237,315 +1282,66 @@ class VLine(QFrame):
         self.setFrameShape(self.VLine | self.Sunken)
 
 
-class LogTable:
-    def __init__(self, file_name: str, folder: str = "", extra_cols=None, logger=None, show_line_flag=False):
-        if extra_cols is None:
-            extra_cols = []
-        self.extra_cols = extra_cols
-        if logger is None:
-            self.logger = config_logger()
-        else:
-            self.logger = logger
-        self.headers = []
-        self.data = [[], ]
-        self.values = [[], ]
-        self.units = [[], ]
-        self.file_name = None
-        self.old_file_name = None
-        self.folder = folder
-        self.file_size = -1
-        self.old_file_size = -1
-        self.rows = 0
-        self.columns = 0
-        self.columns_with_error = []
-        self.keys_with_errors = []
-        self.show_line_flag = show_line_flag
-
-        buf = self.read_log_to_buf(file_name, folder)
-        self.append(buf, extra_cols)
-
-    def read_log_to_buf(self, file_name: str = None, folder: str = None):
-        if folder is None:
-            folder = self.folder
-        if file_name is None:
-            file_name = self.file_name
-        fn = os.path.abspath(os.path.join(folder, file_name))
-        if not os.path.exists(fn):
-            self.logger.warning('File %s does not exist' % fn)
-            return None
-        # if self.old_file_name == fn:
-        #     pass
-        fs = os.path.getsize(fn)
-        if fs < 20 or (self.file_name == fn and fs <= self.file_size):
-            if fs < self.file_size:
-                self.logger.warning('Wrong file size for %s' % fn)
-            return None
-        self.logger.debug(f'File {fn} will be processed. File length {fs} bytes')
-        # read file to buf
-        try:
-            # with open(fn, "r", encoding='windows-1251') as stream:
-            with open(fn, "rb") as stream:
-                if self.file_name == fn:
-                    self.logger.debug(f'Positioning to {self.file_size}')
-                    stream.seek(self.file_size)
-                    # buf = stream.read(fs - self.old_file_size)
-                # else:
-                buf = stream.read()
-            self.logger.debug(f'{len(buf)} bytes has been red')
-            buf1 = buf.decode('cp1251')
-            self.old_file_name = self.file_name
-            self.file_name = fn
-            self.folder = folder
-            self.old_file_size = self.file_size
-            self.file_size = fs
-            return buf1
-        except:
-            log_exception(self.logger, 'Data file %s can not be opened' % fn)
-            return None
-
-    def append(self, buf, extra_cols=None):
-        if not buf:
-            self.logger.debug('Empty buffer')
-            return 0
-        if extra_cols is None:
-            extra_cols = []
-        lines = buf.split('\n')
-        # loop for lines
-        n = 0
-        self.keys_with_errors = []
-        for line in lines:
-            if line != '' and self.decode_line(line):
-                n += 1
-        # add extra columns
-        self.add_extra_columns(extra_cols)
-        self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
-        return n
-
-    def decode_line(self, line):
-        if self.show_line_flag and ('DO_NOT_SHOW_LINE' in line or
-                                    'DO_NOT_SHOW = True' in line or
-                                    'DO_NOT_SHOW=True' in line):
-            self.logger.info(f'DO_NOT_SHOW tag detected in {line[11:20]}, line skipped')
-            return False
-        # Split line to fields
-        fields = line.split("; ")
-        # First field "date time" should be longer than 18 symbols
-        if len(fields) < 2 or len(fields[0]) < 19:
-            # Wrong line format, skip to next line
-            self.logger.info('Wrong data format in "%s", line skipped' % line[11:20])
-            return False
-        # split time and date
-        tm = fields[0].split(" ")[1].strip()
-        # preserve only time
-        fields[0] = "Time=" + tm
-        # add row to table
-        self.add_row()
-        # iterate rest fields for key=value pairs
-        added_columns = []
-        for field in fields:
-            kv = field.split("=")
-            key = kv[0].strip()
-            val = kv[1].strip()
-            if key in added_columns:
-                self.logger.warning('Duplicate columns in row %s)', self.rows)
-            else:
-                added_columns.append(key)
-            j = self.add_column(key)
-            self.data[j][self.rows - 1] = val
-            # split value and units
-            vu = val.split(" ")
-            try:
-                v = float(vu[0].strip().replace(',', '.'))
-                if key in self.keys_with_errors:
-                    self.keys_with_errors.remove(key)
-            except:
-                v = float('nan')
-                if key != 'Time' and key != 'File' and key not in self.keys_with_errors:
-                    self.logger.debug('Non float value in "%s"' % field)
-                    self.keys_with_errors.append(key)
-            self.values[j][self.rows - 1] = v
-            # units
-            try:
-                u = vu[1].strip()
-            except:
-                u = ''
-            self.units[j][self.rows - 1] = u
-        return True
-
-    def add_row(self):
-        for item in self.data:
-            item.append("")
-        for item in self.values:
-            item.append(float('nan'))
-        for item in self.units:
-            item.append("")
-        self.rows += 1
-
-    def add_column(self, col_name):
-        if col_name is None or col_name == '':
-            return -1
-        # skip if column exists
-        if col_name in self.headers:
-            return self.headers.index(col_name)
-        self.headers.append(col_name)
-        new_col = [""] * self.rows
-        self.data.append(new_col)
-        new_col = [float('nan')] * self.rows
-        self.values.append(new_col)
-        new_col = [""] * self.rows
-        self.units.append(new_col)
-        self.columns += 1
-        return self.headers.index(col_name)
-
-    def add_extra_columns(self, extra_cols):
-        self.columns_with_error = []
-        for row in range(self.rows):
-            for column in extra_cols:
-                if column.strip() != "":
-                    try:
-                        key, value, units = eval(column)
-                        if (key is not None) and (key != ''):
-                            j = self.add_column(key)
-                            self.data[j][row] = str(value) + ' ' + str(units)
-                            self.values[j][row] = float(value)
-                            self.units[j][row] = str(units)
-                        if column in self.columns_with_error:
-                            self.columns_with_error.remove(column)
-                    except:
-                        if column not in self.columns_with_error:
-                            log_exception(self.logger, 'eval() error in "%s ..."', column[:10], level=logging.INFO)
-                            self.columns_with_error.append(column)
-        for column in self.columns_with_error:
-            self.logger.warning('Can not create extra column for "%s ..."', column[:10])
-
-    def remove_row(self, row):
-        for item in self.data:
-            del item[row]
-        for item in self.values:
-            del item[row]
-        for item in self.units:
-            del item[row]
-        self.rows -= 1
-
-    def column_number(self, col):
-        try:
-            if isinstance(col, str):
-                return self.headers.index(col)
-            icol = int(col)
-            if 0 <= icol < self.columns:
-                return icol
-            else:
-                return -1
-        except:
-            return -1
-
-    def remove_column(self, col):
-        coln = self.column_number(col)
-        if coln < 0:
-            return
-        del self.data[coln]
-        del self.values[coln]
-        del self.units[coln]
-        del self.headers[coln]
-        self.columns -= 1
-
-    def row_col(self, *args):
-        if isinstance(args[0], str):
-            col = args[0]
-            row = -1
-        else:
-            col = args[1]
-            row = int(args[0])
-        coln = self.column_number(col)
-        if coln < 0 or row < -1 or coln > self.columns - 1 or row > self.rows - 1:
-            raise ValueError('Log Table index out of bounds (%s, %s)' % (row, col))
-        return row, coln
-
-    def data_item(self, *args):
-        try:
-            row, col = self.row_col(*args)
-            return self.data[col][row]
-        except:
-            return ''
-
-    def value_item(self, *args):
-        try:
-            row, col = self.row_col(*args)
-            return self.values[col][row]
-        except:
-            return float('nan')
-
-    def value(self, *args):
-        return self.value_item(*args)
-
-    def unit_item(self, *args):
-        try:
-            row, col = self.row_col(*args)
-            return self.units[col][row]
-        except:
-            return ''
-
-    def get_item(self, *args):
-        try:
-            row, col = self.row_col(*args)
-            return self.data[col][row], self.values[col][row], self.units[col][row]
-        except:
-            return '', float('nan'), ''
-
-    def set_item(self, *args):
-        try:
-            row, col = self.row_col(*args)
-            vu = str(args[2]).split(" ")
-            v = float(vu[0].strip().replace(',', '.'))
-            if len(vu) > 1:
-                u = vu[1].strip()
-            else:
-                u = ''
-            self.data[col][row] = str(args[2])
-            self.values[col][row] = v
-            self.units[col][row] = u
-            return True
-        except:
-            return False
-
-    def column(self, col):
-        coln = self.column_number(col)
-        if coln < 0 or coln > self.columns - 1:
-            return None
-        return self.data[coln]
-
-    def row(self, r):
-        return [self.data[n][r] for n in range(self.columns)]
-
-    def find_column(self, col_name):
-        try:
-            return self.headers.index(col_name)
-        except:
-            return -1
-
-    def __contains__(self, item):
-        return item in self.headers
-
-    def __len__(self):
-        return len(self.headers)
-
-
 class Signal:
-    def __init__(self, x=numpy.zeros(1), y=numpy.zeros(1), params=None, name='empty',
-                 unit='', scale=1.0, value=float('nan'), marks=None):
-        if params is None:
-            params = {}
-        if marks is None:
-            marks = {}
-        n = min(len(x), len(y))
-        self.x = x[:n]
-        self.y = y[:n]
+    def __init__(self, x=None, y=numpy.zeros(1), params: dict = None, name='empty_signal',
+                 unit='', scale=1.0, value=float('nan'), marks: dict = None):
+        self.data_name = name
+        self.x = x
+        self.y = y
         self.params = params
         self.name = name
         self.unit = unit
         self.scale = scale
         self.value = value
         self.marks = marks
+        if x is None:
+            x = numpy.zeros(1)
+        elif isinstance(x, Signal):
+            self.data_name = x.data_name
+            marks = x.marks.copy()
+            value = x.value
+            scale = x.scale
+            unit = x.unit
+            name = x.name
+            params = x.params.copy()
+            y = x.y.copy()
+            x = x.x.copy()
+
+        if params is None:
+            params = {}
+        self.params = params
+
+        if marks is None:
+            marks = {}
+        self.marks = marks
+
+        self.name = name
+        self.unit = unit
+        self.scale = scale
+        self.value = value
+
+        self.x = x
+        self.y = y
+        self.trim()
+
+        self.code = ''
+        self.file = ''
+
+    def __copy__(self):
+        result = Signal()
+        result.data_name = self.data_name
+        result.marks = self.marks.copy()
+        result.value = self.value
+        result.scale = self.scale
+        result.unit = self.unit
+        result.name = self.name
+        result.params = self.params.copy()
+        result.y = self.y.copy()
+        result.x = self.x.copy()
+        return result
+
+    def __str__(self):
+        return f'Signal:<{self.data_name} = {self.name}; length = {len(self.x)}; value={self.value} {self.unit}>'
 
     def set_name(self, name: str):
         self.name = name
@@ -1563,147 +1359,19 @@ class Signal:
         self.unit = unit
         return self
 
+    def set_data(self, x, y):
+        self.x = x
+        self.y = y
+        self.trim()
+        return self
+
     def trim(self):
         n = min(len(self.x), len(self.y))
         self.x = self.x[:n]
         self.y = self.y[:n]
 
-    def __add__(self, other):
-        if isinstance(other, Signal):
-            args = justify_signals(self, other)
-            result = Signal(args[0].x, args[0].y + args[1].y)
-            result.value = self.value + other.value
-            result.name = self.name + '+' + other.name
-        else:
-            result = Signal(self.x, self.y + other)
-            if isinstance(other, int) or isinstance(other, float):
-                result.value = self.value + other
-        return result
-
-    def __sub__(self, other):
-        if isinstance(other, Signal):
-            args = justify_signals(self, other)
-            result = Signal(args[0].x, args[0].y - args[1].y)
-            result.value = self.value - other.value
-            result.name = self.name + '-' + other.name
-        else:
-            result = Signal(self.x, self.y - other)
-            if isinstance(other, int) or isinstance(other, float):
-                result.value = self.value - other
-        return result
-
-    def __mul__(self, other):
-        if isinstance(other, Signal):
-            args = justify_signals(self, other)
-            result = Signal(args[0].x, args[0].y * args[1].y)
-            result.value = self.value * other.value
-            result.name = self.name + '*' + other.name
-        else:
-            result = Signal(self.x, self.y * other)
-        if isinstance(other, int) or isinstance(other, float):
-            result.value = self.value * other
-        return result
-
-    def __truediv__(self, other):
-        if isinstance(other, Signal):
-            args = justify_signals(self, other)
-            result = Signal(args[0].x, args[0].y / args[1].y)
-            result.value = self.value / other.value
-            result.name = self.name + '/' + other.name
-        else:
-            result = Signal(self.x, self.y / other)
-        if isinstance(other, int) or isinstance(other, float):
-            result.value = self.value / other
-        return result
-
-
-class DataFile:
-    def __init__(self, file_name, folder="", logger=None):
-        if logger is None:
-            self.logger = config_logger()
-        else:
-            self.logger = logger
-        self.file_name = None
-        self.files = []
-        self.signals = []
-        full_name = os.path.abspath(os.path.join(folder, file_name))
-        with zipfile.ZipFile(full_name, 'r') as zip_file:
-            self.files = zip_file.namelist()
-        self.file_name = full_name
-        for f in self.files:
-            if f.find("chan") >= 0 > f.find("paramchan"):
-                self.signals.append(f)
-
-    def read_signal(self, signal_name: str) -> Signal:
-        signal = Signal()
-        if signal_name not in self.signals:
-            self.logger.info("No signal %s in the file %s" % (signal_name, self.file_name))
-            return signal
-        with zipfile.ZipFile(self.file_name, 'r') as zipobj:
-            buf = zipobj.read(signal_name)
-            param_name = signal_name.replace('chan', 'paramchan')
-            pbuf = zipobj.read(param_name)
-        if b'\r\n' in buf:
-            endline = b"\r\n"
-        elif b'\n' in buf:
-            endline = b"\n"
-        elif b'\r' in buf:
-            endline = b"\r"
-        else:
-            self.logger.warning("Incorrect data format for %s" % signal_name)
-            return signal
-        lines = buf.split(endline)
-        n = len(lines)
-        if n < 2:
-            self.logger.warning("No data for %s" % signal_name)
-            return signal
-        signal.x = numpy.zeros(n, dtype=numpy.float64)
-        signal.y = numpy.zeros(n, dtype=numpy.float64)
-        error_lines = False
-        for i, line in enumerate(lines):
-            xy = line.replace(b',', b'.').split(b'; ')
-            try:
-                signal.x[i] = float(xy[0])
-            except:
-                signal.x[i] = numpy.nan
-                error_lines = True
-            try:
-                signal.y[i] = float(xy[1])
-            except:
-                signal.y[i] = numpy.nan
-                error_lines = True
-        if error_lines:
-            self.logger.debug("Some lines with wrong data in %s", signal_name)
-        # read parameters
-        signal.params = {}
-        lines = pbuf.split(endline)
-        error_lines = False
-        for line in lines:
-            if line != b'':
-                kv = line.split(b'=')
-                if len(kv) >= 2:
-                    signal.params[kv[0].strip()] = kv[1].strip()
-                else:
-                    error_lines = True
-        if error_lines:
-            self.logger.debug("Wrong parameter for %s" % signal_name)
-        # scale to units
-        try:
-            signal.scale = float(signal.params[b'display_unit'])
-        except:
-            signal.scale = 1.0
-        signal.y *= signal.scale
-        # name of the signal
-        if b"label" in signal.params:
-            signal.name = signal.params[b"label"].decode('ascii')
-        elif b"name" in signal.params:
-            signal.name = signal.params[b"name"].decode('ascii')
-        else:
-            signal.name = signal_name
-        if b'unit' in signal.params:
-            signal.unit = signal.params[b'unit'].decode('ascii')
-        else:
-            signal.unit = ''
+    def calculate_marks(self):
+        signal = self
         # find marks
         for k in signal.params:
             if k.endswith(b"_start"):
@@ -1721,22 +1389,378 @@ class DataFile:
                             mark_length = int(index[-1] - index[0]) + 1
                             signal.marks[mark_name] = (mark_start, mark_length, mark_value)
                 except:
-                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal_name))
+                    log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal.name),
+                                  level=logging.INFO)
+
+    def calculate_value(self):
         # calculate value
-        if 'zero' in signal.marks:
-            zero = signal.marks["zero"][2]
+        s = self
+        try:
+            if math.isnan(s.value) and 'mark' in s.marks:
+                mark = s.marks['mark']
+                mark_value = s.y[mark[0]: mark[0] + mark[1]].mean()
+                if 'zero' in s.marks:
+                    zero = s.marks['zero']
+                    zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
+                else:
+                    zero_value = 0.0
+                v = mark_value - zero_value
+                s.value = v
+        except:
+            self.value = float('nan')
+            # self.logger.debug(f'No signal value for {s.name}')
+        return self.value
+
+    def __add__(self, other):
+        result = Signal(self)
+        if isinstance(other, Signal):
+            args = justify_signals(self, other)
+            result.x = args[0].x
+            result.y = args[0].y + args[1].y
+            result.value = self.value + other.value
+            result.name = self.name + '+' + other.name
+            result.data_name = self.data_name + '+' + other.data_name
+        elif isinstance(other, int) or isinstance(other, float):
+            result.y = self.y + other
+            result.value = self.value + other
+            result.name = self.name + '+' + str(other)
+            result.data_name = self.data_name + '+' + str(other)
+        result.calculate_value()
+        result.calculate_marks()
+        return result
+
+    def __sub__(self, other):
+        result = Signal(self)
+        if isinstance(other, Signal):
+            args = justify_signals(self, other)
+            result.x = args[0].x
+            result.y = args[0].y - args[1].y
+            result.value = self.value - other.value
+            result.name = self.name + '-' + other.name
+            result.data_name = self.data_name + '-' + other.data_name
+        elif isinstance(other, int) or isinstance(other, float):
+            result.y = self.y - other
+            result.value = self.value - other
+            result.name = self.name + '-' + str(other)
+            result.data_name = self.data_name + '-' + str(other)
+        result.calculate_value()
+        result.calculate_marks()
+        return result
+
+    def __mul__(self, other):
+        result = Signal(self)
+        if isinstance(other, Signal):
+            args = justify_signals(self, other)
+            result.x = args[0].x
+            result.y = args[0].y * args[1].y
+            result.value = self.value * other.value
+            result.scale = self.scale * other.scale
+            result.unit = self.unit + '*' + other.unit
+            result.name = self.name + '*' + other.name
+            result.data_name = self.data_name + '*' + other.data_name
+        elif isinstance(other, int) or isinstance(other, float):
+            result.y = self.y * other
+            result.value = self.value * other
+            result.name = self.name + '*' + str(other)
+            result.data_name = self.data_name + '+' + str(other)
+        result.calculate_value()
+        result.calculate_marks()
+        return result
+
+    def __truediv__(self, other):
+        result = Signal(self)
+        if isinstance(other, Signal):
+            args = justify_signals(self, other)
+            result.x = args[0].x
+            result.y = args[0].y / args[1].y
+            result.value = self.value / other.value
+            result.scale = self.scale / other.scale
+            result.unit = self.unit + '/' + other.unit
+            result.name = self.name + '/' + other.name
+            result.data_name = self.data_name + '/' + other.data_name
+        elif isinstance(other, int) or isinstance(other, float):
+            result.y = self.y / other
+            result.value = self.value / other
+            result.name = self.name + '/' + str(other)
+            result.data_name = self.data_name + '/' + str(other)
+        result.calculate_value()
+        result.calculate_marks()
+        return result
+
+    def __getitem__(self, item):
+        return self.params[item]
+
+    def __setitem__(self, key, value):
+        self.params[key] = value
+
+    def read_from_file(self, signal_name: str, file_name: str):
+        if file_name.endswith('.zip'):
+            with zipfile.ZipFile(file_name, 'r') as zipobj:
+                buf = zipobj.read(signal_name)
+                param_name = signal_name.replace('chan', 'paramchan')
+                pbuf = zipobj.read(param_name)
         else:
-            zero = 0.0
-        if 'mark' in signal.marks:
-            signal.value = signal.marks["mark"][2] - zero
+            with open(file_name, 'rb') as datafile:
+                buf = datafile.read()
+                pbuf = b''
+        signal = self
+        if b'\r\n' in buf:
+            endline = b"\r\n"
         else:
-            signal.value = float('nan')
+            buf = buf.replace(b'\r', b'\n')
+            endline = b'\n'
+        lines = buf.split(endline)
+        n = len(lines)
+        if n < 2:
+            # self.logger.debug("%s Not a signal" % signal_name)
+            return None
+        signal.x = numpy.zeros(n, dtype=numpy.float64)
+        signal.y = numpy.zeros(n, dtype=numpy.float64)
+        error_lines = False
+        xy = []
+        for i, line in enumerate(lines):
+            xy = line.replace(b',', b'.').split(b'; ')
+            if len(xy) > 1:
+                try:
+                    signal.x[i] = float(xy[0])
+                except:
+                    signal.x[i] = numpy.nan
+                    error_lines = True
+                try:
+                    signal.y[i] = float(xy[1])
+                except:
+                    signal.y[i] = numpy.nan
+                    error_lines = True
+            elif len(xy) > 0:
+                signal.x[i] = i
+                try:
+                    signal.y[i] = float(xy[0])
+                except:
+                    signal.y[i] = numpy.nan
+                    error_lines = True
+        if len(xy) < 2:
+            signal.params[b'xlabel'] = 'Index'
+        # read parameters
+        signal.params = {}
+        lines = pbuf.split(endline)
+        error_lines = False
+        kv = ''
+        for line in lines:
+            if line != b'':
+                kv = line.split(b'=')
+                if len(kv) >= 2:
+                    signal.params[kv[0].strip()] = kv[1].strip()
+                else:
+                    error_lines = kv
+        # scale to units
+        try:
+            signal.scale = float(signal.params[b'display_unit'])
+        except:
+            signal.scale = 1.0
+        signal.y *= signal.scale
+        # name of the signal
+        if b"label" in signal.params:
+            signal.name = signal.params[b"label"].decode('ascii')
+        elif b"name" in signal.params:
+            signal.name = signal.params[b"name"].decode('ascii')
+        else:
+            signal.name = signal_name
+        signal.data_name = signal_name
+        if b'unit' in signal.params:
+            signal.unit = signal.params[b'unit'].decode('ascii')
+        else:
+            signal.unit = ''
+        # find marks
+        signal.calculate_marks()
+        # calculate value
+        signal.calculate_value()
+        signal.file = file_name
+        signal.code = ''
+        return signal
+
+    def decode_data(self, buf: bytes):
+        signal = self
+        if b'\r\n' in buf:
+            endline = b"\r\n"
+        else:
+            buf = buf.replace(b'\r', b'\n')
+            endline = b'\n'
+        lines = buf.split(endline)
+        n = len(lines)
+        if n < 2:
+            # self.logger.debug("%s Not a signal" % signal_name)
+            return None
+        signal.x = numpy.zeros(n, dtype=numpy.float64)
+        signal.y = numpy.zeros(n, dtype=numpy.float64)
+        xy = []
+        for i, line in enumerate(lines):
+            xy = line.replace(b',', b'.').split(b'; ')
+            if len(xy) > 1:
+                try:
+                    signal.x[i] = float(xy[0])
+                except:
+                    signal.x[i] = numpy.nan
+                    error_lines = True
+                try:
+                    signal.y[i] = float(xy[1])
+                except:
+                    signal.y[i] = numpy.nan
+                    error_lines = True
+            elif len(xy) > 0:
+                signal.x[i] = i
+                try:
+                    signal.y[i] = float(xy[0])
+                except:
+                    signal.y[i] = numpy.nan
+        if len(xy) < 2:
+            signal.params[b'xlabel'] = 'Index'
+        return signal
+
+    def decode_parameters(self, buf: bytes):
+        signal = self
+        if b'\r\n' in buf:
+            endline = b"\r\n"
+        else:
+            buf = buf.replace(b'\r', b'\n')
+            endline = b'\n'
+        signal.params = {}
+        lines = buf.split(endline)
+        for line in lines:
+            if line != b'':
+                kv = line.split(b'=')
+                if len(kv) >= 2:
+                    signal.params[kv[0].strip()] = kv[1].strip()
+        return signal
+
+
+@lru_cache()
+def read_signal_list(file_name: str):
+    # print('Reading from', file_name)
+    with zipfile.ZipFile(file_name, 'r') as zipobj:
+        files = zipobj.namelist()
+    return files
+
+
+@lru_cache(maxsize=512)
+def read_signal(signal_name: str, file_name: str):
+    # print('Reading', signal_name, 'from', file_name)
+    files = read_signal_list(file_name)
+    signal = Signal()
+    with zipfile.ZipFile(file_name, 'r') as zipobj:
+        buf = zipobj.read(signal_name)
+    if b'\r\n' in buf:
+        endline = b"\r\n"
+    else:
+        buf = buf.replace(b'\r', b'\n')
+        endline = b'\n'
+    lines = buf.split(endline)
+    n = len(lines)
+    if n < 2:
+        # log("%s Not a signal" % signal_name)
+        return None
+    signal.x = numpy.zeros(n, dtype=numpy.float64)
+    signal.y = numpy.zeros(n, dtype=numpy.float64)
+    xy = []
+    for i, line in enumerate(lines):
+        xy = line.replace(b',', b'.').split(b'; ')
+        if len(xy) > 1:
+            try:
+                signal.x[i] = float(xy[0])
+            except:
+                signal.x[i] = numpy.nan
+                error_lines = True
+            try:
+                signal.y[i] = float(xy[1])
+            except:
+                signal.y[i] = numpy.nan
+                error_lines = True
+        elif len(xy) > 0:
+            signal.x[i] = i
+            try:
+                signal.y[i] = float(xy[0])
+            except:
+                signal.y[i] = numpy.nan
+                error_lines = True
+    if len(xy) < 2:
+        signal.params[b'xlabel'] = 'Index'
+    # read parameters
+    signal.params = {}
+    param_name = signal_name.replace('chan', 'paramchan')
+    if param_name != signal_name and param_name in files:
+        with zipfile.ZipFile(file_name, 'r') as zipobj:
+            pbuf = zipobj.read(param_name)
+        lines = pbuf.split(endline)
+        for line in lines:
+            if line != b'':
+                kv = line.split(b'=')
+                if len(kv) >= 2:
+                    signal.params[kv[0].strip()] = kv[1].strip()
+                else:
+                    error_lines = kv
+    # scale to units
+    try:
+        signal.scale = float(signal.params[b'display_unit'])
+    except:
+        signal.scale = 1.0
+    signal.y *= signal.scale
+    # name of the signal
+    if b"label" in signal.params:
+        signal.name = signal.params[b"label"].decode('ascii')
+    elif b"name" in signal.params:
+        signal.name = signal.params[b"name"].decode('ascii')
+    else:
+        signal.name = signal_name
+    signal.data_name = signal_name
+    if b'unit' in signal.params:
+        signal.unit = signal.params[b'unit'].decode('ascii')
+    else:
+        signal.unit = ''
+    # find marks
+    signal.calculate_marks()
+    # calculate value
+    signal.calculate_value()
+    signal.file = file_name
+    signal.code = ''
+    return signal
+
+
+class DataFile:
+    signals = {}
+    files = {}
+
+    def __init__(self, file_name, folder="", logger=None, plot_cache=None):
+        if logger is None:
+            self.logger = config_logger()
+        else:
+            self.logger = logger
+        self.plot_cache = plot_cache
+        self.file_name = None
+        self.files = []
+        self.signals = []
+        full_name = os.path.abspath(os.path.join(folder, file_name))
+        self.files = read_signal_list(full_name)
+        self.signals = self.find_signals()
+        self.file_name = full_name
+
+    def find_signals(self):
+        signals = []
+        for f in self.files:
+            if 'param' not in f:
+                if f not in self.signals:
+                    signals.append(f)
+        return signals
+
+    def read_signal(self, signal_name: str):
+        signal = read_signal(signal_name, self.file_name)
         return signal
 
     def read_all_signals(self):
         signals = []
+        # signal_names = []
         for s in self.signals:
-            signals.append(self.read_signal(s))
+            sig = self.read_signal(s)
+            if sig:
+                signals.append(sig)
         return signals
 
 
@@ -1744,21 +1768,20 @@ def justify_signals(first: Signal, other: Signal):
     if len(first.x) == len(other.x) and \
             first.x[0] == other.x[0] and first.x[-1] == other.x[-1]:
         return first, other
-    xmin = max(first.x[0], other.x[0])
-    xmax = min(first.x[-1], other.x[-1])
+    xmin = max(first.x.min(), other.x.min())
+    xmax = min(first.x.max(), other.x.max())
     index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
     index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
-    result = (Signal(name=first.name, marks=first.marks, value=first.value),
-              Signal(name=other.name, marks=other.marks, value=other.value))
+    result = (Signal(first), Signal(other))
     if len(index1) >= len(index2):
         x = first.x[index1].copy()
-        result[1].y = numpy.interp(x, other.x[index2], other.y[index2])
+        result[1].y = numpy.interp(x, other.x, other.y)
         result[0].x = x
         result[0].y = first.y[index1].copy()
         result[1].x = x
     else:
-        x = first.x[index2].copy()
-        result[0].y = numpy.interp(x, first.x[index1], first.y[index1])
+        x = other.x[index2].copy()
+        result[0].y = numpy.interp(x, first.x, first.y)
         result[0].x = x
         result[1].y = other.y[index2].copy()
         result[1].x = x
@@ -1793,127 +1816,270 @@ def unify_marks(first: Signal, other: Signal):
     return result
 
 
-class NewLogTable:
-    def __init__(self, file_name: str, logger=None):
+class LogTable:
+    EMTPY_CELL = {'text': '', 'value': float('nan'), 'units': ''}
+
+    def __init__(self, file_name: str = None, extra_cols=None, logger=None, **kwargs):
         if logger is None:
             self.logger = config_logger()
         else:
             self.logger = logger
         self.columns = {}
-        self.file_name = file_name
-        self.file_size = -1
         self.rows = 0
-        self.columns_with_error = []
-        self.keys_with_errors = []
-        self.show_line_flag = False
+        self.decode = lambda x: bytes.decode(x, 'cp1251')
+        self.file_name = None
+        self.file_size = 0
+        if file_name is not None:
+            self.read_file(file_name)
+        self.exrta_columns = {}
+        if extra_cols is not None:
+            self.add_extra_columns(extra_cols)
 
-    def column(self, col: str):
+    def clear(self):
+        self.columns = {}
+        self.rows = 0
+        self.file_size = 0
+        self.file_name = None
+        self.exrta_columns = {}
+
+    def keys(self):
+        return self.columns.keys()
+
+    def get_column(self, col):
         return self.columns[col]
 
-    def row(self, n):
-        result = {}
-        i = 0
-        for (key, val) in self.columns:
-            v = val[n]
-            result[key] = v
-            result[i] = v
-            i += 1
-        return result
-        # return {key: val[n] for (key, val) in self.columns}
+    def get_row(self, n):
+        return {key: val[n] for (key, val) in self.columns}
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1:
-            a = args[0]
-            if isinstance(a, str):
-                return self.column(a)
-            elif isinstance(a, int):
-                return self.row(a)
+            a0 = args[0]
+            if isinstance(a0, str):
+                return self.get_column(a0)
+            elif isinstance(a0, int):
+                return self.get_row(a0)
         elif len(args) == 2:
             a0 = args[0]
             a1 = args[1]
-            return self.column(a1)[a0]
+            return self.columns[a1][a0]
         raise ValueError('Wrong arguments')
 
     def __len__(self):
         return len(self.columns)
 
-    def add_column(self, key: str):
-        if key in self.columns:
-            return
-        self.columns[key] = [{}] * self.rows
+    def add_column(self, key, data=None):
+        if key not in self.columns:
+            if not data:
+                self.columns[key] = [self.EMTPY_CELL] * self.rows
+            else:
+                if len(data) != self.rows:
+                    raise ValueError(f"Wrong insert data for {key}")
+                self.columns[key] = data
+        return self.columns[key]
 
-    def append(self, row: dict):
-        for (key, val) in row:
-            if key not in self.columns:
-                self.add_column(key)
-            self.columns[key].append(val)
-            self.rows += 1
+    def remove_column(self, key):
+        del self.columns[key]
+
+    def decode_line(self, line):
+        row = {}
+        #  detect DO_NOT_SHOW tag
+        if 'DO_NOT_SHOW_LINE' in line or 'DO_NOT_SHOW = True' in line or 'DO_NOT_SHOW=True' in line:
+            # self.logger.info(f'DO_NOT_SHOW tag detected in {line[11:20]}')
+            row[-1] = True
+        else:
+            row[-1] = False
+        # Split line to fields
+        fields = line.split("; ")
+        # First field "date time" should be longer than 18 symbols
+        if len(fields) < 2 or len(fields[0]) < 19:
+            # Wrong line format, skip to next line
+            self.logger.info('Wrong data format in "%s", line skipped' % line[11:20])
+            return None
+        # split time and date
+        tm = fields[0].split(" ")[1].strip()
+        # preserve only time
+        fields[0] = "Time=" + tm
+        # iterate rest fields for key=value pairs
+        keys_with_errors = []
+        for field in fields:
+            kv = field.split("=")
+            key = kv[0].strip()
+            val = kv[1].strip()
+            if key in row:
+                self.logger.warning('Duplicate keys in line %s)', line)
+                keys_with_errors.append(key)
+            else:
+                row[key] = {'text': val}
+                # split value and units
+                vu = val.split(" ")
+                # value
+                try:
+                    v = float(vu[0].strip().replace(',', '.'))
+                    if key in keys_with_errors:
+                        keys_with_errors.remove(key)
+                except:
+                    v = float('nan')
+                    if key != 'Time' and key != 'File' and key not in keys_with_errors:
+                        self.logger.debug('Non float value in "%s"' % field)
+                        keys_with_errors.append(key)
+                row[key]['value'] = v
+                # units
+                try:
+                    u = vu[1].strip()
+                except:
+                    u = ''
+                row[key]['units'] = u
+            row[-2] = keys_with_errors
+        return row
+
+    def append_lines(self, buf):
+        if not buf or len(buf) <= 0:
+            self.logger.debug('Empty buffer')
+            return 0
+        lines = buf.split('\n')
+        # loop for lines
+        n = 0
+        for line in lines:
+            line = line.strip()
+            if line != '':
+                row = self.decode_line(line)
+                if row:
+                    self.add_row(row)
+                    n += 1
+        self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
+        return n
 
     def add_row(self, row: dict):
-        return self.append(row)
+        for key in row:
+            self.add_column(key)
+        for key in self.columns:
+            if key in row:
+                self.columns[key].append(row[key])
+            else:
+                self.columns[key].append(self.EMTPY_CELL)
+        self.rows += 1
+        return self.rows
+
+    def remove_row(self, index: int):
+        for key in self.columns:
+            del self.columns[key][index]
+        self.rows -= 1
+        return self.rows
 
     def update_row(self, index: int, row: dict):
         self.columns[index].update(row)
+        return self.rows
+
+    def text(self, row, col, fmt=None):
+        v = self.columns[col][row]
+        if not fmt:
+            return v['text']
+        else:
+            return fmt % (v['value'], v['units'])
+
+    def value(self, row, col):
+        return self.columns[col][row]['value']
+
+    def units(self, row, col):
+        return self.columns[col][row]['units']
+
+    def get_cell(self, row, col):
+        return self.columns[col][row]
+
+    def set_cell(self, row, col, value):
+        self.columns[col][row] = value
+
+    def show_line_flag(self, row: int):
+        return self.columns[-1][row]
 
     def __contains__(self, item):
         return item in self.columns
 
-    def read_log_to_buf(self, file_name: str = None, folder: str = None):
-        if folder is None:
-            folder = self.folder
+    def __iter__(self):
+        return [key for key in self.columns if isinstance(key, str)].__iter__()
+
+    def read_file(self, file_name: str = None):
         if file_name is None:
             file_name = self.file_name
-        fn = os.path.abspath(os.path.join(folder, file_name))
+        if file_name is None:
+            self.logger.warning(f'None file can not be opened')
+            return None
+        fn = os.path.abspath(file_name)
         if not os.path.exists(fn):
             self.logger.warning('File %s does not exist' % fn)
             return None
-        # if self.old_file_name == fn:
-        #     pass
         fs = os.path.getsize(fn)
-        if fs < 20 or (self.file_name == fn and fs <= self.file_size):
-            if fs < self.file_size:
-                self.logger.warning('Wrong file size for %s' % fn)
+        if fs < 20:
+            self.logger.warning('Wrong file size for %s' % fn)
             return None
-        self.logger.debug(f'File {fn} will be processed. File length {fs} bytes')
+        if self.file_name == fn and fs == self.file_size:
+            self.logger.debug('Nothing to read from %s' % fn)
+            return 0
+        self.logger.debug(f'File {fn} {fs} bytes will be processed')
         # read file to buf
         try:
-            # with open(fn, "r", encoding='windows-1251') as stream:
             with open(fn, "rb") as stream:
                 if self.file_name == fn:
                     self.logger.debug(f'Positioning to {self.file_size}')
                     stream.seek(self.file_size)
-                    # buf = stream.read(fs - self.old_file_size)
-                # else:
                 buf = stream.read()
             self.logger.debug(f'{len(buf)} bytes has been red')
-            buf1 = buf.decode('cp1251')
-            self.old_file_name = self.file_name
+            bufd = self.decode(buf)
+            if self.file_name != fn:
+                self.clear()
             self.file_name = fn
-            self.folder = folder
-            self.old_file_size = self.file_size
             self.file_size = fs
-            return buf1
+            n = self.append_lines(bufd)
+            return n
         except:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
             return None
 
-    def append(self, buf, extra_cols=None):
-        if not buf:
-            self.logger.debug('Empty buffer')
-            return 0
-        if extra_cols is None:
-            extra_cols = []
-        lines = buf.split('\n')
-        # loop for lines
-        n = 0
-        self.keys_with_errors = []
-        for line in lines:
-            if line != '' and self.decode_line(line):
-                n += 1
-        # add extra columns
-        self.add_extra_columns(extra_cols)
-        self.logger.debug('%d of %d lines has been appended' % (n, len(lines)))
-        return n
+    def add_extra_columns(self, extra_cols):
+
+        def value(x, y=None):
+            if y is None:
+                y = row
+            return self.value(y, x)
+
+        #
+        rows_with_error = []
+        for column in extra_cols:
+            if not column or column.strip() == '':
+                continue
+            h = column.__hash__()
+            n = 0
+            key0 = None
+            if h in self.exrta_columns:
+                key0 = self.exrta_columns[h]['name']
+            key = ''
+            for row in range(0, self.rows):
+                try:
+                    key, v, u = eval(column)
+                    if not key or not isinstance(key, str):
+                        self.logger.info('Wrong name for column %s' % column)
+                        break
+                    if key0 is None:
+                        if key in self.columns:
+                            self.logger.debug(f'Column {key} will be overwritten by {column}')
+                        #     break
+                        key0 = key
+                        self.add_column(key0)
+                    if key != key0:
+                        raise KeyError('Wrong name for column %s' % column)
+                    else:
+                        self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
+                        n += 1
+                except:
+                    if not rows_with_error:
+                        log_exception(self.logger, 'Column eval() error in "%s ..."\n', column[:20], level=logging.INFO)
+                    rows_with_error.append(row)
+            self.exrta_columns[h] = {'name': key0, 'code': column, 'length': n, 'errors': rows_with_error}
+            self.exrta_columns[key0] = h
+            if rows_with_error:
+                self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
+            else:
+                self.logger.debug(f'Extra column {key} has been added {n} lines')
 
 
 if __name__ == '__main__':
