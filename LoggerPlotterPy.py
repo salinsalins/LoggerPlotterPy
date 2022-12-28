@@ -38,11 +38,11 @@ from PyQt5.QtWidgets import QFrame, QMenu
 from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 
-from QtUtils import WidgetLogHandler
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
 
 sys.path.append('../TangoUtils')
+from QtUtils import WidgetLogHandler
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
 from log_exception import log_exception, log, info
@@ -937,7 +937,7 @@ class MainWindow(QMainWindow):
             file_name = os.path.abspath(file_name)
             self.sb_text.setText('Reading %s' % file_name)
             self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
-            self.logger.info('Parsing %s', file_name)
+            self.logger.debug('Parsing %s', file_name)
             # get extra columns
             self.extra_cols = self.get_extra_columns()
             # process log table
