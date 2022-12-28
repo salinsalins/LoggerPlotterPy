@@ -23,6 +23,8 @@ TRACE_COLOR = '#00ff00'
 MARK_COLOR = '#ff0000'
 ZERO_COLOR = '#0000ff'
 
+MAIN_LOOP_TIMEOUT = 1000
+
 _l1 = locals().copy().pop('_l0')
 _appended_vars = {x for x in _l1 if x not in _l0}
 del _l0, _l1
