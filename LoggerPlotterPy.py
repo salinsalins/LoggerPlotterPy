@@ -970,6 +970,8 @@ class MainWindow(QMainWindow):
                     self.tableWidget_3.setFocus()
                     self.plot_signals()
 
+        except KeyboardInterrupt:
+            raise
         except:
             log_exception(self, 'Exception in parseFolder')
         self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
@@ -2077,7 +2079,7 @@ class LogTable:
             self.exrta_columns[h] = {'name': key0, 'code': column, 'length': n, 'errors': rows_with_error}
             self.exrta_columns[key0] = h
             if rows_with_error:
-                self.logger.warning('Errors creation extra column for "%s ..."', column[:20])
+                self.logger.warning(f'Errors creation extra column for "{column[:20]} ..."')
             else:
                 self.logger.debug(f'Extra column {key} has been added {n} lines')
 
