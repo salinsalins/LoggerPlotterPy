@@ -1650,12 +1650,13 @@ def read_signal(signal_name: str, file_name: str):
     signal = Signal()
     with zipfile.ZipFile(file_name, 'r') as zipobj:
         buf = zipobj.read(signal_name)
-    if b'\r\n' in buf:
-        endline = b"\r\n"
-    else:
-        buf = buf.replace(b'\r', b'\n')
-        endline = b'\n'
-    lines = buf.split(endline)
+    # if b'\r\n' in buf:
+    #     endline = b"\r\n"
+    # else:
+    #     buf = buf.replace(b'\r', b'\n')
+    #     endline = b'\n'
+    # lines = buf.split(endline)
+    lines = buf.splitlines()
     n = len(lines)
     if n < 2:
         # log("%s Not a signal" % signal_name)
@@ -1691,7 +1692,8 @@ def read_signal(signal_name: str, file_name: str):
     if param_name != signal_name and param_name in files:
         with zipfile.ZipFile(file_name, 'r') as zipobj:
             pbuf = zipobj.read(param_name)
-        lines = pbuf.split(endline)
+        lines = pbuf.splitlines()
+        # lines = pbuf.split(endline)
         for line in lines:
             if line != b'':
                 kv = line.split(b'=')
