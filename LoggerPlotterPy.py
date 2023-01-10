@@ -1689,6 +1689,8 @@ def read_signal(signal_name: str, file_name: str):
     # read parameters
     signal.params = {}
     param_name = signal_name.replace('chan', 'paramchan')
+    if param_name == signal_name or param_name not in files:
+        param_name = signal_name.replace('.txt', '_parameters.txt')
     if param_name != signal_name and param_name in files:
         with zipfile.ZipFile(file_name, 'r') as zipobj:
             pbuf = zipobj.read(param_name)
