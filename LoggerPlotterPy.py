@@ -169,6 +169,7 @@ def calculate_extra_plot(p, file_name):
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
+        # self.resize_hook = True
         # colors
         self.previous_color = PREVIOUS_COLOR
         self.trace_color = TRACE_COLOR
@@ -1102,6 +1103,9 @@ class MainWindow(QMainWindow):
             log_exception('Error configuration save to %s' % full_name)
             return False
 
+    # def resizeEvent(self, *args):
+    #     print('resize', args, args[0].size())
+    #     super().resizeEvent(*args)
     def restore_settings(self, folder='', file_name=None):
         global CONFIG_FILE
         if file_name is None:
@@ -1127,6 +1131,7 @@ class MainWindow(QMainWindow):
                 self.comboBox_1.setCurrentIndex(mm)
             # Restore window size and position
             if 'main_window' in self.conf:
+                self.setMinimumSize(640,480)    # resize hook
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
             # colors
@@ -1244,6 +1249,18 @@ class MainWindow(QMainWindow):
         # QApplication.quit()
 
     def timer_handler(self):
+        # if self.resize_hook:
+        #     w1 = self.conf['main_window']['size'][0]
+        #     h1 = self.conf['main_window']['size'][1]
+        #     self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
+        #     s = self.size()
+        #     p = self.pos()
+        #     w = s.width()
+        #     h = s.height()
+        #     x = p.x()
+        #     y = p.y()
+        #     print('resize', w1, h1, w, h)
+        #     # self.resize_hook = False
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
         # check if in parameters edit mode
@@ -2113,6 +2130,8 @@ if __name__ == '__main__':
     timer = QTimer()
     timer.timeout.connect(dmw.timer_handler)
     timer.start(1000)
+    # dmw.resize(QSize(dmw.conf['main_window']['size'][0], dmw.conf['main_window']['size'][1]))
+
     # start the Qt main loop execution,
     exec_result = app.exec_()
     # exiting from this script with the same return code of Qt application
