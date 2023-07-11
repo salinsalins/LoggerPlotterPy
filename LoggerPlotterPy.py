@@ -653,6 +653,7 @@ class MainWindow(QMainWindow):
                 layout.addWidget(mplw, row, col)
             mplw.my_action = self
             mplw.my_name = s.name
+            mplw.my_index = jj
             col += 1
             if col >= col_count:
                 col = 0

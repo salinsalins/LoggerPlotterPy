@@ -29,6 +29,7 @@ class CustomViewBox(pyqtgraph.ViewBox):
         # self.my_menu.setTitle("Double click test menu")
         self.my_menu.addAction('Hide plot')
         self.my_menu.addAction('Show plot')
+        self.my_menu.addSeparator()
         self.my_menu.addAction('Show on right')
 
     # reimplement right-click to zoom out
