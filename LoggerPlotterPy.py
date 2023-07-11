@@ -6,13 +6,16 @@ Created on Jul 2, 2017
 """
 # s='s=%r;print(s%%s)';print(s%s)
 
-import gc
+import sys
+
+if '../TangoUtils' not in sys.path: sys.path.append('../TangoUtils')
+
+# import gc
 import json
 import logging
 import math
 import os
-import os.path
-import sys
+# import os.path
 import time
 import zipfile
 import datetime
@@ -22,11 +25,9 @@ import numpy
 
 # os.environ['QT_API'] = 'pyqt5'
 # os.environ['QT_API'] = 'pyside6'
-# from qt import *
 
-import PyQt5
 from PyQt5 import QtGui
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QColor
 from PyQt5 import uic
 from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint, QSize
@@ -41,69 +42,50 @@ from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
 
-sys.path.append('../TangoUtils')
 from QtUtils import WidgetLogHandler
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
-from log_exception import log_exception, log, info
+from log_exception import log_exception
 
-np = numpy
+# np = numpy
 
-# print(QtCore.QT_VERSION_STR)
+# from config import *
 
-from config import *
+ORGANIZATION_NAME = 'BINP'
+APPLICATION_NAME = 'Plotter for Signals from Dumper'
+APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
+APPLICATION_VERSION = '11.6'
+VERSION_DATE = "19-12-2022"
+CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
+UI_FILE = APPLICATION_NAME_SHORT + '.ui'
+# fonts
+CELL_FONT = QFont('Open Sans', 14)
+CELL_FONT_BOLD = QFont('Open Sans', 14, weight=QFont.Bold)
+STATUS_BAR_FONT = CELL_FONT
+CLOCK_FONT = CELL_FONT_BOLD
+# colors
+WHITE = QColor(255, 255, 255)
+YELLOW = QColor(255, 255, 0)
+GREEN = QColor(0, 255, 0)
+PREVIOUS_COLOR = '#ffff00'
+TRACE_COLOR = '#00ff00'
+MARK_COLOR = '#ff0000'
+ZERO_COLOR = '#0000ff'
 
-# g0 = {}
-# exec(open("config.py").read(), g0)
-# l0 = g0.pop('_l0')
-# g1 = [x for x in g0 if x not in l0]
-# print(g1)
-# ORGANIZATION_NAME = 'BINP'
-# APPLICATION_NAME = 'Plotter for Signals from Dumper'
-# APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-# APPLICATION_VERSION = '10.5'
-# VERSION_DATE = "08-12-2022"
-# CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
-# UI_FILE = APPLICATION_NAME_SHORT + '.ui'
-# # fonts
-# CELL_FONT = QFont('Open Sans', 14)
-# CELL_FONT_BOLD = QFont('Open Sans', 14, weight=QFont.Bold)
-# STATUS_BAR_FONT = CELL_FONT
-# CLOCK_FONT = CELL_FONT_BOLD
-# # colors
-# WHITE = QtGui.QColor(255, 255, 255)
-# YELLOW = QtGui.QColor(255, 255, 0)
-# GREEN = QtGui.QColor(0, 255, 0)
-# PREVIOUS_COLOR = '#ffff00'
-# TRACE_COLOR = '#00ff00'
-# MARK_COLOR = '#ff0000'
-# ZERO_COLOR = '#0000ff'
+MAIN_LOOP_TIMEOUT = 1000
 
 # Global configuration dictionary
-config = Configuration(CONFIG_FILE)
+CONFIG = Configuration(CONFIG_FILE)
 
 
 def remove_from_text(text: str, removed: str):
     if text == '':
         return text
     lines = text.split('\n')
-    res = [line.strip() for line in lines if line != removed and line != '']
+    res = [line.strip() for line in lines if line != removed and line.strip() != '']
     if len(res) <= 0:
         return ''
     return '\n'.join(res)
-
-    # try:
-    #     n = lines.index(removed)
-    #     lines.pop(n)
-    #     result = '\n'.join(lines)
-    #     result = result.replace('\n\n', '\n')
-    #     if result.endswith('\n'):
-    #         result = result[:-1]
-    #     if result.startswith('\n'):
-    #         result = result[1:]
-    #     return result
-    # except:
-    #     return text
 
 
 def remove_from_widget(widget, removed: str):
@@ -120,6 +102,7 @@ global sigg
 
 @lru_cache(maxsize=256)
 def calculate_extra_plot(p, file_name):
+    # sig() can be used in eval(p) to select signal by name
     sig = sigg
     # print('Calculate', p)
     p = p.strip()
@@ -342,13 +325,40 @@ class MainWindow(QMainWindow):
         actions = []
         for s in hidden_lines:
             if s != '' and s not in actions:
-                actions.append(menu.addAction(s))
+                actions.append(s)
+                menu.addAction(s)
         if len(actions) <= 0:
             return
         action = menu.exec(position)
         if action is None:
             return
         displayed = self.plainTextEdit_7.toPlainText()
+        displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
+        self.plainTextEdit_7.setPlainText(displayed)
+        self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
+        self.save_settings()
+        self.save_local_settings()
+        self.plot_signals()
+
+    def show_plot_on_right(self, signal_name):
+        cursor = QtGui.QCursor()
+        position = cursor.pos()
+        hidden = self.plainTextEdit_6.toPlainText()
+        displayed = self.plainTextEdit_7.toPlainText()
+        lines = (displayed + '\n' + hidden).split('\n')
+        lines.sort()
+        menu = QMenu()
+        actions = []
+        for s in lines:
+            if s != '' and s != signal_name and s not in actions:
+                actions.append(s)
+                menu.addAction(s)
+        if len(actions) <= 0:
+            return
+        action = menu.exec(position)
+        if action is None:
+            return
+        displayed = remove_from_text(displayed, action.text())
         displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
         self.plainTextEdit_7.setPlainText(displayed)
         self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
@@ -568,8 +578,11 @@ class MainWindow(QMainWindow):
     def calculate_extra_plots(self):
 
         def sig(name):
-            signal_list = self.signal_list + self.extra_plots
-            for sg in signal_list:
+            # signal_list = self.signal_list + self.extra_plots
+            for sg in self.signal_list:
+                if sg.name == name:
+                    return sg
+            for sg in self.extra_plots:
                 if sg.name == name:
                     return sg
             raise SignalNotFoundError('Signal %s not found' % name)
@@ -580,8 +593,8 @@ class MainWindow(QMainWindow):
 
         self.extra_plots = []
         # read extra plots from plainTextEdit_4
-        extra_plots = self.get_extra_plots()
-        for p in extra_plots:
+        extra_plots_str = self.get_extra_plots()
+        for p in extra_plots_str:
             p = p.strip()
             s = calculate_extra_plot(p, self.data_file.file_name)
             if s is not None:
@@ -937,7 +950,7 @@ class MainWindow(QMainWindow):
                 return
             file_name = os.path.abspath(file_name)
             self.sb_text.setText('Reading %s' % file_name)
-            self.setCursor(PyQt5.QtCore.Qt.WaitCursor)
+            self.setCursor(QtCore.Qt.WaitCursor)
             self.logger.debug('Parsing %s', file_name)
             # get extra columns
             self.extra_cols = self.get_extra_columns()
@@ -975,7 +988,7 @@ class MainWindow(QMainWindow):
             raise
         except:
             log_exception(self, 'Exception in parseFolder')
-        self.setCursor(PyQt5.QtCore.Qt.ArrowCursor)
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.update_status_bar()
         return
 
@@ -1027,7 +1040,7 @@ class MainWindow(QMainWindow):
                 if column not in self.log_table:
                     continue
                 try:
-                    fmt = config['format'][column]
+                    fmt = CONFIG['format'][column]
                     txt = fmt % (self.log_table.value(row, column), self.log_table.units(row, column))
                 except:
                     txt = self.log_table.text(row, column)
@@ -1043,7 +1056,7 @@ class MainWindow(QMainWindow):
                         bold_font_flag = False
                     else:
                         try:
-                            thr = config['thresholds'][column]
+                            thr = CONFIG['thresholds'][column]
                         except:
                             thr = 0.03
                         if thr > 0.0:
@@ -1115,8 +1128,8 @@ class MainWindow(QMainWindow):
             with open(full_name, 'r') as configfile:
                 s = configfile.read()
             self.conf = json.loads(s)
-            global config
-            config = self.conf
+            global CONFIG
+            CONFIG = self.conf
             # Log level restore
             if 'log_level' in self.conf:
                 v = self.conf['log_level']
@@ -1131,24 +1144,24 @@ class MainWindow(QMainWindow):
                 self.comboBox_1.setCurrentIndex(mm)
             # Restore window size and position
             if 'main_window' in self.conf:
-                self.setMinimumSize(640,480)    # resize hook
+                self.setMinimumSize(640, 480)  # resize hook
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
             # colors
             try:
-                self.trace_color = config['colors']['trace']
+                self.trace_color = CONFIG['colors']['trace']
             except:
                 pass
             try:
-                self.previous_color = config['colors']['previous']
+                self.previous_color = CONFIG['colors']['previous']
             except:
                 pass
             try:
-                self.mark_color = config['colors']['mark']
+                self.mark_color = CONFIG['colors']['mark']
             except:
                 pass
             try:
-                self.zero_color = config['colors']['zero']
+                self.zero_color = CONFIG['colors']['zero']
             except:
                 pass
             # Last folder
@@ -1793,8 +1806,8 @@ def justify_signals(first: Signal, other: Signal):
         return first, other
     xmin = max(first.x.min(), other.x.min())
     xmax = min(first.x.max(), other.x.max())
-    index1 = np.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
-    index2 = np.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
+    index1 = numpy.logical_and(first.x >= xmin, first.x <= xmax).nonzero()[0]
+    index2 = numpy.logical_and(other.x >= xmin, other.x <= xmax).nonzero()[0]
     result = (Signal(first), Signal(other))
     if len(index1) >= len(index2):
         x = first.x[index1].copy()

@@ -5,7 +5,8 @@ Created on 16 april 2021
 '''
 
 import pyqtgraph
-from PyQt5 import QtGui
+# import qtpy
+# from qtpy.QtWidgets import QMenu
 from PyQt5.QtWidgets import QMenu
 from pyqtgraph.Qt import QtCore
 
@@ -28,6 +29,7 @@ class CustomViewBox(pyqtgraph.ViewBox):
         # self.my_menu.setTitle("Double click test menu")
         self.my_menu.addAction('Hide plot')
         self.my_menu.addAction('Show plot')
+        self.my_menu.addAction('Show on right')
 
     # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
@@ -41,6 +43,8 @@ class CustomViewBox(pyqtgraph.ViewBox):
                 self.mplw.my_action.hide_plot(self.mplw.my_name)
             elif action.text() == 'Show plot':
                 self.mplw.my_action.show_plot(self.mplw.my_name)
+            elif action.text() == 'Show on right':
+                self.mplw.my_action.show_plot_on_right(self.mplw.my_name)
         elif ev.button() == QtCore.Qt.RightButton:
             ev.accept()
             if ev.double():
