@@ -1199,6 +1199,10 @@ class MainWindow(QMainWindow):
                 self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
             if 'history_index' in self.conf:
                 self.comboBox_2.setCurrentIndex(self.conf['history_index'])
+            self.cut_long_names = self.conf.get('cut_long_names', True)
+            self.conf['cut_long_names'] = self.cut_long_names
+            self.fill_empty_lists = self.conf.get('fill_empty_lists', True)
+            self.conf['fill_empty_lists'] = self.fill_empty_lists
             self.logger.debug('Configuration restored from %s' % full_name)
             return True
         except:
