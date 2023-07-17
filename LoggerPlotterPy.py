@@ -1111,7 +1111,7 @@ class MainWindow(QMainWindow):
             # convert to json and write
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
-            self.logger.info('Configuration saved to %s' % full_name)
+            self.logger.debug('Configuration saved to %s' % full_name)
             return True
         except:
             log_exception('Error configuration save to %s' % full_name)
