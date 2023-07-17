@@ -1693,6 +1693,8 @@ def read_signal(signal_name: str, file_name: str):
     # lines = buf.split(endline)
     lines = buf.splitlines()
     n = len(lines)
+    if lines[-1].strip() == '':
+        n -= 1
     if n < 2:
         # log("%s Not a signal" % signal_name)
         return None
