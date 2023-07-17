@@ -54,7 +54,7 @@ from log_exception import log_exception
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '11.7'
+APPLICATION_VERSION = '11.8'
 VERSION_DATE = "17-07-2023"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -1723,9 +1723,13 @@ def read_signal(signal_name: str, file_name: str):
                 error_lines = True
     # read parameters
     signal.params = {}
+    if len(xy) < 2:
+        signal.params[b'xlabel'] = 'Index'
     param_name = signal_name.replace('chan', 'paramchan')
     if param_name == signal_name or param_name not in files:
         param_name = signal_name.replace('.txt', '_parameters.txt')
+    if param_name == signal_name or param_name not in files:
+        param_name = signal_name.replace('/', '/param')
     if param_name != signal_name and param_name in files:
         with zipfile.ZipFile(file_name, 'r') as zipobj:
             pbuf = zipobj.read(param_name)
@@ -1737,8 +1741,6 @@ def read_signal(signal_name: str, file_name: str):
                     signal.params[kv[0].strip()] = kv[1].strip()
                 else:
                     error_lines = kv
-    if len(xy) < 2:
-        signal.params[b'xlabel'] = 'Index'
     # scale to units
     try:
         signal.scale = float(signal.params[b'display_unit'])
