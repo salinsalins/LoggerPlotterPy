@@ -54,8 +54,8 @@ from log_exception import log_exception
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '11.8'
-VERSION_DATE = "17-07-2023"
+APPLICATION_VERSION = '11.9'
+VERSION_DATE = "18-07-2023"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -1322,6 +1322,7 @@ class VLine(QFrame):
 class Signal:
     def __init__(self, x=None, y=numpy.zeros(1), params: dict = None, name='empty_signal',
                  unit='', scale=1.0, value=float('nan'), marks: dict = None):
+        self.logger = config_logger()
         self.data_name = name
         self.x = x
         self.y = y
@@ -1425,6 +1426,7 @@ class Signal:
                             mark_start = int(index[0])
                             mark_length = int(index[-1] - index[0]) + 1
                             signal.marks[mark_name] = (mark_start, mark_length, mark_value)
+                            # self.logger.debug('%s(%s:%s) = %s', mark_name, mark_start, mark_start+mark_length, mark_value)
                 except:
                     log_exception(self, 'Mark %s value can not be computed for %s' % (mark_name, signal.name),
                                   level=logging.INFO)
