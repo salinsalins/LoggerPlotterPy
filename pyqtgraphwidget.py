@@ -132,8 +132,8 @@ class MplAdapter:
     def draw(self, val=''):
         pass
 
-    def plot(self, x, y, color='#ffffff', width=1):
-        self.item.plot(x, y, pen={'color': color, 'width': width})
+    def plot(self, x, y, color='#ffffff', width=1, symbol=None):
+        self.item.plot(x, y, pen={'color': color, 'width': width}, symbol=symbol)
         # pci = pyqtgraph.PlotCurveItem(x, y, pen={'color': color, 'width': width})
         # self.item.addItem(pci)
 

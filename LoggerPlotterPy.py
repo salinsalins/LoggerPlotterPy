@@ -54,8 +54,8 @@ from log_exception import log_exception
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '11.9'
-VERSION_DATE = "18-07-2023"
+APPLICATION_VERSION = '11.10'
+VERSION_DATE = "20-07-2023"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -570,7 +570,7 @@ class MainWindow(QMainWindow):
                 r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
                                                self.tableWidget_3.columnCount() - 1)
                 self.tableWidget_3.setRangeSelected(r, True)
-                log_exception(self)
+                log_exception(self, )
             finally:
                 self.tableWidget_3.setUpdatesEnabled(True)
                 self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
@@ -700,7 +700,10 @@ class MainWindow(QMainWindow):
                     mplw.setXRange(x_min, x_max)
             except:
                 pass
-            axes.plot(s.x, s.y, color=self.trace_color)
+            if len(s.x) > 20:
+                axes.plot(s.x, s.y, color=self.trace_color)
+            else:
+                axes.plot(s.x, s.y, color=self.trace_color, symbol='o')
             # plot 'mark' highlight
             if 'mark' in s.marks:
                 m1 = s.marks['mark'][0]
