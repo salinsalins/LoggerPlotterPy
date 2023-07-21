@@ -300,11 +300,16 @@ class MainWindow(QMainWindow):
         self.sb_combo.addItems(jsonarr)
         self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
 
-    def hide_plot(self, signal_name):
+    def hide_plot(self, signal_name, index=-1):
         text = self.plainTextEdit_7.toPlainText()
         if signal_name not in text:
             return
-        new_text = remove_from_text(text, signal_name)
+        if index > 0:
+            disp_lines = text.split('\n')
+            disp_lines.pop(index)
+            new_text = '\n'.join(disp_lines)
+        else:
+            new_text = remove_from_text(text, signal_name)
         if new_text == '':
             return
         self.plainTextEdit_7.setPlainText(new_text)
@@ -316,7 +321,7 @@ class MainWindow(QMainWindow):
         self.save_settings()
         self.plot_signals()
 
-    def show_plot(self, signal_name):
+    def show_plot(self, signal_name, index=-1):
         cursor = QtGui.QCursor()
         position = cursor.pos()
         hidden = self.plainTextEdit_6.toPlainText()
@@ -340,11 +345,12 @@ class MainWindow(QMainWindow):
         self.save_local_settings()
         self.plot_signals()
 
-    def show_plot_on_right(self, signal_name):
+    def show_plot_on_right(self, signal_name, index=-1):
         cursor = QtGui.QCursor()
         position = cursor.pos()
         hidden = self.plainTextEdit_6.toPlainText()
         displayed = self.plainTextEdit_7.toPlainText()
+        disp_lines = displayed.split('\n')
         lines = (displayed + '\n' + hidden).split('\n')
         lines.sort()
         menu = QMenu()
@@ -358,9 +364,14 @@ class MainWindow(QMainWindow):
         action = menu.exec(position)
         if action is None:
             return
-        displayed = remove_from_text(displayed, action.text())
-        displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
-        self.plainTextEdit_7.setPlainText(displayed)
+        if index > 0:
+            disp_lines = displayed.split('\n')
+            disp_lines.insert(index+1, action.text())
+            self.plainTextEdit_7.setPlainText('\n'.join(disp_lines))
+        else:
+            displayed = remove_from_text(displayed, action.text())
+            displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
+            self.plainTextEdit_7.setPlainText(displayed)
         self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
         self.save_settings()
         self.save_local_settings()

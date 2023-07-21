@@ -27,10 +27,12 @@ class CustomViewBox(pyqtgraph.ViewBox):
         # self.setBorder(pen=('green', 5))
         self.my_menu = QMenu()
         # self.my_menu.setTitle("Double click test menu")
+        # self.my_menu.addAction('Plot Info')
+        # self.my_menu.addSeparator()
         self.my_menu.addAction('Hide plot')
-        self.my_menu.addAction('Show plot')
+        self.my_menu.addAction('Show new plot')
         self.my_menu.addSeparator()
-        self.my_menu.addAction('Show on right')
+        self.my_menu.addAction('Show plot (all)')
 
     # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
@@ -41,11 +43,11 @@ class CustomViewBox(pyqtgraph.ViewBox):
             if action is None:
                 return
             if action.text() == 'Hide plot':
-                self.mplw.my_action.hide_plot(self.mplw.my_name)
+                self.mplw.my_action.hide_plot(self.mplw.my_name, self.mplw.my_index)
             elif action.text() == 'Show plot':
-                self.mplw.my_action.show_plot(self.mplw.my_name)
+                self.mplw.my_action.show_plot(self.mplw.my_name, self.mplw.my_index)
             elif action.text() == 'Show on right':
-                self.mplw.my_action.show_plot_on_right(self.mplw.my_name)
+                self.mplw.my_action.show_plot_on_right(self.mplw.my_name, self.mplw.my_index)
         elif ev.button() == QtCore.Qt.RightButton:
             ev.accept()
             if ev.double():
