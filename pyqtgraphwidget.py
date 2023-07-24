@@ -20,6 +20,7 @@ pyqtgraph.setConfigOption('leftButtonPan', False)
 
 
 class CustomViewBox(pyqtgraph.ViewBox):
+    MENU = ['Hide plot', 'Show new plot', 'Show plot (all)']
     def __init__(self, parent=None, *args, **kwds):
         super().__init__(parent, *args, **kwds)
         self.setMouseMode(self.RectMode)
@@ -29,10 +30,10 @@ class CustomViewBox(pyqtgraph.ViewBox):
         # self.my_menu.setTitle("Double click test menu")
         # self.my_menu.addAction('Plot Info')
         # self.my_menu.addSeparator()
-        self.my_menu.addAction('Hide plot')
-        self.my_menu.addAction('Show new plot')
+        self.my_menu.addAction(self.MENU[0])
+        self.my_menu.addAction(self.MENU[1])
         self.my_menu.addSeparator()
-        self.my_menu.addAction('Show plot (all)')
+        self.my_menu.addAction(self.MENU[2])
 
     # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
@@ -42,11 +43,11 @@ class CustomViewBox(pyqtgraph.ViewBox):
             action = self.my_menu.exec(ev.screenPos().toPoint())
             if action is None:
                 return
-            if action.text() == 'Hide plot':
+            if action.text() == self.MENU[0]:
                 self.mplw.my_action.hide_plot(self.mplw.my_name, self.mplw.my_index)
-            elif action.text() == 'Show plot':
+            elif action.text() == self.MENU[1]:
                 self.mplw.my_action.show_plot(self.mplw.my_name, self.mplw.my_index)
-            elif action.text() == 'Show on right':
+            elif action.text() == self.MENU[2]:
                 self.mplw.my_action.show_plot_on_right(self.mplw.my_name, self.mplw.my_index)
         elif ev.button() == QtCore.Qt.RightButton:
             ev.accept()
