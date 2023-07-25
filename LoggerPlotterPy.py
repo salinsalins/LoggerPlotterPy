@@ -54,7 +54,7 @@ from log_exception import log_exception
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '12.1'
+APPLICATION_VERSION = '12.2'
 VERSION_DATE = "25-07-2023"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -338,9 +338,14 @@ class MainWindow(QMainWindow):
         if action is None:
             return
         displayed = self.plainTextEdit_7.toPlainText()
-        displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
+        if index > 0:
+            disp_lines = displayed.split('\n')
+            disp_lines.insert(index+1, action.text())
+            displayed = '\n'.join(disp_lines)
+        else:
+            displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
         self.plainTextEdit_7.setPlainText(displayed)
-        self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
+        # self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
         self.save_settings()
         self.save_local_settings()
         self.plot_signals()
@@ -348,22 +353,21 @@ class MainWindow(QMainWindow):
     def show_plot_on_right(self, signal_name, index=-1):
         cursor = QtGui.QCursor()
         position = cursor.pos()
-        hidden = self.plainTextEdit_6.toPlainText()
-        displayed = self.plainTextEdit_7.toPlainText()
-        disp_lines = displayed.split('\n')
-        lines = (displayed + '\n' + hidden).split('\n')
-        lines.sort()
-        menu = QMenu()
+        signal_list = self.signal_list + self.extra_plots
         actions = []
-        for s in lines:
-            if s != '' and s != signal_name and s not in actions:
-                actions.append(s)
-                menu.addAction(s)
+        for s in signal_list:
+            if s.name != '' and s.name != signal_name and s.name not in actions:
+                actions.append(s.name)
+        actions.sort()
+        menu = QMenu()
+        for a in actions:
+            menu.addAction(a)
         if len(actions) <= 0:
             return
         action = menu.exec(position)
         if action is None:
             return
+        displayed = self.plainTextEdit_7.toPlainText()
         if index > 0:
             disp_lines = displayed.split('\n')
             disp_lines.insert(index+1, action.text())
@@ -372,7 +376,7 @@ class MainWindow(QMainWindow):
             displayed = remove_from_text(displayed, action.text())
             displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
             self.plainTextEdit_7.setPlainText(displayed)
-        self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
+        # self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
         self.save_settings()
         self.save_local_settings()
         self.plot_signals()
@@ -568,7 +572,7 @@ class MainWindow(QMainWindow):
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
                 zip_file_name = self.log_table(row_s, "File")['text']
-                self.logger.debug('Using zip File %s from %s', zip_file_name, folder)
+                self.logger.debug('Using zip File "%s" from %s', zip_file_name, folder)
                 self.data_file = DataFile(zip_file_name, folder=folder)
                 self.old_signal_list = self.signal_list + self.extra_plots
                 self.signal_list = self.data_file.read_all_signals()
@@ -650,6 +654,8 @@ class MainWindow(QMainWindow):
         col_count = 3
         l_count = layout.count()
         signal_list = self.signal_list + self.extra_plots
+        plot_order = self.plainTextEdit_7.toPlainText().split('\n')
+        ii = 0
         for c in signals:
             s = signal_list[c]
             # Use existing plot widgets or create new
@@ -664,7 +670,9 @@ class MainWindow(QMainWindow):
                 layout.addWidget(mplw, row, col)
             mplw.my_action = self
             mplw.my_name = s.name
-            mplw.my_index = jj
+            while plot_order[ii] != s.name:
+                ii += 1
+            mplw.my_index = ii
             col += 1
             if col >= col_count:
                 col = 0
@@ -1798,7 +1806,11 @@ class DataFile:
         self.files = []
         self.signals = []
         full_name = os.path.abspath(os.path.join(folder, file_name))
-        self.files = read_signal_list(full_name)
+        try:
+            self.files = read_signal_list(full_name)
+        except:
+            log_exception('Corrupt zip file %s', full_name)
+            self.files = []
         self.signals = self.find_signals()
         self.file_name = full_name
 
