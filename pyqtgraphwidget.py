@@ -3,6 +3,7 @@
 Created on 16 april 2021
 @author: Sanin
 '''
+import threading
 
 import pyqtgraph
 # import qtpy
@@ -52,9 +53,16 @@ class CustomViewBox(pyqtgraph.ViewBox):
         elif ev.button() == QtCore.Qt.RightButton:
             ev.accept()
             if ev.double():
+                self.timer.cancel()
                 pyqtgraph.ViewBox.mouseClickEvent(self, ev)
             else:
-                self.autoRange()
+                self.timer = threading.Timer(0.3, self.double_click_timer_handler)
+                self.timer.start()
+                # self.autoRange()
+
+    def double_click_timer_handler(self):
+        self.autoRange()
+        return True
 
     def mouseDragEvent(self, ev, **kwargs):
         if ev.button() != QtCore.Qt.LeftButton:
