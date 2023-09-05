@@ -6,21 +6,25 @@ Created on Jul 2, 2017
 """
 # s='s=%r;print(s%%s)';print(s%s)
 
+import os
 import sys
 
-if '../TangoUtils' not in sys.path: sys.path.append('../TangoUtils')
+
+u = os.path.dirname(os.path.realpath(sys.argv[0]))
+util_path = os.path.split(u)[0] + '\\TangoUtils'
+
+#if '../TangoUtils' not in sys.path: sys.path.append('../TangoUtils')
+if util_path not in sys.path: sys.path.append(util_path)
 
 # import gc
 import json
 import logging
 import math
-import os
 # import os.path
 import time
 import zipfile
 import datetime
 from functools import lru_cache
-
 import numpy
 
 # os.environ['QT_API'] = 'pyqt5'
