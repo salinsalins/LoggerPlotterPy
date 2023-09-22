@@ -58,7 +58,7 @@ from log_exception import log_exception
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '12.2'
+APPLICATION_VERSION = '12.3'
 VERSION_DATE = "25-07-2023"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -201,6 +201,7 @@ class MainWindow(QMainWindow):
         self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
         self.actionAbout.triggered.connect(self.show_about)
+        self.menuToday.aboutToShow.connect(self.select_today_file)
         # main window decoration
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.setWindowTitle(APPLICATION_NAME + ' version ' + APPLICATION_VERSION)
