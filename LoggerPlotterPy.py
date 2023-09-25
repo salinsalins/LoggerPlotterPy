@@ -11,7 +11,7 @@ import sys
 
 
 u = os.path.dirname(os.path.realpath(sys.argv[0]))
-util_path = os.path.split(u)[0] + '\\TangoUtils'
+util_path = os.path.join(os.path.split(u)[0], 'TangoUtils')
 
 #if '../TangoUtils' not in sys.path: sys.path.append('../TangoUtils')
 if util_path not in sys.path: sys.path.append(util_path)
