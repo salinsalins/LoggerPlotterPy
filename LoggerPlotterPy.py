@@ -10,11 +10,13 @@ import os
 import sys
 
 
-u = os.path.dirname(os.path.realpath(sys.argv[0]))
-util_path = os.path.join(os.path.split(u)[0], 'TangoUtils')
+# u = os.path.dirname(os.path.realpath(sys.argv[0]))
+# util_path = os.path.join(os.path.split(u)[0], 'TangoUtils')
 
 #if '../TangoUtils' not in sys.path: sys.path.append('../TangoUtils')
-if util_path not in sys.path: sys.path.append(util_path)
+# if util_path not in sys.path: sys.path.append(util_path)
+
+import utils
 
 # import gc
 import json
@@ -196,12 +198,12 @@ class MainWindow(QMainWindow):
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
-        self.actionToday.triggered.connect(self.select_today_file)
+        # self.actionToday.triggered.connect(self.select_today_file)
         self.actionOpen.triggered.connect(self.select_log_file)
         self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
         self.actionAbout.triggered.connect(self.show_about)
-        self.menuToday.aboutToShow.connect(self.select_today_file)
+        # self.menuToday.aboutToShow.connect(self.select_today_file)
         # main window decoration
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.setWindowTitle(APPLICATION_NAME + ' version ' + APPLICATION_VERSION)
@@ -278,7 +280,7 @@ class MainWindow(QMainWindow):
         # default settings
         self.set_default_settings()
         #
-        print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'started')
+        print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'has been started')
         #
         # restore settings
         self.restore_settings()

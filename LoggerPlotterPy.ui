@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
+    <width>1125</width>
     <height>847</height>
    </rect>
   </property>
@@ -105,8 +105,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>955</width>
-                 <height>555</height>
+                 <width>1063</width>
+                 <height>522</height>
                 </rect>
                </property>
                <property name="sizePolicy">
@@ -152,8 +152,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>974</width>
-                 <height>210</height>
+                 <width>1091</width>
+                 <height>218</height>
                 </rect>
                </property>
                <property name="sizePolicy">
@@ -258,22 +258,22 @@
                   <attribute name="horizontalHeaderVisible">
                    <bool>false</bool>
                   </attribute>
-                  <attribute name="horizontalHeaderMinimumSectionSize">
-                   <number>35</number>
-                  </attribute>
                   <attribute name="horizontalHeaderDefaultSectionSize">
                    <number>100</number>
                   </attribute>
                   <attribute name="horizontalHeaderHighlightSections">
                    <bool>true</bool>
                   </attribute>
+                  <attribute name="horizontalHeaderMinimumSectionSize">
+                   <number>35</number>
+                  </attribute>
                   <attribute name="verticalHeaderVisible">
                    <bool>false</bool>
                   </attribute>
-                  <attribute name="verticalHeaderMinimumSectionSize">
+                  <attribute name="verticalHeaderDefaultSectionSize">
                    <number>35</number>
                   </attribute>
-                  <attribute name="verticalHeaderDefaultSectionSize">
+                  <attribute name="verticalHeaderMinimumSectionSize">
                    <number>35</number>
                   </attribute>
                  </widget>
@@ -797,8 +797,8 @@ File</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1000</width>
-     <height>23</height>
+     <width>1125</width>
+     <height>34</height>
     </rect>
    </property>
    <property name="font">
@@ -838,14 +838,8 @@ File</string>
     </property>
     <addaction name="actionAbout"/>
    </widget>
-   <widget class="QMenu" name="menuToday">
-    <property name="title">
-     <string>Today</string>
-    </property>
-   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
-   <addaction name="menuToday"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar">
