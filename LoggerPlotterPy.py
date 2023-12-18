@@ -9,20 +9,13 @@ Created on Jul 2, 2017
 import os
 import sys
 
-
-# u = os.path.dirname(os.path.realpath(sys.argv[0]))
-# util_path = os.path.join(os.path.split(u)[0], 'TangoUtils')
-
-#if '../TangoUtils' not in sys.path: sys.path.append('../TangoUtils')
-# if util_path not in sys.path: sys.path.append(util_path)
-
-import utils
+util_path = os.path.realpath('../TangoUtils')
+if util_path not in sys.path: sys.path.append(util_path)
 
 # import gc
 import json
 import logging
 import math
-# import os.path
 import time
 import zipfile
 import datetime
@@ -66,7 +59,7 @@ CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
 CELL_FONT = QFont('Open Sans', 14)
-CELL_FONT_BOLD = QFont('Open Sans', 14, weight=QFont.Bold)
+CELL_FONT_BOLD = QFont('Open Sans', 14, QFont.Bold)
 STATUS_BAR_FONT = CELL_FONT
 CLOCK_FONT = CELL_FONT_BOLD
 # colors
@@ -1980,12 +1973,15 @@ class LogTable:
         fields[0] = "Time=" + tm
         # iterate rest fields for key=value pairs
         keys_with_errors = []
+        dup_flag = True
         for field in fields:
             kv = field.split("=")
             key = kv[0].strip()
             val = kv[1].strip()
             if key in row:
-                self.logger.warning('Duplicate keys in line %s)', line)
+                if dup_flag:
+                    self.logger.warning('Duplicate key "%s" in line "%s ..."', key, line[:25])
+                    dup_flag = False
                 keys_with_errors.append(key)
             else:
                 row[key] = {'text': val}
