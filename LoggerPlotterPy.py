@@ -115,7 +115,7 @@ def calculate_extra_plot(p, file_name):
             if key != '':
                 x = result['x']
                 y = result['y']
-                marks = result.get('marks', None)
+                marks = result.get('marks', {})
                 # convert mark time to index
                 if marks:
                     for m in marks:
