@@ -1277,7 +1277,7 @@ class MainWindow(QMainWindow):
             self.logger.debug('Data root does not exist')
         return root
 
-    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+    def closeEvent(self, a0: QtGui.QCloseEvent, **kwargs) -> None:
         self.save_local_settings()
         self.save_settings()
         a0.accept()
