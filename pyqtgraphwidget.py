@@ -22,6 +22,7 @@ pyqtgraph.setConfigOption('leftButtonPan', False)
 
 class CustomViewBox(pyqtgraph.ViewBox):
     MENU = ['Hide plot', 'Show new plot', 'Show plot (all)']
+
     def __init__(self, parent=None, *args, **kwds):
         super().__init__(parent, *args, **kwds)
         self.setMouseMode(self.RectMode)

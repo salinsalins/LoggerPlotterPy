@@ -160,6 +160,7 @@ class MainWindow(QMainWindow):
         self.log_file_name = None
         self.data_root = None
         self.conf = {}
+        self.rmb = {}
         self.last_selection = -1
         self.current_selection = -1
         self.signal_list = []
@@ -178,6 +179,8 @@ class MainWindow(QMainWindow):
         self.last_cell_row = -1
         self.last_cell_column = -1
         self.log_table = None
+        self.cut_long_names = True
+        self.fill_empty_lists = True
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
         # Load the UI
