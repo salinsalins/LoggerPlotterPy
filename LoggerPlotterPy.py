@@ -8,7 +8,6 @@ Created on Jul 2, 2017
 
 import os
 import sys
-
 util_path = os.path.realpath('../TangoUtils')
 if util_path not in sys.path: sys.path.append(util_path)
 
@@ -1171,22 +1170,11 @@ class MainWindow(QMainWindow):
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
                 self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
             # colors
-            try:
-                self.trace_color = CONFIG['colors']['trace']
-            except:
-                pass
-            try:
-                self.previous_color = CONFIG['colors']['previous']
-            except:
-                pass
-            try:
-                self.mark_color = CONFIG['colors']['mark']
-            except:
-                pass
-            try:
-                self.zero_color = CONFIG['colors']['zero']
-            except:
-                pass
+            if 'colors' in self.conf:
+                self.trace_color = self.conf['colors'].get('trace', self.trace_color)
+                self.previous_color = self.conf['colors'].get('previous', self.previous_color)
+                self.mark_color = self.conf['colors'].get('mark', self.mark_color)
+                self.zero_color = self.conf['colors'].get('zero', self.zero_color)
             # Last folder
             if 'folder' in self.conf:
                 self.log_file_name = self.conf['folder']
@@ -1225,6 +1213,10 @@ class MainWindow(QMainWindow):
             self.conf['cut_long_names'] = self.cut_long_names
             self.fill_empty_lists = self.conf.get('fill_empty_lists', True)
             self.conf['fill_empty_lists'] = self.fill_empty_lists
+            #
+            if 'right_mouse_button' in self.conf:
+                self.rmb = self.conf['right_mouse_button']
+            #
             self.logger.debug('Configuration restored from %s' % full_name)
             return True
         except:
