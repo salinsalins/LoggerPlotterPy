@@ -142,6 +142,8 @@ def calculate_extra_plot(p, file_name):
             config_logger.logger.debug('Plot %s has been calculated' % s.name)
         else:
             config_logger.logger.info('Can not calculate signal for "%s ..."\n', p[:20])
+    except SignalNotFoundError as e:
+        config_logger.logger.warning(e)
     except:
         log_exception(config_logger.logger, 'Plot eval() error in "%s ..."\n' % p[:20], level=logging.INFO)
     return s
