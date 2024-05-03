@@ -672,6 +672,7 @@ class MainWindow(QMainWindow):
                 mplw.ntb.setIconSize(QSize(18, 18))
                 mplw.ntb.setFixedSize(300, 24)
                 layout.addWidget(mplw, row, col)
+                # mplw.getViewBox().my_menu.addAction('oooo')
             mplw.my_action = self
             mplw.my_name = s.name
             while plot_order[ii] != s.name:
