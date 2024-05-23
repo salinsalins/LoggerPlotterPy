@@ -1727,7 +1727,7 @@ def read_signal(signal_name: str, file_name: str):
     signal.x = numpy.zeros(n, dtype=numpy.float64)
     signal.y = numpy.zeros(n, dtype=numpy.float64)
     xy = []
-    error_lines = False
+    error_lines = []
     for i, line in enumerate(lines):
         xy = line.replace(b',', b'.').split(b';')
         if len(xy) > 1:
@@ -1735,21 +1735,21 @@ def read_signal(signal_name: str, file_name: str):
                 signal.x[i] = float(xy[0])
             except:
                 signal.x[i] = numpy.nan
-                error_lines = True
+                error_lines.append(i)
             try:
                 signal.y[i] = float(xy[1])
             except:
                 signal.y[i] = numpy.nan
-                error_lines = True
+                error_lines.append(i)
         elif len(xy) > 0:
             signal.x[i] = i
             try:
                 signal.y[i] = float(xy[0])
             except:
                 signal.y[i] = numpy.nan
-                error_lines = True
+                error_lines.append(i)
         else:
-            error_lines = True
+            error_lines.append(i)
             # signal.x[i] = numpy.nan
             # signal.y[i] = numpy.nan
     # read parameters
@@ -1771,7 +1771,7 @@ def read_signal(signal_name: str, file_name: str):
                 if len(kv) >= 2:
                     signal.params[kv[0].strip()] = kv[1].strip()
                 else:
-                    error_lines = kv
+                    error_lines.append(kv)
     # scale to units
     try:
         signal.scale = float(signal.params[b'display_unit'])
