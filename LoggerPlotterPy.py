@@ -21,6 +21,8 @@ import datetime
 from functools import lru_cache
 import numpy
 
+np = numpy
+
 # os.environ['QT_API'] = 'pyqt5'
 # os.environ['QT_API'] = 'pyside6'
 
