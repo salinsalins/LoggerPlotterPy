@@ -589,7 +589,7 @@ class MainWindow(QMainWindow):
                 r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
                                                self.tableWidget_3.columnCount() - 1)
                 self.tableWidget_3.setRangeSelected(r, True)
-                log_exception(self, )
+                log_exception(self)
             finally:
                 self.tableWidget_3.setUpdatesEnabled(True)
                 self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
@@ -1715,6 +1715,9 @@ def read_signal(signal_name: str, file_name: str):
     # lines = buf.split(endline)
     lines = buf.splitlines()
     n = len(lines)
+    if n < 2:
+        # log("%s Not a signal" % signal_name)
+        return None
     if lines[-1].strip() == '':
         n -= 1
     if n < 2:
