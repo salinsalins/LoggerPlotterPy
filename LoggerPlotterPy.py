@@ -1715,21 +1715,21 @@ def read_signal(signal_name: str, file_name: str):
     #     buf = buf.replace(b'\r', b'\n')
     #     endline = b'\n'
     # lines = buf.split(endline)
+    if len(buf) < 2:
+        return None
     lines = buf.splitlines()
     n = len(lines)
     if n < 2:
         # log("%s Not a signal" % signal_name)
         return None
     if lines[-1].strip() == '':
-        n -= 1
-    if n < 2:
-        # log("%s Not a signal" % signal_name)
         return None
     signal.x = numpy.zeros(n, dtype=numpy.float64)
     signal.y = numpy.zeros(n, dtype=numpy.float64)
     xy = []
+    error_lines = False
     for i, line in enumerate(lines):
-        xy = line.replace(b',', b'.').split(b'; ')
+        xy = line.replace(b',', b'.').split(b';')
         if len(xy) > 1:
             try:
                 signal.x[i] = float(xy[0])
@@ -1748,6 +1748,10 @@ def read_signal(signal_name: str, file_name: str):
             except:
                 signal.y[i] = numpy.nan
                 error_lines = True
+        else:
+            error_lines = True
+            # signal.x[i] = numpy.nan
+            # signal.y[i] = numpy.nan
     # read parameters
     signal.params = {}
     if len(xy) < 2:
