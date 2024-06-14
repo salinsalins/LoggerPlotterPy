@@ -657,7 +657,7 @@ class MainWindow(QMainWindow):
         jj = 0
         col = 0
         row = 0
-        col_count = 3
+        col_count = self.conf['columns']
         l_count = layout.count()
         signal_list = self.signal_list + self.extra_plots
         plot_order = self.plainTextEdit_7.toPlainText().split('\n')
@@ -670,9 +670,9 @@ class MainWindow(QMainWindow):
                 mplw = layout.itemAt(jj).widget()
             else:
                 # create new plot widget
-                mplw = MplWidget(height=300, width=300)
+                mplw = MplWidget(height=self.conf['w_height'], width=self.conf['w_width'])
                 mplw.ntb.setIconSize(QSize(18, 18))
-                mplw.ntb.setFixedSize(300, 24)
+                mplw.ntb.setFixedSize(self.conf['w_width'], 24)
                 layout.addWidget(mplw, row, col)
                 # mplw.getViewBox().my_menu.addAction('oooo')
             mplw.my_action = self
@@ -1135,7 +1135,7 @@ class MainWindow(QMainWindow):
             config['cb_2'] = self.checkBox_2.isChecked()
             config['cb_3'] = self.checkBox_3.isChecked()
             config['cb_4'] = self.checkBox_4.isChecked()
-            config['cb_5'] = self.checkBox_6.isChecked()
+            config['cb_5'] = self.checkBox_5.isChecked()
             config['cb_6'] = self.checkBox_6.isChecked()
             # convert to json and write
             with open(full_name, 'w') as configfile:
@@ -1207,7 +1207,7 @@ class MainWindow(QMainWindow):
             if 'cb_4' in self.conf:
                 self.checkBox_4.setChecked(self.conf['cb_4'])
             if 'cb_5' in self.conf:
-                self.checkBox_4.setChecked(self.conf['cb_5'])
+                self.checkBox_5.setChecked(self.conf['cb_5'])
             if 'cb_6' in self.conf:
                 self.checkBox_6.setChecked(self.conf['cb_6'])
             if 'history' in self.conf:
@@ -1224,6 +1224,12 @@ class MainWindow(QMainWindow):
             #
             if 'right_mouse_button' in self.conf:
                 self.rmb = self.conf['right_mouse_button']
+            if 'columns' not in self.conf:
+                self.conf['columns'] = 3
+            if 'w_height' not in self.conf:
+                self.conf['w_height'] = 300
+            if 'w_width' not in self.conf:
+                self.conf['w_width'] = 300
             #
             self.logger.debug('Configuration restored from %s' % full_name)
             return True
