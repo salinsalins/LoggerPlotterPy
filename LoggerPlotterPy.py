@@ -1150,6 +1150,11 @@ class MainWindow(QMainWindow):
     #     print('resize', args, args[0].size())
     #     super().resizeEvent(*args)
     def restore_settings(self, folder='', file_name=None):
+        self.conf = {
+            'columns': 3,
+            'w_height': 300,
+            'w_width': 300
+        }
         global CONFIG_FILE
         if file_name is None:
             file_name = CONFIG_FILE
@@ -1157,7 +1162,7 @@ class MainWindow(QMainWindow):
         try:
             with open(full_name, 'r') as configfile:
                 s = configfile.read()
-            self.conf = json.loads(s)
+            self.conf.update(json.loads(s))
             global CONFIG
             CONFIG = self.conf
             # Log level restore
@@ -1224,12 +1229,6 @@ class MainWindow(QMainWindow):
             #
             if 'right_mouse_button' in self.conf:
                 self.rmb = self.conf['right_mouse_button']
-            if 'columns' not in self.conf:
-                self.conf['columns'] = 3
-            if 'w_height' not in self.conf:
-                self.conf['w_height'] = 300
-            if 'w_width' not in self.conf:
-                self.conf['w_width'] = 300
             #
             self.logger.debug('Configuration restored from %s' % full_name)
             return True
