@@ -1248,6 +1248,21 @@ class MainWindow(QMainWindow):
             self.restore_settings()
             return
         self.restore_local_settings()
+
+        layout = self.scrollAreaWidgetContents_3.layout()
+        jj = 0
+        # Remove unused plot widgets
+        while jj < layout.count():
+            item = layout.takeAt(layout.count() - 1)
+            if not item:
+                continue
+            w = item.widget()
+            if w:
+                layout.removeWidget(w)
+                layout.removeItem(item)
+                w.deleteLater()
+                del w
+        layout.update()
         self.parse_folder()
         # self.table_selection_changed(True)
 
