@@ -197,7 +197,7 @@ class MainWindow(QMainWindow):
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
-        # self.actionToday.triggered.connect(self.select_today_file)
+        self.actionToday.triggered.connect(self.select_today_file)
         self.actionOpen.triggered.connect(self.select_log_file)
         self.actionPlot.triggered.connect(self.show_plot_pane)
         self.actionParameters.triggered.connect(self.show_param_pane)
