@@ -1,17 +1,14 @@
 # coding: utf-8
 """
 Created on Jul 2, 2017
-
 @author: sanin
 """
 # s='s=%r;print(s%%s)';print(s%s)
 
 import os
 import sys
-util_path = os.path.realpath('../TangoUtils')
-if util_path not in sys.path: sys.path.append(util_path)
 
-# import gc
+sys.path.insert(0, os.path.realpath('../TangoUtils'))
 import json
 import logging
 import math
@@ -21,41 +18,42 @@ import datetime
 from functools import lru_cache
 import numpy
 
-np = numpy
-
-# os.environ['QT_API'] = 'pyqt5'
-# os.environ['QT_API'] = 'pyside6'
-
-from PyQt5 import QtGui
-from PyQt5.QtGui import QFont, QColor
-from PyQt5 import uic
-from PyQt5 import QtCore
-from PyQt5.QtCore import QPoint, QSize
-from PyQt5.QtCore import QTimer
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetSelectionRange
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtWidgets import QFrame, QMenu
-from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
-from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
+from PySide6 import QtGui
+from PySide6.QtGui import QFont, QColor
+from PySide6.QtUiTools import QUiLoader
+# from PyQt5 import uic
+from PySide6 import QtCore
+from PySide6.QtCore import QFile, QPoint, QSize
+from PySide6.QtCore import QTimer
+# from PyQt5 import QtWidgets
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetSelectionRange
+from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QFrame, QMenu
+from PySide6.QtWidgets import QLabel, QComboBox, QMessageBox
+from PySide6.QtWidgets import QTableWidgetItem, QHeaderView
 
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
+
+# util_path = os.path.realpath('../TangoUtils')
+# if util_path not in sys.path: sys.path.append(util_path)
+# del util_path
+# sys.path.insert(0, os.path.realpath('../TangoUtils'))
 
 from QtUtils import WidgetLogHandler
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
 from log_exception import log_exception
 
-# np = numpy
+np = numpy
 
 # from config import *
 
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '12.3'
-VERSION_DATE = "25-07-2023"
+APPLICATION_VERSION = '14.0'
+VERSION_DATE = os.path.getmtime(__file__)
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -188,7 +186,14 @@ class MainWindow(QMainWindow):
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
         # Load the UI
-        uic.loadUi(UI_FILE, self)
+        # uic.loadUi(UI_FILE, self)
+        ui_file = QFile(UI_FILE)
+        ui_file.open(QFile.ReadOnly)
+        loader = QUiLoader()
+        self.window = loader.load(ui_file)
+        ui_file.close()
+        self.window.on_quit = self.on_quit
+        # self.window.show()
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
@@ -209,9 +214,9 @@ class MainWindow(QMainWindow):
         # table: header
         header = self.tableWidget_3.horizontalHeader()
         # header.setSectionResizeMode(QHeaderView.Stretch)
-        header.setSectionResizeMode(QHeaderView.Interactive)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         # table: header right click menu
-        header.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        header.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         header.customContextMenuRequested.connect(self.table_header_right_click_menu_wrap)
         # table: style tuning
         self.tableWidget_3.setStyleSheet("""
@@ -226,49 +231,50 @@ class MainWindow(QMainWindow):
             """)
         #
         # status bar
-        self.statusBar().reformat()
-        self.statusBar().setStyleSheet('border: 0;')
-        self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
+        sb = self.window.statusBar()
+        sb.reformat()
+        sb.setStyleSheet('border: 0;')
+        sb.setStyleSheet("QStatusBar::item {border: none;}")
         # status bar: font
-        self.statusBar().setFont(STATUS_BAR_FONT)
+        sb.setFont(STATUS_BAR_FONT)
         # status bar: previous shot time
         self.sb_prev_shot_time = QLabel("**:**:**")
         self.sb_prev_shot_time.setFont(STATUS_BAR_FONT)
         self.sb_prev_shot_time.setStyleSheet('border: 0; color:  black; background: yellow;')
         self.sb_prev_shot_time.setText("**:**:**")
         self.sb_prev_shot_time.setVisible(False)
-        self.statusBar().addWidget(self.sb_prev_shot_time)
-        self.statusBar().addWidget(VLine())  # <---
+        sb.addWidget(self.sb_prev_shot_time)
+        sb.addWidget(VLine())  # <---
         # status bar: green trace time
         self.sb_green_time = QLabel("**:**:**")
         self.sb_green_time.setFont(STATUS_BAR_FONT)
         self.sb_green_time.setStyleSheet('border: 0; color:  black; background: green;')
         self.sb_green_time.setText("**:**:**")
         self.sb_green_time.setVisible(False)
-        self.statusBar().addWidget(self.sb_green_time)
-        self.statusBar().addWidget(VLine())  # <---
+        sb.addWidget(self.sb_green_time)
+        sb.addWidget(VLine())  # <---
         # status bar: config select combo
         self.sb_combo = QComboBox(self.statusBar())
         self.sb_combo.setFont(STATUS_BAR_FONT)
-        self.statusBar().addWidget(self.sb_combo)
-        self.statusBar().addWidget(VLine())  # <---
+        sb.addWidget(self.sb_combo)
+        sb.addWidget(VLine())  # <---
         self.fill_config_widget()
         # status bar: clock label
-        self.statusBar().addPermanentWidget(VLine())  # <---
+        sb.addPermanentWidget(VLine())  # <---
         self.sb_clock = QLabel(" ")
         self.sb_clock.setFont(CLOCK_FONT)
-        self.statusBar().addPermanentWidget(self.sb_clock)
+        sb.addPermanentWidget(self.sb_clock)
         # status bar: message with data file name
         self.sb_text = QLabel("")
         self.sb_text.setFont(STATUS_BAR_FONT)
-        self.statusBar().addWidget(self.sb_text)
-        self.statusBar().addWidget(VLine())  # <---
+        sb.addWidget(self.sb_text)
+        sb.addWidget(VLine())  # <---
         self.sb_text.setText("Starting...")
         # status bar: log show widget
         self.sb_log = QLabel("")
         self.sb_log.setFont(STATUS_BAR_FONT)
         self.sb_log.time = time.time()
-        self.statusBar().addWidget(self.sb_log)
+        sb.addWidget(self.sb_log)
         # status bar: log show widget: log handler
         sbhandler = WidgetLogHandler(self.sb_log)
         sbhandler.setLevel(logging.INFO)
@@ -290,10 +296,21 @@ class MainWindow(QMainWindow):
         #
         self.parse_folder()
 
+    def show(self):
+        self.window.show()
+
+    def __getattr__(self, name):
+        if hasattr(self.window, name):
+            attr = getattr(self.window, name)
+            setattr(self, name, attr)
+            return attr
+        else:
+            raise AttributeError()
+
     def fill_config_widget(self):
         global CONFIG_FILE
         try:
-            self.sb_combo.disconnect()
+            self.sb_combo.currentIndexChanged.disconnect(self.config_selection_changed)
         except:
             pass
         self.sb_combo.clear()
@@ -346,7 +363,7 @@ class MainWindow(QMainWindow):
         displayed = self.plainTextEdit_7.toPlainText()
         if index > 0:
             disp_lines = displayed.split('\n')
-            disp_lines.insert(index+1, action.text())
+            disp_lines.insert(index + 1, action.text())
             displayed = '\n'.join(disp_lines)
         else:
             displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
@@ -376,7 +393,7 @@ class MainWindow(QMainWindow):
         displayed = self.plainTextEdit_7.toPlainText()
         if index > 0:
             disp_lines = displayed.split('\n')
-            disp_lines.insert(index+1, action.text())
+            disp_lines.insert(index + 1, action.text())
             self.plainTextEdit_7.setPlainText('\n'.join(disp_lines))
         else:
             displayed = remove_from_text(displayed, action.text())
@@ -468,7 +485,7 @@ class MainWindow(QMainWindow):
 
     def show_about(self):
         QMessageBox.information(self, 'About', APPLICATION_NAME + 'version ' + APPLICATION_VERSION +
-                                '\nShows saved shot logs and plot traces.', QMessageBox.Ok)
+                                '\nShows saved shot logs and plot traces.', QMessageBox.StandardButton.Ok)
 
     def show_plot_pane(self):
         self.stackedWidget.setCurrentIndex(0)
@@ -980,7 +997,7 @@ class MainWindow(QMainWindow):
                 return
             file_name = os.path.abspath(file_name)
             self.sb_text.setText('Reading %s' % file_name)
-            self.setCursor(QtCore.Qt.WaitCursor)
+            self.setCursor(QtCore.Qt.CursorShape.WaitCursor)
             self.logger.debug('Parsing %s', file_name)
             # get extra columns
             self.extra_cols = self.get_extra_columns()
@@ -1018,7 +1035,7 @@ class MainWindow(QMainWindow):
             raise
         except:
             log_exception(self, 'Exception in parseFolder')
-        self.setCursor(QtCore.Qt.ArrowCursor)
+        self.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
         self.update_status_bar()
         return
 
@@ -1358,7 +1375,7 @@ class VLine(QFrame):
     # a simple VLine, like the one you get from designer
     def __init__(self):
         super(VLine, self).__init__()
-        self.setFrameShape(self.VLine | self.Sunken)
+        self.setFrameShape(QFrame.Shape.VLine)
 
 
 class Signal:

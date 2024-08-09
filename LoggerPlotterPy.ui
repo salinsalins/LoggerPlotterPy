@@ -105,8 +105,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>1063</width>
-                 <height>522</height>
+                 <width>1080</width>
+                 <height>555</height>
                 </rect>
                </property>
                <property name="sizePolicy">
@@ -152,8 +152,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>1091</width>
-                 <height>218</height>
+                 <width>1099</width>
+                 <height>210</height>
                 </rect>
                </property>
                <property name="sizePolicy">
@@ -258,22 +258,22 @@
                   <attribute name="horizontalHeaderVisible">
                    <bool>false</bool>
                   </attribute>
+                  <attribute name="horizontalHeaderMinimumSectionSize">
+                   <number>35</number>
+                  </attribute>
                   <attribute name="horizontalHeaderDefaultSectionSize">
                    <number>100</number>
                   </attribute>
                   <attribute name="horizontalHeaderHighlightSections">
                    <bool>true</bool>
                   </attribute>
-                  <attribute name="horizontalHeaderMinimumSectionSize">
-                   <number>35</number>
-                  </attribute>
                   <attribute name="verticalHeaderVisible">
                    <bool>false</bool>
                   </attribute>
-                  <attribute name="verticalHeaderDefaultSectionSize">
+                  <attribute name="verticalHeaderMinimumSectionSize">
                    <number>35</number>
                   </attribute>
-                  <attribute name="verticalHeaderMinimumSectionSize">
+                  <attribute name="verticalHeaderDefaultSectionSize">
                    <number>35</number>
                   </attribute>
                  </widget>
@@ -309,7 +309,7 @@
          <widget class="QFrame" name="frame_3">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>2</horstretch>
+            <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
@@ -529,7 +529,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>100</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -798,7 +798,7 @@ File</string>
      <x>0</x>
      <y>0</y>
      <width>1125</width>
-     <height>34</height>
+     <height>23</height>
     </rect>
    </property>
    <property name="font">

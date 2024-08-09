@@ -4,11 +4,13 @@ Created on 16 april 2021
 @author: Sanin
 '''
 import threading
+import os
 
+os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 import pyqtgraph
 # import qtpy
 # from qtpy.QtWidgets import QMenu
-from PyQt5.QtWidgets import QMenu
+from PySide6.QtWidgets import QMenu
 from pyqtgraph.Qt import QtCore
 
 # pg = pyqtgraph
@@ -21,7 +23,7 @@ pyqtgraph.setConfigOption('leftButtonPan', False)
 
 
 class CustomViewBox(pyqtgraph.ViewBox):
-    MENU = ['Hide plot', 'Show new plot', 'Show plot (all)']
+    MENU = ['Hide plot', 'Show new plot', 'Show plot']
 
     def __init__(self, parent=None, *args, **kwds):
         super().__init__(parent, *args, **kwds)
