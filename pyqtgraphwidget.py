@@ -23,7 +23,7 @@ pyqtgraph.setConfigOption('leftButtonPan', False)
 
 
 class CustomViewBox(pyqtgraph.ViewBox):
-    MENU = ['Hide plot', 'Show new plot', 'Show plot']
+    MENU = ['Hide plot', 'Show new plot', 'Show plot', 'Show info']
 
     def __init__(self, parent=None, *args, **kwds):
         super().__init__(parent, *args, **kwds)
@@ -38,6 +38,7 @@ class CustomViewBox(pyqtgraph.ViewBox):
         self.my_menu.addAction(self.MENU[1])
         self.my_menu.addSeparator()
         self.my_menu.addAction(self.MENU[2])
+        self.my_menu.addAction(self.MENU[3])
 
     # reimplement right-click to zoom out
     def mouseClickEvent(self, ev):
@@ -53,6 +54,8 @@ class CustomViewBox(pyqtgraph.ViewBox):
                 self.mplw.my_action.show_plot(self.mplw.my_name, self.mplw.my_index)
             elif action.text() == self.MENU[2]:
                 self.mplw.my_action.show_plot_on_right(self.mplw.my_name, self.mplw.my_index)
+            elif action.text() == self.MENU[3]:
+                self.mplw.my_action.signal_params(self.mplw.my_name)
         elif ev.button() == QtCore.Qt.RightButton:
             ev.accept()
             if ev.double():

@@ -193,7 +193,10 @@ class MainWindow(QMainWindow):
         self.window = loader.load(ui_file)
         ui_file.close()
         self.window.on_quit = self.on_quit
-        # self.window.show()
+        dr = dir(self.window)
+        for d in dr:
+            if not d.startswith('_') and not hasattr(self, d):
+                setattr(self, d, getattr(self.window, d))
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
@@ -299,13 +302,13 @@ class MainWindow(QMainWindow):
     def show(self):
         self.window.show()
 
-    def __getattr__(self, name):
-        if hasattr(self.window, name):
-            attr = getattr(self.window, name)
-            setattr(self, name, attr)
-            return attr
-        else:
-            raise AttributeError()
+    # def __getattr__(self, name):
+    #     if hasattr(self.window, name):
+    #         attr = getattr(self.window, name)
+    #         setattr(self, name, attr)
+    #         return attr
+    #     else:
+    #         raise AttributeError()
 
     def fill_config_widget(self):
         global CONFIG_FILE
@@ -322,6 +325,15 @@ class MainWindow(QMainWindow):
                 jsonarr.insert(0, x)
         self.sb_combo.addItems(jsonarr)
         self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
+
+    def signal_params(self, signal_name):
+        for s in self.extra_plots:
+            if s.name == signal_name:
+                print('Calculated signal')
+                print('s.code')
+        for s in self.signal_list:
+            if s.name == signal_name:
+                print(str(s.params).replace(",", ",\n"))
 
     def hide_plot(self, signal_name, index=-1):
         text = self.plainTextEdit_7.toPlainText()
@@ -426,7 +438,6 @@ class MainWindow(QMainWindow):
         self.plainTextEdit_3.setPlainText(remove_from_text(hidden, action.text()))
 
     def table_header_right_click_menu(self, n):
-        # print('menu', n)
         cursor = QtGui.QCursor()
         position = cursor.pos()
         # position = n
@@ -2229,6 +2240,6 @@ if __name__ == '__main__':
     # dmw.resize(QSize(dmw.conf['main_window']['size'][0], dmw.conf['main_window']['size'][1]))
 
     # start the Qt main loop execution,
-    exec_result = app.exec_()
+    exec_result = app.exec()
     # exiting from this script with the same return code of Qt application
     sys.exit(exec_result)
