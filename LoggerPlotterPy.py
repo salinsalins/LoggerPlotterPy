@@ -8,9 +8,6 @@ Created on Jul 2, 2017
 
 import os
 import sys
-util_path = os.path.realpath('../TangoUtils')
-if util_path not in sys.path: sys.path.append(util_path)
-
 # import gc
 import json
 import logging
@@ -20,11 +17,6 @@ import zipfile
 import datetime
 from functools import lru_cache
 import numpy
-
-np = numpy
-
-# os.environ['QT_API'] = 'pyqt5'
-# os.environ['QT_API'] = 'pyside6'
 
 from PyQt5 import QtGui
 from PyQt5.QtGui import QFont, QColor
@@ -39,17 +31,21 @@ from PyQt5.QtWidgets import QFrame, QMenu
 from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 
+# os.environ['QT_API'] = 'pyqt5'
+# os.environ['QT_API'] = 'pyside6'
+# os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+
 # from mplwidget import MplWidget
+# import pyqtgraphwidget
 from pyqtgraphwidget import MplWidget
 
+sys.path.append(os.path.realpath('../TangoUtils'))
 from QtUtils import WidgetLogHandler
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
 from log_exception import log_exception
 
-# np = numpy
-
-# from config import *
+np = numpy
 
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
