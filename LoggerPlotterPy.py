@@ -32,8 +32,10 @@ from PySide6.QtWidgets import QFrame, QMenu
 from PySide6.QtWidgets import QLabel, QComboBox, QMessageBox
 from PySide6.QtWidgets import QTableWidgetItem, QHeaderView
 
+os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 # from mplwidget import MplWidget
 from pyqtgraphwidget import MplWidget
+from PlotWidget import PlotWidget
 
 # util_path = os.path.realpath('../TangoUtils')
 # if util_path not in sys.path: sys.path.append(util_path)
@@ -197,11 +199,20 @@ class MainWindow(QMainWindow):
         for d in dr:
             if not d.startswith('_') and not hasattr(self, d):
                 setattr(self, d, getattr(self.window, d))
+        # name widgets aliases
+        self.select = self.pushButton_2
+        self.history = self.comboBox_2
+        self.table = self.tableWidget_3
+        self.log_level = self.comboBox_1
+        self.shown_columns = self.plainTextEdit_2
+        self.hidden_columns = self.plainTextEdit_3
+        self.shown_plots = self.plainTextEdit_7
+        self.hidden_plots = self.plainTextEdit_6
         # Connect signals with the slots
-        self.pushButton_2.clicked.connect(self.select_log_file)
-        self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
-        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
-        # self.tableWidget_3.focusOutEvent = self.focus_out
+        self.select.clicked.connect(self.select_log_file)
+        self.history.currentIndexChanged.connect(self.file_selection_changed)
+        self.table.itemSelectionChanged.connect(self.table_selection_changed)
+        # self.table.focusOutEvent = self.focus_out
         self.comboBox_1.currentIndexChanged.connect(self.log_level_index_changed)
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
@@ -215,14 +226,14 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.setWindowTitle(APPLICATION_NAME + ' version ' + APPLICATION_VERSION)
         # table: header
-        header = self.tableWidget_3.horizontalHeader()
+        header = self.table.horizontalHeader()
         # header.setSectionResizeMode(QHeaderView.Stretch)
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         # table: header right click menu
         header.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         header.customContextMenuRequested.connect(self.table_header_right_click_menu_wrap)
         # table: style tuning
-        self.tableWidget_3.setStyleSheet("""
+        self.table.setStyleSheet("""
                 QTableView {
                     gridline-color: black;
                     alternate-background-color: #d0d0d0;
@@ -295,7 +306,7 @@ class MainWindow(QMainWindow):
         self.restore_local_settings()
         #
         # additional decorations
-        self.tableWidget_3.horizontalHeader().setVisible(True)
+        self.table.horizontalHeader().setVisible(True)
         #
         self.parse_folder()
 
@@ -336,7 +347,7 @@ class MainWindow(QMainWindow):
                 print(str(s.params).replace(",", ",\n"))
 
     def hide_plot(self, signal_name, index=-1):
-        text = self.plainTextEdit_7.toPlainText()
+        text = self.shown_plots.toPlainText()
         if signal_name not in text:
             return
         if index > 0:
@@ -347,11 +358,11 @@ class MainWindow(QMainWindow):
             new_text = remove_from_text(text, signal_name)
         if new_text == '':
             return
-        self.plainTextEdit_7.setPlainText(new_text)
+        self.shown_plots.setPlainText(new_text)
         # add to hidden columns list
-        text = self.plainTextEdit_6.toPlainText() + '\n' + signal_name
-        self.plainTextEdit_6.setPlainText(text)
-        self.sort_text_edit_widget(self.plainTextEdit_6)
+        text = self.hidden_plots.toPlainText() + '\n' + signal_name
+        self.hidden_plots.setPlainText(text)
+        self.sort_text_edit_widget(self.hidden_plots)
         self.save_local_settings()
         self.save_settings()
         self.plot_signals()
@@ -359,7 +370,7 @@ class MainWindow(QMainWindow):
     def show_plot(self, signal_name, index=-1):
         cursor = QtGui.QCursor()
         position = cursor.pos()
-        hidden = self.plainTextEdit_6.toPlainText()
+        hidden = self.hidden_plots.toPlainText()
         hidden_lines = hidden.split('\n')
         menu = QMenu()
         actions = []
@@ -372,15 +383,15 @@ class MainWindow(QMainWindow):
         action = menu.exec(position)
         if action is None:
             return
-        displayed = self.plainTextEdit_7.toPlainText()
+        displayed = self.shown_plots.toPlainText()
         if index > 0:
             disp_lines = displayed.split('\n')
             disp_lines.insert(index + 1, action.text())
             displayed = '\n'.join(disp_lines)
         else:
             displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
-        self.plainTextEdit_7.setPlainText(displayed)
-        # self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
+        self.shown_plots.setPlainText(displayed)
+        # self.hidden_plots.setPlainText(remove_from_text(hidden, action.text()))
         self.save_settings()
         self.save_local_settings()
         self.plot_signals()
@@ -402,16 +413,16 @@ class MainWindow(QMainWindow):
         action = menu.exec(position)
         if action is None:
             return
-        displayed = self.plainTextEdit_7.toPlainText()
+        displayed = self.shown_plots.toPlainText()
         if index > 0:
             disp_lines = displayed.split('\n')
             disp_lines.insert(index + 1, action.text())
-            self.plainTextEdit_7.setPlainText('\n'.join(disp_lines))
+            self.shown_plots.setPlainText('\n'.join(disp_lines))
         else:
             displayed = remove_from_text(displayed, action.text())
             displayed = displayed.replace(signal_name, signal_name + '\n' + action.text())
-            self.plainTextEdit_7.setPlainText(displayed)
-        # self.plainTextEdit_6.setPlainText(remove_from_text(hidden, action.text()))
+            self.shown_plots.setPlainText(displayed)
+        # self.hidden_plots.setPlainText(remove_from_text(hidden, action.text()))
         self.save_settings()
         self.save_local_settings()
         self.plot_signals()
@@ -419,7 +430,7 @@ class MainWindow(QMainWindow):
     def show_column(self, n):
         cursor = QtGui.QCursor()
         position = cursor.pos()
-        hidden = self.plainTextEdit_3.toPlainText()
+        hidden = self.hidden_columns.toPlainText()
         hidden_lines = hidden.split('\n')
         menu = QMenu()
         actions = []
@@ -431,11 +442,11 @@ class MainWindow(QMainWindow):
         action = menu.exec(position)
         if action is None:
             return
-        displayed = self.plainTextEdit_2.toPlainText()
-        current = self.tableWidget_3.horizontalHeaderItem(n).text()
+        displayed = self.shown_columns.toPlainText()
+        current = self.table.horizontalHeaderItem(n).text()
         displayed = displayed.replace(current, current + '\n' + action.text())
-        self.plainTextEdit_2.setPlainText(displayed)
-        self.plainTextEdit_3.setPlainText(remove_from_text(hidden, action.text()))
+        self.shown_columns.setPlainText(displayed)
+        self.hidden_columns.setPlainText(remove_from_text(hidden, action.text()))
 
     def table_header_right_click_menu(self, n):
         cursor = QtGui.QCursor()
@@ -444,7 +455,7 @@ class MainWindow(QMainWindow):
         menu = QMenu()
         hide_action = menu.addAction("Hide column")
         show_action = menu.addAction("Show column")
-        if n < self.tableWidget_3.columnCount() - 1:
+        if n < self.table.columnCount() - 1:
             right_action = menu.addAction("Move right")
         else:
             right_action = None
@@ -458,39 +469,39 @@ class MainWindow(QMainWindow):
         elif action == hide_action:
             # print("Hide", n)
             # remove from shown columns list
-            t = self.tableWidget_3.horizontalHeaderItem(n).text()
-            text = self.plainTextEdit_2.toPlainText()
-            self.plainTextEdit_2.setPlainText(remove_from_text(text, t))
+            t = self.table.horizontalHeaderItem(n).text()
+            text = self.shown_columns.toPlainText()
+            self.shown_columns.setPlainText(remove_from_text(text, t))
             # add to hidden columns list
-            text = self.plainTextEdit_3.toPlainText()
-            self.plainTextEdit_3.setPlainText(text + t + '\n')
-            self.sort_text_edit_widget(self.plainTextEdit_3)
+            text = self.hidden_columns.toPlainText()
+            self.hidden_columns.setPlainText(text + t + '\n')
+            self.sort_text_edit_widget(self.hidden_columns)
         elif action == show_action:
             self.show_column(n)
         elif n > 1 and action == left_action:
             # print("Move Left", n)
-            t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
-            t2 = self.tableWidget_3.horizontalHeaderItem(n - 1).text()
-            text = self.plainTextEdit_2.toPlainText()
+            t1 = self.table.horizontalHeaderItem(n).text()
+            t2 = self.table.horizontalHeaderItem(n - 1).text()
+            text = self.shown_columns.toPlainText()
             text = text.replace(t1, '*+-=*')
             text = text.replace(t2, t1)
             text = text.replace('*+-=*', t2)
-            self.plainTextEdit_2.setPlainText(text)
-        elif n < self.tableWidget_3.columnCount() - 1 and action == right_action:
+            self.shown_columns.setPlainText(text)
+        elif n < self.table.columnCount() - 1 and action == right_action:
             # print("Move Right", n)
-            t1 = self.tableWidget_3.horizontalHeaderItem(n).text()
-            t2 = self.tableWidget_3.horizontalHeaderItem(n + 1).text()
-            text = self.plainTextEdit_2.toPlainText()
+            t1 = self.table.horizontalHeaderItem(n).text()
+            t2 = self.table.horizontalHeaderItem(n + 1).text()
+            text = self.shown_columns.toPlainText()
             text = text.replace(t1, '****')
             text = text.replace(t2, t1)
             text = text.replace('****', t2)
-            self.plainTextEdit_2.setPlainText(text)
+            self.shown_columns.setPlainText(text)
         self.fill_table_widget()
-        self.tableWidget_3.selectRow(self.current_selection)
+        self.table.selectRow(self.current_selection)
         self.change_background()
 
     def table_header_right_click_menu_wrap(self, a, *args):
-        n = self.tableWidget_3.columnAt(a.x())
+        n = self.table.columnAt(a.x())
         if n > 0:
             self.table_header_right_click_menu(n)
 
@@ -511,8 +522,8 @@ class MainWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(1)
         self.actionPlot.setChecked(False)
         self.actionParameters.setChecked(True)
-        self.sort_text_edit_widget(self.plainTextEdit_3)
-        self.sort_text_edit_widget(self.plainTextEdit_6)
+        self.sort_text_edit_widget(self.hidden_columns)
+        self.sort_text_edit_widget(self.hidden_plots)
         self.fill_config_widget()
 
     def select_log_file(self):
@@ -536,14 +547,14 @@ class MainWindow(QMainWindow):
         if self.log_file_name == fn:
             return
         # different file selected
-        i = self.comboBox_2.findText(fn)
+        i = self.history.findText(fn)
         if i < 0:
             # add file name to history
-            self.comboBox_2.insertItem(-1, fn)
+            self.history.insertItem(-1, fn)
             i = 0
         # change selection and fire callback
-        if self.comboBox_2.currentIndex() != i:
-            self.comboBox_2.setCurrentIndex(i)
+        if self.history.currentIndex() != i:
+            self.history.setCurrentIndex(i)
         else:
             self.file_selection_changed(i)
 
@@ -561,17 +572,17 @@ class MainWindow(QMainWindow):
         if self.log_file_name == fn:
             return
         # different file selected
-        i = self.comboBox_2.findText(fn)
+        i = self.history.findText(fn)
         if i < 0:
             # add file name to history
-            self.comboBox_2.insertItem(-1, fn)
+            self.history.insertItem(-1, fn)
             i = 0
         # change selection and fire callback
-        self.comboBox_2.setCurrentIndex(i)
+        self.history.setCurrentIndex(i)
 
     def get_selected_row(self, widget=None):
         if widget is None:
-            widget = self.tableWidget_3
+            widget = self.table
         rng = widget.selectedRanges()
         # if selection is empty
         if len(rng) < 1:
@@ -595,13 +606,13 @@ class MainWindow(QMainWindow):
 
     def table_selection_changed(self, force=False):
         sig = self.sig
-        row_s = self.get_selected_row(self.tableWidget_3)
+        row_s = self.get_selected_row(self.table)
         if row_s < 0:
             return
         if force or self.current_selection != row_s:
             # gc.collect()
             self.scrollAreaWidgetContents_3.setUpdatesEnabled(False)
-            self.tableWidget_3.setUpdatesEnabled(False)
+            self.table.setUpdatesEnabled(False)
             try:
                 # read signals from zip file
                 folder = os.path.dirname(self.log_file_name)
@@ -617,11 +628,11 @@ class MainWindow(QMainWindow):
                 self.update_status_bar()
             except:
                 r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
-                                               self.tableWidget_3.columnCount() - 1)
-                self.tableWidget_3.setRangeSelected(r, True)
+                                               self.table.columnCount() - 1)
+                self.table.setRangeSelected(r, True)
                 log_exception(self)
             finally:
-                self.tableWidget_3.setUpdatesEnabled(True)
+                self.table.setUpdatesEnabled(True)
                 self.scrollAreaWidgetContents_3.setUpdatesEnabled(True)
 
     def calculate_extra_plots(self):
@@ -653,7 +664,7 @@ class MainWindow(QMainWindow):
             self.logger.debug('No extra plots added')
 
     def sort_plots(self):
-        plot_order = self.plainTextEdit_7.toPlainText().split('\n')
+        plot_order = self.shown_plots.toPlainText().split('\n')
         hidden_plots = []
         ordered_plots = []
         signal_list = self.signal_list + self.extra_plots
@@ -671,7 +682,7 @@ class MainWindow(QMainWindow):
         for t in hidden_plots:
             text += t
             text += '\n'
-        self.plainTextEdit_6.setPlainText(text)
+        self.hidden_plots.setPlainText(text)
         return ordered_plots
 
     def plot_signals(self, signals=None):
@@ -688,7 +699,7 @@ class MainWindow(QMainWindow):
         col_count = self.conf['columns']
         l_count = layout.count()
         signal_list = self.signal_list + self.extra_plots
-        plot_order = self.plainTextEdit_7.toPlainText().split('\n')
+        plot_order = self.shown_plots.toPlainText().split('\n')
         ii = 0
         for c in signals:
             s = signal_list[c]
@@ -698,9 +709,10 @@ class MainWindow(QMainWindow):
                 mplw = layout.itemAt(jj).widget()
             else:
                 # create new plot widget
-                mplw = MplWidget(height=self.conf['w_height'], width=self.conf['w_width'])
-                mplw.ntb.setIconSize(QSize(18, 18))
-                mplw.ntb.setFixedSize(self.conf['w_width'], 24)
+                #mplw = MplWidget(height=self.conf['w_height'], width=self.conf['w_width'])
+                mplw = PlotWidget(height=self.conf['w_height'], width=self.conf['w_width'])
+                # mplw.ntb.setIconSize(QSize(18, 18))
+                # mplw.ntb.setFixedSize(self.conf['w_width'], 24)
                 layout.addWidget(mplw, row, col)
                 # mplw.getViewBox().my_menu.addAction('oooo')
             mplw.my_action = self
@@ -713,27 +725,29 @@ class MainWindow(QMainWindow):
                 col = 0
                 row += 1
             # Show toolbar
-            if self.show_toolbar:
-                mplw.ntb.show()
-            else:
-                mplw.ntb.hide()
+            # if self.show_toolbar:
+            #     mplw.ntb.show()
+            # else:
+            #     mplw.ntb.hide()
             # get axes
-            axes = mplw.canvas.ax
-            axes.clear()
+            # axes = mplw.canvas.ax
+            # axes.clear()
+            mplw.clear()
+            # axes = mplw.getPlotItem()
             # Decorate the plot
-            axes.grid(True)
+            mplw.getPlotItem().showGrid(True, True)
             if math.isnan(s.value) or s.value is None:
                 default_title = s.name
             else:
                 default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
-            axes.set_title(self.from_params(b'title', s.params, default_title))
-            axes.set_xlabel(self.from_params(b'xlabel', s.params, 'Time, ms'))
-            axes.set_ylabel(self.from_params(b'ylabel', s.params, '%s, %s' % (s.name, s.unit)))
+            mplw.setTitle(self.from_params(b'title', s.params, default_title))
+            # axes.set_xlabel(self.from_params(b'xlabel', s.params, 'Time, ms'))
+            # axes.set_ylabel(self.from_params(b'ylabel', s.params, '%s, %s' % (s.name, s.unit)))
             # plot previous line
             if self.plot_previous_line and self.last_selection >= 0:
                 for s1 in self.old_signal_list:
                     if s1.name == s.name:
-                        axes.plot(s1.x, s1.y, color=self.previous_color)
+                        mplw.plot(s1.x, s1.y, pen={'color': self.previous_color, 'width': 1})
                         break
             # plot main line
             y_min = float('inf')
@@ -755,19 +769,19 @@ class MainWindow(QMainWindow):
             except:
                 pass
             if len(s.x) > 20:
-                axes.plot(s.x, s.y, color=self.trace_color)
+                mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1})
             else:
-                axes.plot(s.x, s.y, color=self.trace_color, symbol='o')
+                mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1}, symbol='o')
             # plot 'mark' highlight
             if 'mark' in s.marks:
                 m1 = s.marks['mark'][0]
                 m2 = m1 + s.marks['mark'][1]
-                axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.mark_color)
+                mplw.plot(s.x[m1:m2], s.y[m1:m2], pen={'color': self.mark_color, 'width': 1})
             # Plot 'zero' highlight
             if 'zero' in s.marks:
                 m1 = s.marks['zero'][0]
                 m2 = m1 + s.marks['zero'][1]
-                axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.zero_color)
+                mplw.plot(s.x[m1:m2], s.y[m1:m2], pen={'color': self.zero_color, 'width': 1})
             # Show plot
             try:
                 if self.checkBox_3.isChecked():
@@ -831,10 +845,10 @@ class MainWindow(QMainWindow):
         try:
             if row is None:
                 row = self.last_selection
-            self.last_cell_background = self.tableWidget_3.item(row, column).background()
+            self.last_cell_background = self.table.item(row, column).background()
             self.last_cell_row = row
             self.last_cell_column = column
-            self.tableWidget_3.item(row, column).setBackground(color)
+            self.table.item(row, column).setBackground(color)
         except:
             pass
 
@@ -847,7 +861,7 @@ class MainWindow(QMainWindow):
             if color is None:
                 color = self.last_cell_background
             if row >= 0 and column >= 0:
-                self.tableWidget_3.item(row, column).setBackground(color)
+                self.table.item(row, column).setBackground(color)
         except:
             pass
 
@@ -881,11 +895,11 @@ class MainWindow(QMainWindow):
         self.logger.debug('File selection changed to %s' % m)
         if m < 0:
             return
-        new_log_file = str(self.comboBox_2.currentText())
+        new_log_file = str(self.history.currentText())
         new_log_file = os.path.abspath(new_log_file)
         if not os.path.exists(new_log_file):
             self.logger.warning('File %s not found' % new_log_file)
-            self.comboBox_2.removeItem(m)
+            self.history.removeItem(m)
             return
         if self.log_file_name != new_log_file:
             self.logger.debug('New file selected %s' % new_log_file)
@@ -897,8 +911,8 @@ class MainWindow(QMainWindow):
             self.last_selection = -1
             self.current_selection = -1
             self.restore_local_settings()
-            self.plainTextEdit_3.setPlainText('')
-            self.plainTextEdit_6.setPlainText('')
+            self.hidden_columns.setPlainText('')
+            self.hidden_plots.setPlainText('')
             if self.stackedWidget.currentIndex() == 0:
                 self.parse_folder()
 
@@ -918,7 +932,7 @@ class MainWindow(QMainWindow):
                 s = configfile.read()
             conf = json.loads(s)
             if 'included' in conf:
-                self.plainTextEdit_2.setPlainText(conf['included'])
+                self.shown_columns.setPlainText(conf['included'])
                 self.conf['included'] = conf['included']
             if 'extra_plot' in conf:
                 self.plainTextEdit_4.setPlainText(conf['extra_plot'])
@@ -927,7 +941,7 @@ class MainWindow(QMainWindow):
                 self.plainTextEdit_5.setPlainText(conf['extra_col'])
                 self.conf['extra_col'] = conf['extra_col']
             if 'plot_order' in conf:
-                self.plainTextEdit_7.setPlainText(conf['plot_order'])
+                self.shown_plots.setPlainText(conf['plot_order'])
                 self.conf['plot_order'] = conf['plot_order']
             self.logger.info('Local configuration restored from %s' % full_name)
             return True
@@ -971,7 +985,7 @@ class MainWindow(QMainWindow):
         return [col.strip() for col in columns if col.strip()]
 
     def get_displayed_columns(self):
-        return self.list_from_widget(self.plainTextEdit_2)
+        return self.list_from_widget(self.shown_columns)
 
     def sort_columns(self):
         included = self.get_displayed_columns()
@@ -989,8 +1003,19 @@ class MainWindow(QMainWindow):
         hidden.sort()
         # set hidden columns text
         text = '\n'.join(hidden)
-        self.plainTextEdit_3.setPlainText(text)
+        self.hidden_columns.setPlainText(text)
         return columns
+
+    @property
+    def extra_columns(self):
+        return self.list_from_widget(self.plainTextEdit_5)
+
+    @extra_columns.setter
+    def extra_columns(self, v):
+        t = v
+        if isinstance(v, list):
+            t = '\n'.join(v)
+        self.plainTextEdit_5.setPlainText(t)
 
     def get_extra_columns(self):
         return self.list_from_widget(self.plainTextEdit_5)
@@ -1036,10 +1061,10 @@ class MainWindow(QMainWindow):
                     # select last row of widget -> tableSelectionChanged will be fired
                     self.select_last_row()
                 else:
-                    self.tableWidget_3.selectRow(self.current_selection)
-                    index = self.tableWidget_3.model().index(self.current_selection, 0)
-                    self.tableWidget_3.scrollTo(index)
-                    self.tableWidget_3.setFocus()
+                    self.table.selectRow(self.current_selection)
+                    index = self.table.model().index(self.current_selection, 0)
+                    self.table.scrollTo(index)
+                    self.table.setFocus()
                     self.plot_signals()
 
         except KeyboardInterrupt:
@@ -1051,48 +1076,48 @@ class MainWindow(QMainWindow):
         return
 
     def clear_table_widget(self):
-        self.tableWidget_3.setUpdatesEnabled(False)
-        self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
-        self.tableWidget_3.setRowCount(0)
-        self.tableWidget_3.setColumnCount(0)
-        self.tableWidget_3.setUpdatesEnabled(True)
-        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
+        self.table.setUpdatesEnabled(False)
+        self.table.itemSelectionChanged.disconnect(self.table_selection_changed)
+        self.table.setRowCount(0)
+        self.table.setColumnCount(0)
+        self.table.setUpdatesEnabled(True)
+        self.table.itemSelectionChanged.connect(self.table_selection_changed)
 
     def create_table_widget_columns(self, columns):
         cln = 0
         for column in columns:
-            self.tableWidget_3.insertColumn(cln)
-            self.tableWidget_3.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
+            self.table.insertColumn(cln)
+            self.table.setHorizontalHeaderItem(cln, QTableWidgetItem(column))
             cln += 1
 
     def insert_column(self, label, index=-1):
         if index < 0:
-            index = self.tableWidget_3.columnCount()
-        self.tableWidget_3.insertColumn(index)
-        self.tableWidget_3.setHorizontalHeaderItem(index, QTableWidgetItem(label))
+            index = self.table.columnCount()
+        self.table.insertColumn(index)
+        self.table.setHorizontalHeaderItem(index, QTableWidgetItem(label))
 
     def fill_table_widget(self, append=-1):
         if append == 0:
             return
         # disable table widget update events
-        self.tableWidget_3.setUpdatesEnabled(False)
+        self.table.setUpdatesEnabled(False)
         try:
-            self.tableWidget_3.itemSelectionChanged.disconnect(self.table_selection_changed)
+            self.table.itemSelectionChanged.disconnect(self.table_selection_changed)
         except:
             log_exception(self)
         self.columns = self.sort_columns()
         if append < 0:
             # clear table widget
-            self.tableWidget_3.setRowCount(0)
-            self.tableWidget_3.setColumnCount(0)
-        for column in self.columns[self.tableWidget_3.columnCount():]:
-            index = self.tableWidget_3.columnCount()
-            self.tableWidget_3.insertColumn(index)
-            self.tableWidget_3.setHorizontalHeaderItem(index, QTableWidgetItem(column))
-        row_range = range(self.tableWidget_3.rowCount(), self.log_table.rows)
+            self.table.setRowCount(0)
+            self.table.setColumnCount(0)
+        for column in self.columns[self.table.columnCount():]:
+            index = self.table.columnCount()
+            self.table.insertColumn(index)
+            self.table.setHorizontalHeaderItem(index, QTableWidgetItem(column))
+        row_range = range(self.table.rowCount(), self.log_table.rows)
         # insert and fill rows
         for row in row_range:
-            self.tableWidget_3.insertRow(row)
+            self.table.insertRow(row)
             n = 0
             for column in self.columns:
                 if column not in self.log_table:
@@ -1123,16 +1148,16 @@ class MainWindow(QMainWindow):
                             bold_font_flag = abs(v1 - v) > -thr
                     if bold_font_flag:
                         item.setFont(CELL_FONT_BOLD)
-                self.tableWidget_3.setItem(row, n, item)
+                self.table.setItem(row, n, item)
                 n += 1
         # resize Columns
-        self.tableWidget_3.resizeColumnsToContents()
+        self.table.resizeColumnsToContents()
         #
-        # self.tableWidget_3.scrollToBottom()
-        self.tableWidget_3.setFocus()
+        # self.table.scrollToBottom()
+        self.table.setFocus()
         # enable table widget update events
-        self.tableWidget_3.setUpdatesEnabled(True)
-        self.tableWidget_3.itemSelectionChanged.connect(self.table_selection_changed)
+        self.table.setUpdatesEnabled(True)
+        self.table.itemSelectionChanged.connect(self.table_selection_changed)
 
     def save_settings(self, folder: str = '', file_name=None, config=None):
         global CONFIG_FILE
@@ -1148,17 +1173,17 @@ class MainWindow(QMainWindow):
             config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
             # log file history
             config['folder'] = self.log_file_name
-            config['history'] = [str(self.comboBox_2.itemText(count)) for count in
-                                 range(min(self.comboBox_2.count(), 10))]
-            config['history_index'] = min(self.comboBox_2.currentIndex(), 9)
+            config['history'] = [str(self.history.itemText(count)) for count in
+                                 range(min(self.history.count(), 10))]
+            config['history_index'] = min(self.history.currentIndex(), 9)
             # other settings
             config['log_level'] = self.logger.level
-            config['included'] = str(self.plainTextEdit_2.toPlainText())
-            config['excluded'] = str(self.plainTextEdit_3.toPlainText())
+            config['included'] = str(self.shown_columns.toPlainText())
+            config['excluded'] = str(self.hidden_columns.toPlainText())
             config['extra_plot'] = str(self.plainTextEdit_4.toPlainText())
             config['extra_col'] = str(self.plainTextEdit_5.toPlainText())
-            config['exclude_plots'] = str(self.plainTextEdit_6.toPlainText())
-            config['plot_order'] = str(self.plainTextEdit_7.toPlainText())
+            config['exclude_plots'] = str(self.hidden_plots.toPlainText())
+            config['plot_order'] = str(self.shown_plots.toPlainText())
             config['cb_1'] = self.checkBox_1.isChecked()
             config['cb_2'] = self.checkBox_2.isChecked()
             config['cb_3'] = self.checkBox_3.isChecked()
@@ -1220,17 +1245,17 @@ class MainWindow(QMainWindow):
             if 'folder' in self.conf:
                 self.log_file_name = self.conf['folder']
             if 'included' in self.conf:
-                self.plainTextEdit_2.setPlainText(self.conf['included'])
+                self.shown_columns.setPlainText(self.conf['included'])
             if 'excluded' in self.conf:
-                self.plainTextEdit_3.setPlainText(self.conf['excluded'])
+                self.hidden_columns.setPlainText(self.conf['excluded'])
             if 'extra_plot' in self.conf:
                 self.plainTextEdit_4.setPlainText(self.conf['extra_plot'])
             if 'extra_col' in self.conf:
                 self.plainTextEdit_5.setPlainText(self.conf['extra_col'])
             if 'exclude_plots' in self.conf and hasattr(self, 'plainTextEdit_6'):
-                self.plainTextEdit_6.setPlainText(self.conf['exclude_plots'])
+                self.hidden_plots.setPlainText(self.conf['exclude_plots'])
             if 'plot_order' in self.conf and hasattr(self, 'plainTextEdit_7'):
-                self.plainTextEdit_7.setPlainText(self.conf['plot_order'])
+                self.shown_plots.setPlainText(self.conf['plot_order'])
             if 'cb_1' in self.conf:
                 self.checkBox_1.setChecked(self.conf['cb_1'])
             if 'cb_2' in self.conf:
@@ -1244,12 +1269,12 @@ class MainWindow(QMainWindow):
             if 'cb_6' in self.conf:
                 self.checkBox_6.setChecked(self.conf['cb_6'])
             if 'history' in self.conf:
-                self.comboBox_2.currentIndexChanged.disconnect(self.file_selection_changed)
-                self.comboBox_2.clear()
-                self.comboBox_2.addItems(self.conf['history'])
-                self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
+                self.history.currentIndexChanged.disconnect(self.file_selection_changed)
+                self.history.clear()
+                self.history.addItems(self.conf['history'])
+                self.history.currentIndexChanged.connect(self.file_selection_changed)
             if 'history_index' in self.conf:
-                self.comboBox_2.setCurrentIndex(self.conf['history_index'])
+                self.history.setCurrentIndex(self.conf['history_index'])
             self.cut_long_names = self.conf.get('cut_long_names', True)
             self.conf['cut_long_names'] = self.cut_long_names
             self.fill_empty_lists = self.conf.get('fill_empty_lists', True)
@@ -1372,13 +1397,13 @@ class MainWindow(QMainWindow):
         # select last row
         if self.checkBox_4.isChecked() or self.current_selection < 0:
             self.logger.debug('Selection will be switched to last row')
-            n = self.tableWidget_3.rowCount() - 1
-            self.tableWidget_3.selectRow(n)
-            self.tableWidget_3.scrollToBottom()
-            self.tableWidget_3.setFocus()
+            n = self.table.rowCount() - 1
+            self.table.selectRow(n)
+            self.table.scrollToBottom()
+            self.table.setFocus()
         else:
-            self.tableWidget_3.selectRow(self.current_selection)
-            self.tableWidget_3.setFocus()
+            self.table.selectRow(self.current_selection)
+            self.table.setFocus()
             self.logger.debug('Selection switch to last row rejected')
 
 

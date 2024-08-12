@@ -63,35 +63,24 @@ class CustomViewBox(pyqtgraph.ViewBox):
                 # self.autoRange()
 
     def double_click_timer_handler(self):
+        self.clearScaleHistory()
         self.autoRange()
         return True
 
     def mouseDragEvent(self, ev, **kwargs):
         if ev.button() != QtCore.Qt.LeftButton:
             ev.accept()
-            # ev.ignore()
         else:
             pyqtgraph.ViewBox.mouseDragEvent(self, ev, **kwargs)
 
     def wheelEvent(self, ev, axis=None):
-        # print('wheel1')
         ev.ignore()
-        # ev.accept()
 
     def clearScaleHistory(self):
         if len(self.axHistory) > 0:
             self.showAxRect(self.axHistory[0])
         self.axHistory = []  # maintain a history of zoom locations
-        self.axHistoryPointer = -1  # pointer into the history. Allows forward/backward movement, not just "undo"
-        # zoom = (s, s) if in_or_out == "in" else (1 / s, 1 / s)
-        # self.plot.vb.scaleBy(zoom)
-
-    def resetScaleHistory(self):
-        if len(self.axHistory) > 0:
-            self.showAxRect(self.axHistory[0])
-
-    def action(self):
-        print('action')
+        self.axHistoryPointer = -1  # pointer into the history
 
 
 class MplWidget(pyqtgraph.PlotWidget):
