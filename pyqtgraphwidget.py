@@ -25,15 +25,11 @@ pyqtgraph.setConfigOption('leftButtonPan', False)
 class CustomViewBox(pyqtgraph.ViewBox):
     MENU = ['Hide plot', 'Show new plot', 'Show plot', 'Show info']
 
-    def __init__(self, parent=None, *args, **kwds):
-        super().__init__(parent, *args, **kwds)
+    def __init__(self, parent=None, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
         self.setMouseMode(self.RectMode)
         self.setBackgroundColor('#1d648da0')
-        # self.setBorder(pen=('green', 5))
         self.my_menu = QMenu()
-        # self.my_menu.setTitle("Double click test menu")
-        # self.my_menu.addAction('Plot Info')
-        # self.my_menu.addSeparator()
         self.my_menu.addAction(self.MENU[0])
         self.my_menu.addAction(self.MENU[1])
         self.my_menu.addSeparator()
