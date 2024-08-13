@@ -338,13 +338,24 @@ class MainWindow(QMainWindow):
         self.sb_combo.currentIndexChanged.connect(self.config_selection_changed)
 
     def signal_params(self, signal_name):
+        txt = ''
         for s in self.extra_plots:
             if s.name == signal_name:
-                print('Calculated signal')
-                print('s.code')
-        for s in self.signal_list:
-            if s.name == signal_name:
-                print(str(s.params).replace(",", ",\n"))
+                txt = 'Calculated signal ' + s.code
+                break
+        if not txt:
+            for s in self.signal_list:
+                if s.name == signal_name:
+                    txt = str(s.params).replace(",", "\n")
+                    txt = txt.replace("b'", "'")
+                    txt = txt.replace("'", "")
+                    txt = txt.replace("{", " ")
+                    txt = txt.replace("}", "")
+                    txt = txt.replace(":", " =")
+        dlg = QMessageBox()
+        dlg.setWindowTitle("Signal parameters for " + signal_name)
+        dlg.setText(txt)
+        button = dlg.exec()
 
     def hide_plot(self, signal_name, index=-1):
         text = self.shown_plots.toPlainText()
