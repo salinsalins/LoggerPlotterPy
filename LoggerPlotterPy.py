@@ -51,7 +51,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '12.3'
+APPLICATION_VERSION = '15.0'
 VERSION_DATE = "25-07-2023"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
@@ -697,12 +697,12 @@ class MainWindow(QMainWindow):
                 mplw = layout.itemAt(jj).widget()
             else:
                 # create new plot widget
-                mplw = MplWidget(height=self.conf['w_height'], width=self.conf['w_width'])
-                mplw.ntb.setIconSize(QSize(18, 18))
-                mplw.ntb.setFixedSize(self.conf['w_width'], 24)
+                # mplw = MplWidget(height=self.conf['w_height'], width=self.conf['w_width'])
+                mplw = PlotWidget(height=self.conf['w_height'], width=self.conf['w_width'])
+                # mplw.ntb.setIconSize(QSize(18, 18))
+                # mplw.ntb.setFixedSize(self.conf['w_width'], 24)
                 layout.addWidget(mplw, row, col)
-                # mplw.getViewBox().my_menu.addAction('oooo')
-            mplw.my_action = self
+                mplw.my_action = self
             mplw.my_name = s.name
             while plot_order[ii] != s.name:
                 ii += 1
@@ -712,27 +712,28 @@ class MainWindow(QMainWindow):
                 col = 0
                 row += 1
             # Show toolbar
-            if self.show_toolbar:
-                mplw.ntb.show()
-            else:
-                mplw.ntb.hide()
+            # if self.show_toolbar:
+            #     mplw.ntb.show()
+            # else:
+            #     mplw.ntb.hide()
             # get axes
-            axes = mplw.canvas.ax
-            axes.clear()
+            # axes = mplw.canvas.ax
+            mplw.clear()
+            # axes = mplw.getPlotItem()
             # Decorate the plot
-            axes.grid(True)
+            mplw.showGrid(True, True)
             if math.isnan(s.value) or s.value is None:
                 default_title = s.name
             else:
                 default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
-            axes.set_title(self.from_params(b'title', s.params, default_title))
-            axes.set_xlabel(self.from_params(b'xlabel', s.params, 'Time, ms'))
-            axes.set_ylabel(self.from_params(b'ylabel', s.params, '%s, %s' % (s.name, s.unit)))
+            mplw.setTitle(self.from_params(b'title', s.params, default_title))
+            mplw.setLabel('bottom', self.from_params(b'xlabel', s.params, 'Time, ms'))
+            # axes.setLabel('top', self.from_params(b'ylabel', s.params, '%s, %s' % (s.name, s.unit)))
             # plot previous line
             if self.plot_previous_line and self.last_selection >= 0:
                 for s1 in self.old_signal_list:
                     if s1.name == s.name:
-                        axes.plot(s1.x, s1.y, color=self.previous_color)
+                        mplw.plot(s1.x, s1.y, pen={'color': self.previous_color, 'width': 1})
                         break
             # plot main line
             y_min = float('inf')
@@ -754,19 +755,19 @@ class MainWindow(QMainWindow):
             except:
                 pass
             if len(s.x) > 20:
-                axes.plot(s.x, s.y, color=self.trace_color)
+                mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1})
             else:
-                axes.plot(s.x, s.y, color=self.trace_color, symbol='o')
+                mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1}, symbol='o')
             # plot 'mark' highlight
             if 'mark' in s.marks:
                 m1 = s.marks['mark'][0]
                 m2 = m1 + s.marks['mark'][1]
-                axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.mark_color)
+                mplw.plot(s.x[m1:m2], s.y[m1:m2], pen={'color': self.mark_color, 'width': 1})
             # Plot 'zero' highlight
             if 'zero' in s.marks:
                 m1 = s.marks['zero'][0]
                 m2 = m1 + s.marks['zero'][1]
-                axes.plot(s.x[m1:m2], s.y[m1:m2], color=self.zero_color)
+                mplw.plot(s.x[m1:m2], s.y[m1:m2], pen={'color': self.zero_color, 'width': 1})
             # Show plot
             try:
                 if self.checkBox_3.isChecked():
