@@ -341,7 +341,7 @@ class MainWindow(QMainWindow):
         txt = ''
         for s in self.extra_plots:
             if s.name == signal_name:
-                txt = 'Calculated signal ' + s.code
+                txt = 'Calculated signal:\n' + s.code
                 break
         if not txt:
             for s in self.signal_list:
