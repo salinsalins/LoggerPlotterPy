@@ -33,11 +33,12 @@ from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 
 # os.environ['QT_API'] = 'pyqt5'
 # os.environ['QT_API'] = 'pyside6'
-# os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
 
 # from mplwidget import MplWidget
 # import pyqtgraphwidget
 from pyqtgraphwidget import MplWidget
+from PlotWidget import PlotWidget
 
 sys.path.append(os.path.realpath('../TangoUtils'))
 from QtUtils import WidgetLogHandler
