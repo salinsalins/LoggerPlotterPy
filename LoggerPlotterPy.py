@@ -186,6 +186,15 @@ class MainWindow(QMainWindow):
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
         # Load the UI
         uic.loadUi(UI_FILE, self)
+        # name widgets aliases
+        self.select = self.pushButton_2
+        self.history = self.comboBox_2
+        self.table = self.tableWidget_3
+        self.log_level = self.comboBox_1
+        self.shown_columns = self.plainTextEdit_2
+        self.hidden_columns = self.plainTextEdit_3
+        self.shown_plots = self.plainTextEdit_7
+        self.hidden_plots = self.plainTextEdit_6
         # Connect signals with the slots
         self.pushButton_2.clicked.connect(self.select_log_file)
         self.comboBox_2.currentIndexChanged.connect(self.file_selection_changed)
