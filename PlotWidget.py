@@ -17,7 +17,7 @@ pyqtgraph.setConfigOption('foreground', 'k')
 
 class PlotWidget(pyqtgraph.PlotWidget):
     MENU = ['Hide plot', 'Show new plot', 'Show plot', 'Show parameters']
-    print(QtWidgets.QMenu)
+    # print(QtWidgets.QMenu)
 
     def __init__(self, parent=None, height=300, width=300, background='#1d648da0',
                  foreground='k'):
