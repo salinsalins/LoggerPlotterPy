@@ -1,6 +1,9 @@
 # coding: utf-8
 """
-Created on 16 april 2021
+Customized pyqtgraph.PlotWidget
+with corrected mouse operation
+
+Created on 12 aug 2024
 @author: Sanin
 """
 
@@ -15,17 +18,19 @@ class PlotWidget(pyqtgraph.PlotWidget):
 
     def __init__(self, parent=None, height=300, width=300, background='#1d648da0',
                  foreground='k'):
-        super().__init__(parent, background=background, foreground=foreground)
+        super().__init__(parent, background=background, foreground='k')
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
+        # add menu
         self.getPlotItem().showGrid(True, True)
-        # self.setMouseMode(self.RectMode)
         self.my_menu = QtWidgets.QMenu()
         self.my_menu.addAction(self.MENU[0])
         self.my_menu.addAction(self.MENU[1])
         self.my_menu.addAction(self.MENU[2])
         self.my_menu.addSeparator()
         self.my_menu.addAction(self.MENU[3])
+        # correct mouse behaviour
+        # self.setMouseMode(self.RectMode)
         vb = self.getPlotItem().getViewBox()
         vb.mouseClickEvent = self.mouseClickEvent
         vb.mouseDragEvent = self.mouseDragEvent
