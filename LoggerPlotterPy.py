@@ -18,22 +18,37 @@ import datetime
 from functools import lru_cache
 import numpy
 
-from PyQt5 import QtGui
-from PyQt5.QtGui import QFont, QColor
-from PyQt5 import uic
-from PyQt5 import QtCore
-from PyQt5.QtCore import QPoint, QSize
-from PyQt5.QtCore import QTimer
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetSelectionRange
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtWidgets import QFrame, QMenu
-from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
-from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
-
 # os.environ['QT_API'] = 'pyqt5'
-# os.environ['QT_API'] = 'pyside6'
-os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+os.environ['QT_API'] = 'pyside6'
+# os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
+
+import qtpy
+from qtpy import QtGui
+from qtpy.QtGui import QFont, QColor
+from qtpy import uic
+from qtpy import QtCore
+from qtpy.QtCore import QPoint, QSize
+from qtpy.QtCore import QTimer
+from qtpy import QtWidgets
+from qtpy.QtWidgets import QApplication, QMainWindow, QTableWidgetSelectionRange
+from qtpy.QtWidgets import QFileDialog
+from qtpy.QtWidgets import QFrame, QMenu
+from qtpy.QtWidgets import QLabel, QComboBox, QMessageBox
+from qtpy.QtWidgets import QTableWidgetItem, QHeaderView
+
+# from PyQt5 import QtGui
+# from PyQt5.QtGui import QFont, QColor
+# from PyQt5 import uic
+# from PyQt5 import QtCore
+# from PyQt5.QtCore import QPoint, QSize
+# from PyQt5.QtCore import QTimer
+# from PyQt5 import QtWidgets
+# from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetSelectionRange
+# from PyQt5.QtWidgets import QFileDialog
+# from PyQt5.QtWidgets import QFrame, QMenu
+# from PyQt5.QtWidgets import QLabel, QComboBox, QMessageBox
+# from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 
 # from mplwidget import MplWidget
 # import pyqtgraphwidget
@@ -1397,8 +1412,9 @@ class MainWindow(QMainWindow):
 class VLine(QFrame):
     # a simple VLine, like the one you get from designer
     def __init__(self):
-        super(VLine, self).__init__()
-        self.setFrameShape(self.VLine | self.Sunken)
+        super().__init__()
+        self.setFrameShape(QFrame.VLine)
+        print(QFrame.VLine)
 
 
 class Signal:
