@@ -1183,10 +1183,11 @@ class MainWindow(QMainWindow):
             self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
             x = self.conf['main_window']['position'][0]
             y = self.conf['main_window']['position'][1]
-            for displayNr in range(QtWidgets.QDesktopWidget().screenCount()):
-                so = QtWidgets.QDesktopWidget().screenGeometry(displayNr)
-                if so.left() < x < so.left() + so.width():
-                    if so.top() < y < so.top() + so.height():
+            scns = QtGui.QGuiApplication.screens()
+            for scn in scns:
+                sg = scn.geometry()
+                if sg.left() < x < sg.left() + sg.width():
+                    if sg.top() < y < sg.top() + sg.height():
                         self.move(QPoint(x, y))
                         return
             self.move(QPoint(20, 20))
