@@ -1219,10 +1219,11 @@ class MainWindow(QMainWindow):
             self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
             x = self.conf['main_window']['position'][0]
             y = self.conf['main_window']['position'][1]
-            for displayNr in range(QtWidgets.QDesktopWidget().screenCount()):
-                so = QtWidgets.QDesktopWidget().screenGeometry(displayNr)
-                if so.left() < x < so.left() + so.width():
-                    if so.top() < y < so.top() + so.height():
+            scns = QtGui.QGuiApplication.screens()
+            for scn in scns:
+                sg = scn.geometry()
+                if sg.left() < x < sg.left() + sg.width():
+                    if sg.top() < y < sg.top() + sg.height():
                         self.move(QPoint(x, y))
                         return
             self.move(QPoint(20, 20))
@@ -1259,7 +1260,8 @@ class MainWindow(QMainWindow):
             if 'main_window' in self.conf:
                 self.setMinimumSize(640, 480)  # resize hook
                 self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
-                self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
+                self.restore_window_position()
+                # self.move(QPoint(self.conf['main_window']['position'][0], self.conf['main_window']['position'][1]))
             # colors
             if 'colors' in self.conf:
                 self.trace_color = self.conf['colors'].get('trace', self.trace_color)
