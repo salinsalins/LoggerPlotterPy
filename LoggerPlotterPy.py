@@ -18,7 +18,7 @@ import datetime
 from functools import lru_cache
 import numpy
 
-from PySide6 import QtGui
+from PySide6 import QtGui, QtWidgets
 from PySide6.QtGui import QFont, QColor
 from PySide6.QtUiTools import QUiLoader
 # from PyQt5 import uic
@@ -1213,6 +1213,20 @@ class MainWindow(QMainWindow):
     # def resizeEvent(self, *args):
     #     print('resize', args, args[0].size())
     #     super().resizeEvent(*args)
+    def restore_window_position(self):
+        if 'main_window' in self.conf:
+            self.setMinimumSize(640, 480)  # resize hook
+            self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
+            x = self.conf['main_window']['position'][0]
+            y = self.conf['main_window']['position'][1]
+            for displayNr in range(QtWidgets.QDesktopWidget().screenCount()):
+                so = QtWidgets.QDesktopWidget().screenGeometry(displayNr)
+                if so.left() < x < so.left() + so.width():
+                    if so.top() < y < so.top() + so.height():
+                        self.move(QPoint(x, y))
+                        return
+            self.move(QPoint(20, 20))
+
     def restore_settings(self, folder='', file_name=None):
         self.conf = {
             'columns': 3,
