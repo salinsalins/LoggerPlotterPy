@@ -12,15 +12,21 @@ import threading
 import pyqtgraph
 from pyqtgraph.Qt import QtCore, QtWidgets
 
+pyqtgraph.setConfigOption('foreground', 'k')
+
 
 class PlotWidget(pyqtgraph.PlotWidget):
     MENU = ['Hide plot', 'Show new plot', 'Show plot', 'Show parameters']
 
     def __init__(self, parent=None, height=300, width=300, background='#1d648da0',
                  foreground='k'):
-        super().__init__(parent, background=background, foreground='k')
+        super().__init__(parent, background=background)
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
+        # self.getAxis('left').setPen('k')
+        # self.getAxis('left').setTextPen('k')
+        # self.getAxis('bottom').setPen('k')
+        # self.getAxis('bottom').setTextPen('k')
         # add menu
         self.getPlotItem().showGrid(True, True)
         self.my_menu = QtWidgets.QMenu()

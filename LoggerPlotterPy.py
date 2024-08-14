@@ -37,7 +37,7 @@ os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
 
 # from mplwidget import MplWidget
 # import pyqtgraphwidget
-from pyqtgraphwidget import MplWidget
+# from pyqtgraphwidget import MplWidget
 from PlotWidget import PlotWidget
 
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
