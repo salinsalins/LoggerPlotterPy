@@ -33,10 +33,11 @@ class PlotWidget(pyqtgraph.PlotWidget):
         self.my_menu.addSeparator()
         self.my_menu.addAction(self.MENU[3])
         # correct mouse behaviour
-        # self.setMouseMode(self.RectMode)
+        # self.vb.setMouseMode(self.vb.RectMode)
         vb = self.getPlotItem().getViewBox()
         vb.mouseClickEvent = self.mouseClickEvent
         vb.mouseDragEvent = self.mouseDragEvent
+        vb.setMouseMode(vb.RectMode)
 
     def clearScaleHistory(self):
         vb = self.getPlotItem().getViewBox()
