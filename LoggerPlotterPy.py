@@ -21,6 +21,7 @@ import numpy
 try:
     __import__('PySide6')
 #     os.environ['QT_API'] = 'pyside6'
+#     os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 except ModuleNotFoundError:
     pass
 # os.environ['QT_API'] = 'pyqt5'
@@ -912,10 +913,10 @@ class MainWindow(QMainWindow):
         return data_folder
 
     def restore_local_settings(self):
-        if not self.checkBox_5.isChecked():
-            return
-        full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
         try:
+            if not self.checkBox_5.isChecked():
+                return
+            full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
             with open(full_name, 'r') as configfile:
                 s = configfile.read()
             conf = json.loads(s)
@@ -938,10 +939,10 @@ class MainWindow(QMainWindow):
             return False
 
     def save_local_settings(self):
-        full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
         try:
             if not self.checkBox_5.isChecked():
                 return
+            full_name = os.path.abspath(os.path.join(self.get_data_folder(), CONFIG_FILE))
             conf = dict()
             conf['included'] = self.conf['included']
             conf['extra_plot'] = self.conf['extra_plot']
@@ -958,7 +959,7 @@ class MainWindow(QMainWindow):
     def log_level_index_changed(self, m: int) -> None:
         levels = [logging.NOTSET, logging.DEBUG, logging.INFO,
                   logging.WARNING, logging.ERROR, logging.CRITICAL]
-        if m >= 0:
+        if 0 <= m < len(levels):
             self.logger.setLevel(levels[m])
 
     def on_quit(self):
