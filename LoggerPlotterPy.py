@@ -2056,15 +2056,12 @@ class LogTable:
         fields[0] = "Time=" + tm
         # iterate rest fields for key=value pairs
         keys_with_errors = []
-        dup_flag = True
+        row[-2] = keys_with_errors
         for field in fields:
             kv = field.split("=")
             key = kv[0].strip()
             val = kv[1].strip()
             if key in row:
-                if dup_flag:
-                    self.logger.warning('Duplicate key "%s" in line "%s ..."', key, line[:25])
-                    dup_flag = False
                 keys_with_errors.append(key)
             else:
                 row[key] = {'text': val}
@@ -2073,13 +2070,13 @@ class LogTable:
                 # value
                 try:
                     v = float(vu[0].strip().replace(',', '.'))
-                    if key in keys_with_errors:
-                        keys_with_errors.remove(key)
+                    # if key in keys_with_errors:
+                    #     keys_with_errors.remove(key)
                 except:
                     # v = float('nan')
                     v = vu[0]
-                    if key != 'Time' and key != 'File' and key not in keys_with_errors:
-                        self.logger.debug('Unexpected value in "%s"' % field)
+                    if key != 'Time' and key != 'File':
+                        # self.logger.debug('Unexpected value in "%s"' % field)
                         keys_with_errors.append(key)
                 row[key]['value'] = v
                 # units
@@ -2088,7 +2085,6 @@ class LogTable:
                 except:
                     u = ''
                 row[key]['units'] = u
-            row[-2] = keys_with_errors
         return row
 
     def append_lines(self, buf):
