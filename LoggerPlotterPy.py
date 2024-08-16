@@ -304,6 +304,8 @@ class MainWindow(QMainWindow):
         global CONFIG_FILE
         try:
             self.sb_combo.currentIndexChanged.disconnect(self.config_selection_changed)
+        except KeyboardInterrupt:
+            raise
         except:
             pass
         self.sb_combo.clear()
@@ -577,16 +579,16 @@ class MainWindow(QMainWindow):
         rng = widget.selectedRanges()
         # if selection is empty
         if len(rng) < 1:
-            self.logger.debug('Empty selection')
+            # self.logger.debug('Empty selection')
             return -1
         # top row of the selection
         row_s = rng[0].topRow()
         # if selected the same row
         if self.current_selection == row_s:
-            self.logger.debug('Selection unchanged')
+            # self.logger.debug('Selection unchanged')
             return row_s
         # different row selected
-        self.logger.debug('Selection changed from %s to %i', self.current_selection, row_s)
+        # self.logger.debug('Selection changed from %s to %i', self.current_selection, row_s)
         return row_s
 
     def sig(self, name):
@@ -617,6 +619,8 @@ class MainWindow(QMainWindow):
                 self.restore_background()
                 self.plot_signals()
                 self.update_status_bar()
+            except KeyboardInterrupt:
+                raise
             except:
                 r = QTableWidgetSelectionRange(self.current_selection, 0, self.current_selection,
                                                self.table.columnCount() - 1)
@@ -748,6 +752,8 @@ class MainWindow(QMainWindow):
                 y_max = float(self.from_params(b'plot_y_max', s.params, '-inf'))
                 if y_max > y_min:
                     mplw.setYRange(y_min, y_max)
+            except KeyboardInterrupt:
+                raise
             except:
                 pass
             try:
@@ -932,8 +938,10 @@ class MainWindow(QMainWindow):
             if 'plot_order' in conf:
                 self.shown_plots.setPlainText(conf['plot_order'])
                 self.conf['plot_order'] = conf['plot_order']
-            self.logger.info('Local configuration restored from %s' % full_name)
+            self.logger.debug('Local configuration restored from %s' % full_name)
             return True
+        except KeyboardInterrupt:
+            raise
         except:
             log_exception('Local configuration restore error from %s' % full_name, level=logging.INFO)
             return False
@@ -1387,7 +1395,7 @@ class MainWindow(QMainWindow):
     def select_last_row(self):
         # select last row
         if self.checkBox_4.isChecked() or self.current_selection < 0:
-            self.logger.debug('Selection will be switched to last row')
+            # self.logger.debug('Selection will be switched to last row')
             n = self.table.rowCount() - 1
             self.table.selectRow(n)
             self.table.scrollToBottom()
@@ -2011,13 +2019,14 @@ class LogTable:
         return len(self.columns)
 
     def add_column(self, key, data=None):
-        if key not in self.columns:
-            if not data:
-                self.columns[key] = [self.EMTPY_CELL] * self.rows
-            else:
-                if len(data) != self.rows:
-                    raise ValueError(f"Wrong insert data for {key}")
-                self.columns[key] = data
+        if key in self.columns:
+            # self.logger.info("Override of column %s rejected", key)
+            return self.columns[key]
+        self.columns[key] = [self.EMTPY_CELL] * self.rows
+        if data:
+            if len(data) != self.rows:
+                raise ValueError(f"Wrong data length for {key}")
+            self.columns[key] = data
         return self.columns[key]
 
     def remove_column(self, key):
@@ -2182,52 +2191,99 @@ class LogTable:
             log_exception(self.logger, 'Data file %s can not be opened' % fn)
             return None
 
-    def add_extra_columns(self, extra_cols):
-
-        def value(x, y=None):
-            if y is None:
-                y = row
-            return self.value(y, x)
-
-        #
+    def compute_column(self, code):
         rows_with_error = []
-        for column in extra_cols:
-            if not column or column.strip() == '':
-                continue
-            h = column.__hash__()
-            n = 0
-            key0 = None
-            if h in self.exrta_columns:
-                key0 = self.exrta_columns[h]['name']
-            key = ''
-            for row in range(0, self.rows):
-                try:
-                    key, v, u = eval(column)
-                    if not key or not isinstance(key, str):
-                        self.logger.info('Wrong name for column %s' % column)
-                        break
-                    if key0 is None:
-                        if key in self.columns:
-                            self.logger.debug(f'Column {key} will be overwritten by {column}')
-                        #     break
-                        key0 = key
-                        self.add_column(key0)
-                    if key != key0:
-                        raise KeyError('Wrong name for column %s' % column)
-                    else:
-                        self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
-                        n += 1
-                except:
-                    if not rows_with_error:
-                        log_exception(self.logger, 'Column eval() error in "%s ..."\n',
-                                      column[:20], level=logging.WARNING, no_info=True)
+        code = code.strip()
+        data = [self.EMTPY_CELL] * self.rows
+        if not code:
+            return []
+        n = 0
+        key0 = None
+        key = ''
+        for row in range(0, self.rows):
+            try:
+                key, v, u = eval(code)
+                if not key or not isinstance(key, str):
                     rows_with_error.append(row)
-            self.exrta_columns[h] = {'name': key0, 'code': column, 'length': n, 'errors': rows_with_error}
-            self.exrta_columns[key0] = h
-            if rows_with_error:
-                self.logger.warning(f'Errors creation extra column for "{column[:20]} ..."')
-            else:
-                self.logger.debug(f'Extra column {key} has been added {n} lines')
+                    # self.logger.info('Wrong name calculating %s ...' % code[:15])
+                    if key0 is None:
+                        break
+                    continue
+                if key0 is None:
+                    key0 = key
+                if key0 != key:
+                    # self.logger.info('Different names calculating %s ...' % code[:15])
+                    rows_with_error.append(row)
+                    continue
+                tx = str(v)
+                un = str(u)
+                try:
+                    vl = float(v)
+                except:
+                    vl = str(v)
+                data[n] = {'text': tx, 'value': vl, 'units': un}
+                n += 1
+            except:
+                # if not rows_with_error:
+                #     log_exception(self.logger, 'Column eval() error in "%s ..."\n',
+                #                   code[:15], level=logging.WARNING, no_info=True)
+                rows_with_error.append(row)
+        if rows_with_error:
+            self.logger.warning(f'Errors creating extra column for "{code[:15]} ..."')
+        else:
+            self.logger.debug(f'Extra column {key} has been added {n} lines')
+        return key, data, rows_with_error
+
+    def add_extra_columns(self, extra_cols):
+        # rows_with_error = []
+        for column in extra_cols:
+            column = column.strip()
+            if not column:
+                continue
+            key, data, _ = self.compute_column(column)
+            self.add_column(key, data)
+        return
+            # h = column.__hash__()
+            # n = 0
+            # key0 = None
+            # if h in self.exrta_columns:
+            #     key0 = self.exrta_columns[h]['name']
+            # key = ''
+            # key1 = None
+            # for row in range(0, self.rows):
+            #     try:
+            #         key, v, u = eval(column)
+            #         if not key or not isinstance(key, str):
+            #             self.logger.info('Wrong name for column %s' % column)
+            #             break
+            #         if key1 is None:
+            #             key1 = key
+            #             break
+            #         if key1 != key:
+            #             self.logger.info('Different names calculating %s' % column)
+            #             break
+            #         if key0 is None:
+            #             if key in self.columns:
+            #                 self.logger.debug(f'Column {key} will be overwritten by {column}')
+            #             #     break
+            #             key0 = key
+            #             self.add_column(key0)
+            #         if key != key0:
+            #             raise KeyError('Wrong name for column %s' % column)
+            #         else:
+            #             self.columns[key0][row] = {'text': str(v), 'value': float(v), 'units': str(u)}
+            #             n += 1
+            #     except:
+            #         if not rows_with_error:
+            #             log_exception(self.logger, 'Column eval() error in "%s ..."\n',
+            #                           column[:20], level=logging.WARNING, no_info=True)
+            #         rows_with_error.append(row)
+            # self.exrta_columns[h] = {'name': key0, 'code': column, 'length': n, 'errors': rows_with_error}
+            # self.exrta_columns[key0] = h
+            # if rows_with_error:
+            #     self.logger.warning(f'Errors creation extra column for "{column[:20]} ..."')
+            # else:
+            #     self.logger.debug(f'Extra column {key} has been added {n} lines')
 
 
 if __name__ == '__main__':
