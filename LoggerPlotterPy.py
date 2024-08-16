@@ -1110,6 +1110,9 @@ class MainWindow(QMainWindow):
                     continue
                 try:
                     fmt = CONFIG['format'][column]
+                except:
+                    fmt = '%s %s'
+                try:
                     txt = fmt % (self.log_table.value(row, column), self.log_table.units(row, column))
                 except:
                     txt = self.log_table.text(row, column)
@@ -2192,6 +2195,11 @@ class LogTable:
             return None
 
     def compute_column(self, code):
+        def value(x, y=None):
+            if y is None:
+                y = row
+            return self.value(y, x)
+        #
         rows_with_error = []
         code = code.strip()
         data = [self.EMTPY_CELL] * self.rows
