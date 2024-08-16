@@ -763,10 +763,10 @@ class MainWindow(QMainWindow):
                     mplw.setXRange(x_min, x_max)
             except:
                 pass
-            if len(s.x) > 20:
+            if len(s.x) > 100:
                 mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1})
             else:
-                mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1}, symbol='o')
+                mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1}, symbol='o', symbolSize=8, pxMode=True )
             # plot 'mark' highlight
             if 'mark' in s.marks:
                 m1 = s.marks['mark'][0]
