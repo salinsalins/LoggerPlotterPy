@@ -1113,17 +1113,18 @@ class MainWindow(QMainWindow):
                     v = self.log_table.value(row, column)
                     v1 = self.log_table.value(row - 1, column)
                     bold_font_flag = True
-                    if math.isnan(v) or math.isnan(v1):
-                        bold_font_flag = False
-                    else:
-                        try:
-                            thr = CONFIG['thresholds'][column]
-                        except:
-                            thr = 0.03
-                        if thr > 0.0:
-                            bold_font_flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
-                        elif thr < 0.0:
-                            bold_font_flag = abs(v1 - v) > -thr
+                    if isinstance(v, float) and isinstance(v1, float):
+                        if math.isnan(v) or math.isnan(v1):
+                            bold_font_flag = False
+                        else:
+                            try:
+                                thr = CONFIG['thresholds'][column]
+                            except:
+                                thr = 0.03
+                            if thr > 0.0:
+                                bold_font_flag = (v != 0.0) and (abs((v1 - v) / v) > thr)
+                            elif thr < 0.0:
+                                bold_font_flag = abs(v1 - v) > -thr
                     if bold_font_flag:
                         item.setFont(CELL_FONT_BOLD)
                 self.table.setItem(row, n, item)
@@ -2063,9 +2064,10 @@ class LogTable:
                     if key in keys_with_errors:
                         keys_with_errors.remove(key)
                 except:
-                    v = float('nan')
+                    # v = float('nan')
+                    v = vu[0]
                     if key != 'Time' and key != 'File' and key not in keys_with_errors:
-                        self.logger.debug('Non float value in "%s"' % field)
+                        self.logger.debug('Unexpected value in "%s"' % field)
                         keys_with_errors.append(key)
                 row[key]['value'] = v
                 # units
@@ -2217,7 +2219,8 @@ class LogTable:
                         n += 1
                 except:
                     if not rows_with_error:
-                        log_exception(self.logger, 'Column eval() error in "%s ..."\n', column[:20], level=logging.INFO)
+                        log_exception(self.logger, 'Column eval() error in "%s ..."\n',
+                                      column[:20], level=logging.WARNING, no_info=True)
                     rows_with_error.append(row)
             self.exrta_columns[h] = {'name': key0, 'code': column, 'length': n, 'errors': rows_with_error}
             self.exrta_columns[key0] = h
