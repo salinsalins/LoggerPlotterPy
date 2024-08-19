@@ -23,6 +23,8 @@ try:
 #     os.environ['QT_API'] = 'pyside6'
 #     os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 except ModuleNotFoundError:
+    os.environ['QT_API'] = 'pyqt5'
+    os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
     pass
 # os.environ['QT_API'] = 'pyqt5'
 # os.environ['QT_API'] = 'pyside6'
