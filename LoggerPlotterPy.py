@@ -2027,7 +2027,8 @@ class LogTable:
         return self.columns[key]
 
     def remove_column(self, key):
-        del self.columns[key]
+        if key in self.columns:
+            del self.columns[key]
 
     def decode_line(self, line):
         row = {}
@@ -2240,6 +2241,7 @@ class LogTable:
             if not column:
                 continue
             key, data, _ = self.compute_column(column)
+            self.remove_column(key)
             self.add_column(key, data)
         return
             # h = column.__hash__()
