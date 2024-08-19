@@ -1108,14 +1108,8 @@ class MainWindow(QMainWindow):
             for column in self.columns:
                 if column not in self.log_table:
                     continue
-                try:
-                    fmt = CONFIG['format'][column]
-                except:
-                    fmt = '%s %s'
-                try:
-                    txt = fmt % (self.log_table.value(row, column), self.log_table.units(row, column))
-                except:
-                    txt = self.log_table.text(row, column)
+                fmt = CONFIG.get('format', {}).get(column, '')
+                txt = self.log_table.text(row, column, fmt)
                 txt = txt.replace('none', '').replace('None', '')
                 item = QTableWidgetItem(txt)
                 item.setFont(CELL_FONT)
@@ -2125,12 +2119,13 @@ class LogTable:
         self.columns[index].update(row)
         return self.rows
 
-    def text(self, row, col, fmt=None):
+    def text(self, row, col, fmt=''):
         v = self.columns[col][row]
-        if not fmt:
-            return v['text']
-        else:
+        if fmt.count('%') == 1:
+            return fmt % v['value']
+        elif fmt.count('%') == 2:
             return fmt % (v['value'], v['units'])
+        return v['text']
 
     def value(self, row, col):
         return self.columns[col][row]['value']
@@ -2219,7 +2214,7 @@ class LogTable:
                     # self.logger.info('Different names calculating %s ...' % code[:15])
                     rows_with_error.append(row)
                     continue
-                tx = str(v)
+                tx = '%s %s' % (v, u)
                 un = str(u)
                 try:
                     vl = float(v)
