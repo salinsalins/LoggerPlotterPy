@@ -1110,7 +1110,7 @@ class MainWindow(QMainWindow):
                     continue
                 fmt = CONFIG.get('format', {}).get(column, '')
                 txt = self.log_table.text(row, column, fmt)
-                txt = txt.replace('none', '').replace('None', '')
+                txt = txt.replace('none', '').replace('None', '').strip()
                 item = QTableWidgetItem(txt)
                 item.setFont(CELL_FONT)
                 # mark changed values
