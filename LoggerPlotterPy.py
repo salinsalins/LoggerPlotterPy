@@ -56,8 +56,8 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '15.1'
-VERSION_DATE = "14-08-2024"
+APPLICATION_VERSION = '15.2'
+VERSION_DATE = "20-08-2024"
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -725,19 +725,20 @@ class MainWindow(QMainWindow):
             #     mplw.ntb.show()
             # else:
             #     mplw.ntb.hide()
-            # get axes
-            # axes = mplw.canvas.ax
             mplw.clear()
-            # axes = mplw.getPlotItem()
             # Decorate the plot
-            mplw.showGrid(True, True)
+            # mplw.showGrid(True, True)
             if math.isnan(s.value) or s.value is None:
                 default_title = s.name
             else:
                 default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
             mplw.setTitle(self.from_params(b'title', s.params, default_title))
-            mplw.setLabel('bottom', self.from_params(b'xlabel', s.params, 'Time, ms'))
-            # axes.setLabel('top', self.from_params(b'ylabel', s.params, '%s, %s' % (s.name, s.unit)))
+            lbl = self.from_params(b'xlabel', s.params)
+            if lbl:
+                mplw.setLabel('bottom', lbl)
+            lbl = self.from_params(b'ylabel', s.params)
+            if lbl:
+                mplw.setLabel('left', lbl)
             # plot previous line
             if self.plot_previous_line and self.last_selection >= 0:
                 for s1 in self.old_signal_list:
@@ -823,7 +824,6 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def from_params(name, source, default=''):
-        result = ''
         try:
             if name in source:
                 result = source[name]
@@ -831,6 +831,8 @@ class MainWindow(QMainWindow):
                 result = source[name.encode()]
             elif isinstance(name, bytes):
                 result = source[name.decode('ascii')]
+            else:
+                return default
             if isinstance(result, bytes):
                 result = result.decode('ascii')
             return result

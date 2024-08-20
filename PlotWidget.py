@@ -10,13 +10,20 @@ Created on 12 aug 2024
 import threading
 
 import pyqtgraph
-from pyqtgraph.Qt import QtCore, QtWidgets
+from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 
 pyqtgraph.setConfigOption('foreground', 'k')
+# title_font = QtGui.QFont('Open Sans', 14, QtGui.QFont.Bold)
+title_font = QtGui.QFont('Arial', 24, QtGui.QFont.Bold)
+axis_font = QtGui.QFont('Arial', 10)
+# title_font.setPointSize(40)
 
+
+# axis_font.setPixelSize(40)
 
 class PlotWidget(pyqtgraph.PlotWidget):
     MENU = ['Hide plot', 'Show new plot', 'Show plot', 'Show parameters']
+
     # print(QtWidgets.QMenu)
 
     def __init__(self, parent=None, height=300, width=300, background='#1d648da0',
@@ -24,8 +31,14 @@ class PlotWidget(pyqtgraph.PlotWidget):
         super().__init__(parent, background=background)
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
+        pi = self.getPlotItem()
+        pi.showGrid(True, True)
+        pi.titleLabel.item.setFont(title_font)
+        pi.getAxis("bottom").label.setFont(axis_font)
+        pi.getAxis("left").label.setFont(axis_font)
+        pi.getAxis("bottom").setTickFont(axis_font)
+        pi.getAxis("left").setTickFont(axis_font)
         # add menu
-        self.getPlotItem().showGrid(True, True)
         self.my_menu = QtWidgets.QMenu()
         self.my_menu.addAction(self.MENU[0])
         self.my_menu.addAction(self.MENU[1])
@@ -33,7 +46,6 @@ class PlotWidget(pyqtgraph.PlotWidget):
         self.my_menu.addSeparator()
         self.my_menu.addAction(self.MENU[3])
         # correct mouse behaviour
-        # self.vb.setMouseMode(self.vb.RectMode)
         vb = self.getPlotItem().getViewBox()
         vb.mouseClickEvent = self.mouseClickEvent
         vb.mouseDragEvent = self.mouseDragEvent
