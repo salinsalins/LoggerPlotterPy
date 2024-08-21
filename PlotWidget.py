@@ -14,7 +14,7 @@ from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 
 pyqtgraph.setConfigOption('foreground', 'k')
 # title_font = QtGui.QFont('Open Sans', 14, QtGui.QFont.Bold)
-title_font = QtGui.QFont('Arial', 24, QtGui.QFont.Bold)
+title_font = QtGui.QFont('Arial', 14, QtGui.QFont.Bold)
 axis_font = QtGui.QFont('Arial', 10)
 # title_font.setPointSize(40)
 
@@ -50,6 +50,10 @@ class PlotWidget(pyqtgraph.PlotWidget):
         vb.mouseClickEvent = self.mouseClickEvent
         vb.mouseDragEvent = self.mouseDragEvent
         vb.setMouseMode(vb.RectMode)
+
+    def setTitle(self, text, *args, **kwargs):
+        self.getPlotItem().setTitle(text, *args, size='14pt', **kwargs)
+
 
     def clearScaleHistory(self):
         vb = self.getPlotItem().getViewBox()
