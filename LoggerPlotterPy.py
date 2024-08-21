@@ -44,6 +44,7 @@ from qtpy.QtWidgets import QLabel, QComboBox, QMessageBox
 from qtpy.QtWidgets import QTableWidgetItem, QHeaderView
 
 from PlotWidget import PlotWidget
+# from mplwidget import PlotWidget
 
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 from QtUtils import WidgetLogHandler

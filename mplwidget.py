@@ -11,66 +11,76 @@ Created on 31 мая 2017 г.
 # import matplotlib.style as mplstyle
 # mplstyle.use('fast')
 
+from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import \
+    NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.figure import Figure
 
-# Python Qt4 or Qt5 bindings for GUI objects
-try:
-    from PyQt5 import QtWidgets as QtGui
-    from matplotlib.backends.backend_qt5agg \
-        import FigureCanvasQTAgg as FigureCanvas
-    from matplotlib.backends.backend_qt5agg \
-        import NavigationToolbar2QT as NavigationToolbar
-except:
-    from PyQt4 import QtGui
-    from matplotlib.backends.backend_qt4agg \
-        import FigureCanvasQTAgg as FigureCanvas
-    from matplotlib.backends.backend_qt4agg \
-        import NavigationToolbar2QT as NavigationToolbar
 
-
-# import the Qt4(5)Agg FigureCanvas object, that binds Figure to
-# Qt4(5)Agg backend. It also inherits from QWidget
-# Matplotlib Figure object
-# import the NavigationToolbar Qt4(5)Agg widget
-
-class MplCanvas(FigureCanvas):
-    """Class to represent the FigureCanvas widget"""
-
-    def __init__(self):
-        # setup Matplotlib Figure and Axis
-        self.fig = Figure()
-        self.fig.set_tight_layout(True)
-        # self.fig.set_constrained_layout(True)
-        self.ax = self.fig.add_subplot(111)
-        # initialization of the canvas
-        FigureCanvas.__init__(self, self.fig)
-        # we define the widget as expandable
-        FigureCanvas.setSizePolicy(self,
-                                   QtGui.QSizePolicy.Expanding,
-                                   QtGui.QSizePolicy.Expanding)
-        # notify the system of updated policy
-        FigureCanvas.updateGeometry(self)
-
-
-class MplWidget(QtGui.QWidget):
-    """Widget defined in Qt Designer"""
-
+class PlotWidget(QtWidgets.QWidget):
     def __init__(self, parent=None, height=300, width=300):
-        # initialization of Qt MainWindow widget
-        QtGui.QWidget.__init__(self, parent)
-        # set the canvas to the Matplotlib widget
-        self.canvas = MplCanvas()
-        # create a vertical box layout
-        self.vbl = QtGui.QVBoxLayout()
-        self.vbl.setSpacing(0)
-
-        self.ntb = NavigationToolbar(self.canvas, parent)
-        self.ntb.hide()
-        self.vbl.addWidget(self.ntb)
-
-        # add mpl widget to vertical box
-        self.vbl.addWidget(self.canvas)
-        # set the layout to the vertical box
-        self.setLayout(self.vbl)
+        super().__init__(parent)
+        layout = QtWidgets.QVBoxLayout(self)
+        canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        self.ntb = NavigationToolbar(canvas, self)
+        # self.ntb.hide()
+        layout.addWidget(self.ntb)
+        layout.addWidget(canvas)
+        self.ax = canvas.figure.subplots()
+        self.setLayout(layout)
         self.setMinimumHeight(height)
         self.setMinimumWidth(width)
+        _copy_attrs(self.ax, self)
+
+    def setTitle(self, text):
+        pass
+        # self.ax.title = text
+
+    def plot(self, x, y, *args, **kwargs):
+        keys = {'color': 'color', 'width': 'linewidth',
+                'symbol': 'marker', 'symbolSize': 'markersize'}
+        kw = {'color': 'green', 'linewidth': 0.5, 'marker': '', 'markersize': 1.0}
+        for k in keys:
+            if k in kwargs:
+                source = kwargs
+            elif 'pen' in kwargs:
+                source = kwargs['pen']
+            else:
+                continue
+            if k in source:
+                kw[keys[k]] = source[k]
+        c = 'green'
+        w = 0.5
+        m = ''
+        if 'color' in kwargs:
+            c = kwargs.pop('color')
+        elif 'pen' in kwargs:
+            p = kwargs.pop('pen')
+            if 'color' in p:
+                c = p['color']
+        if 'width' in kwargs:
+            w = kwargs.pop('width')
+        elif 'pen' in kwargs:
+            p = kwargs.pop('pen')
+            if 'width' in p:
+                w = p['width']
+        if 'symbol' in kwargs:
+            m = kwargs.pop('symbol')
+        elif 'pen' in kwargs:
+            p = kwargs.pop('pen')
+            if 'symbol' in p:
+                m = p['symbol']
+        self.ax.plot(x, y, color=c, linewidth=w, marker=m)
+
+    def clearScaleHistory(self):
+        pass
+
+    def autoRange(self):
+        pass
+
+
+def _copy_attrs(src, dst):
+    for o in dir(src):
+        if not hasattr(dst, o):
+            setattr(dst, o, getattr(src, o))
