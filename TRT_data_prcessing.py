@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 
-fver = "1Q_220A"
+fver = "1Q_220A_50mm"
 dir = "d:\\Your files\\Sanin\\Documents\\2024\\TRT project\\COMSOL\\"
 fname = dir + "Beam_Data_" + fver + ".txt"
 data = np.loadtxt(fname, dtype=float, comments='%', delimiter=None, skiprows=0)
@@ -42,16 +42,10 @@ r = np.sqrt(x*x + y*y)
 #print(min(r), max(r))
 cf = x/r
 sf = y/r
-#y2 = np.pi * diam * cf[index]
-#y2 = np.pi * radius * cf
 y2 = radius * numpy.arccos(cf)
-#x2 = z[index] - zmin
 x2 = z - zmin
 
 zmax = z.max()
-#ax = fig.add_subplot(111)
-#ax.scatter([x2, x2], [y2, -y2])
-#plt.show()
 
 x = np.concatenate((x2, x2))
 y = np.concatenate((y2, -y2))
@@ -87,7 +81,7 @@ ax.set_xlim((np.min(x), np.max(x)))
 
 x1 = np.linspace(np.min(x), np.max(x), bins)
 y1 = np.linspace(np.min(y), np.max(y), bins)*np.pi
-plt.contour(x1, y1, dens1, levels=[1000])
+plt.contour(x1, y1, dens1, levels=[100, 250])
 
 pfname = dir + "Beam_Data_" + fver + ".png"
 
