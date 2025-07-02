@@ -19,7 +19,7 @@ from functools import lru_cache
 import numpy
 
 try:
-    __import__('PySide6')
+    __import__('PySide')
 #     os.environ['QT_API'] = 'pyside6'
 #     os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 except ModuleNotFoundError:
@@ -2293,7 +2293,7 @@ class LogTable:
 
 
 if __name__ == '__main__':
-    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+    # os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
     if len(sys.argv) >= 2:
         CONFIG_FILE = sys.argv[1]
     # import matplotlib
