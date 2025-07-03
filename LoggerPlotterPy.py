@@ -26,10 +26,6 @@ import numpy
 #     print('Pyside not found')
 #     os.environ['QT_API'] = 'pyqt5'
 #     os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
-# os.environ['QT_API'] = 'pyqt5'
-# os.environ['QT_API'] = 'pyside6'
-# os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
-# os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 
 from qtpy import QtGui
 from qtpy.QtGui import QFont, QColor
