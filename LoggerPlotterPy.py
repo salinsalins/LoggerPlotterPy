@@ -39,6 +39,7 @@ from qtpy.QtWidgets import QFrame, QMenu
 from qtpy.QtWidgets import QLabel, QComboBox, QMessageBox
 from qtpy.QtWidgets import QTableWidgetItem, QHeaderView
 
+from DequeLogHandler import DequeLogHandler
 from PlotWidget import PlotWidget
 # from mplwidget import PlotWidget
 
@@ -161,6 +162,7 @@ class MainWindow(QMainWindow):
         self.zero_color = ZERO_COLOR
         #
         self.log_file_name = None
+        self.absent_log_file_name = None
         self.data_root = None
         self.conf = {}
         self.rmb = {}
@@ -186,6 +188,8 @@ class MainWindow(QMainWindow):
         self.fill_empty_lists = True
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
+        self.dlh = DequeLogHandler()
+        self.sllh = WidgetLogHandler(self.)
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # name widgets aliases
@@ -1379,10 +1383,14 @@ class MainWindow(QMainWindow):
         # check if data file locked
         if self.is_locked():
             return
-        # check if data file exists
+        # check if log file exists
         if not (os.path.exists(self.log_file_name) and os.path.isfile(self.log_file_name)):
-            # self.logger.debug('Data file does not exist')
+            if self.absent_log_file_name != self.log_file_name:
+                self.logger.warning('Data file does not exist')
+                self.absent_log_file_name = self.log_file_name
             return
+        else:
+            self.absent_log_file_name = None
         self.old_size = self.log_table.file_size
         self.new_size = os.path.getsize(self.log_file_name)
         if self.new_size <= self.old_size:
