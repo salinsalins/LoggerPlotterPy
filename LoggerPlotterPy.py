@@ -189,7 +189,7 @@ class MainWindow(QMainWindow):
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
         self.dlh = DequeLogHandler()
-        self.sllh = WidgetLogHandler(self.)
+        self.logger.addHandler(self.dlh)
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # name widgets aliases
