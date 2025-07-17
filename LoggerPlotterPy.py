@@ -8,6 +8,7 @@ Created on Jul 2, 2017
 
 import os
 import sys
+if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 # import gc
 import json
 import logging
@@ -20,12 +21,16 @@ import numpy
 
 # try:
 #     __import__('PySide6')
-#     os.environ['QT_API'] = 'pyside6'
-#     os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
+# #     os.environ['QT_API'] = 'pyside6'
+# #     os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 # except ModuleNotFoundError:
-#     print('Pyside not found')
 #     os.environ['QT_API'] = 'pyqt5'
 #     os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+#     pass
+# os.environ['QT_API'] = 'pyqt5'
+# os.environ['QT_API'] = 'pyside6'
+# os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+# os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 
 from qtpy import QtGui
 from qtpy.QtGui import QFont, QColor
@@ -39,11 +44,9 @@ from qtpy.QtWidgets import QFrame, QMenu
 from qtpy.QtWidgets import QLabel, QComboBox, QMessageBox
 from qtpy.QtWidgets import QTableWidgetItem, QHeaderView
 
-from DequeLogHandler import DequeLogHandler
 from PlotWidget import PlotWidget
 # from mplwidget import PlotWidget
 
-if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 from QtUtils import WidgetLogHandler
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
@@ -55,7 +58,9 @@ ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
 APPLICATION_VERSION = '15.2'
-VERSION_DATE = "20-08-2024"
+FMT = os.path.getmtime(__file__)
+FMTS = time.strftime("%d-%m-%Y-%H:%M:%S", time.gmtime(os.path.getmtime(__file__)))
+VERSION_DATE = FMTS
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
@@ -162,7 +167,6 @@ class MainWindow(QMainWindow):
         self.zero_color = ZERO_COLOR
         #
         self.log_file_name = None
-        self.absent_log_file_name = None
         self.data_root = None
         self.conf = {}
         self.rmb = {}
@@ -188,8 +192,6 @@ class MainWindow(QMainWindow):
         self.fill_empty_lists = True
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
-        self.dlh = DequeLogHandler()
-        self.logger.addHandler(self.dlh)
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # name widgets aliases
@@ -1019,7 +1021,7 @@ class MainWindow(QMainWindow):
             if file_name is None:
                 file_name = self.log_file_name
             if file_name is None:
-                self.sb_text.setText('Data log file not found')
+                # self.sb_text.setText('Data log file not found')
                 self.logger.warning('Data log file not found')
                 return
             file_name = os.path.abspath(file_name)
@@ -1383,14 +1385,10 @@ class MainWindow(QMainWindow):
         # check if data file locked
         if self.is_locked():
             return
-        # check if log file exists
+        # check if data file exists
         if not (os.path.exists(self.log_file_name) and os.path.isfile(self.log_file_name)):
-            if self.absent_log_file_name != self.log_file_name:
-                self.logger.warning('Data file does not exist')
-                self.absent_log_file_name = self.log_file_name
+            # self.logger.debug('Data file does not exist')
             return
-        else:
-            self.absent_log_file_name = None
         self.old_size = self.log_table.file_size
         self.new_size = os.path.getsize(self.log_file_name)
         if self.new_size <= self.old_size:
@@ -2297,7 +2295,7 @@ class LogTable:
 
 
 if __name__ == '__main__':
-    # os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
     if len(sys.argv) >= 2:
         CONFIG_FILE = sys.argv[1]
     # import matplotlib
