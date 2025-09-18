@@ -17,7 +17,7 @@ pyqtgraph.setConfigOption('foreground', 'k')
 title_font = QtGui.QFont('Arial', 14, QtGui.QFont.Bold)
 axis_font = QtGui.QFont('Arial', 12)
 # title_font.setPointSize(40)
-axis_font.setPixelSize(40)
+axis_font.setPixelSize(16)
 
 class PlotWidget(pyqtgraph.PlotWidget):
     MENU = ['Hide plot', 'Show new plot', 'Show plot', 'Show parameters']
