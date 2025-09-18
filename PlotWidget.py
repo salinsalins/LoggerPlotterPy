@@ -15,11 +15,9 @@ from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 pyqtgraph.setConfigOption('foreground', 'k')
 # title_font = QtGui.QFont('Open Sans', 14, QtGui.QFont.Bold)
 title_font = QtGui.QFont('Arial', 14, QtGui.QFont.Bold)
-axis_font = QtGui.QFont('Arial', 10)
+axis_font = QtGui.QFont('Arial', 12)
 # title_font.setPointSize(40)
-
-
-# axis_font.setPixelSize(40)
+axis_font.setPixelSize(40)
 
 class PlotWidget(pyqtgraph.PlotWidget):
     MENU = ['Hide plot', 'Show new plot', 'Show plot', 'Show parameters']
@@ -34,6 +32,7 @@ class PlotWidget(pyqtgraph.PlotWidget):
         pi = self.getPlotItem()
         pi.showGrid(True, True)
         pi.titleLabel.item.setFont(title_font)
+        pi.getAxis("bottom").setMaximumHeight(100)
         pi.getAxis("bottom").label.setFont(axis_font)
         pi.getAxis("left").label.setFont(axis_font)
         pi.getAxis("bottom").setTickFont(axis_font)
