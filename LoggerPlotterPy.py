@@ -57,7 +57,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '15.2'
+APPLICATION_VERSION = '15.3'
 FMT = os.path.getmtime(__file__)
 FMTS = time.strftime("%d-%m-%Y-%H:%M:%S", time.gmtime(os.path.getmtime(__file__)))
 VERSION_DATE = FMTS
@@ -1181,6 +1181,7 @@ class MainWindow(QMainWindow):
             config['cb_4'] = self.checkBox_4.isChecked()
             config['cb_5'] = self.checkBox_5.isChecked()
             config['cb_6'] = self.checkBox_6.isChecked()
+            config['cb_7'] = self.checkBox_7.isChecked()
             # convert to json and write
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
@@ -1271,6 +1272,8 @@ class MainWindow(QMainWindow):
                 self.checkBox_5.setChecked(self.conf['cb_5'])
             if 'cb_6' in self.conf:
                 self.checkBox_6.setChecked(self.conf['cb_6'])
+            if 'cb_7' in self.conf:
+                self.checkBox_7.setChecked(self.conf['cb_7'])
             if 'history' in self.conf:
                 self.history.currentIndexChanged.disconnect(self.file_selection_changed)
                 self.history.clear()
@@ -1373,7 +1376,7 @@ class MainWindow(QMainWindow):
         # check if data file locked
         if self.is_locked():
             return
-        if self.conf.get('auto_switch_to_today', False):
+        if self.conf.get('auto_switch_to_today', False) or self.checkBox_7.isChecked():
             self.select_today_file()
             return
         # check if data file exists
