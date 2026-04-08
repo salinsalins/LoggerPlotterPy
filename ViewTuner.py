@@ -54,7 +54,6 @@ from log_exception import log_exception
 
 np = numpy
 
-ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'View tuner for Plotter'
 FILE_NAME = os.path.basename(__file__).replace('.py', '')
 APPLICATION_NAME_SHORT = 'ViewTuner'
