@@ -561,7 +561,7 @@ class MainWindow(QMainWindow):
         mdf = datetime.datetime.today().strftime('%Y-%m')
         ddf = datetime.datetime.today().strftime('%Y-%m-%d')
         logfn = datetime.datetime.today().strftime('%Y-%m-%d.log')
-        rootfn = os.path.dirname(self.log_file_name)
+        rootfn = str(os.path.dirname(self.log_file_name))
         fn = os.path.abspath(os.path.join(rootfn[:-23], ydf, mdf, ddf, logfn))
         if not os.path.exists(fn):
             self.logger.error(f"Today file {fn} does not exist")
@@ -1365,18 +1365,6 @@ class MainWindow(QMainWindow):
         # QApplication.quit()
 
     def timer_handler(self):
-        # if self.resize_hook:
-        #     w1 = self.conf['main_window']['size'][0]
-        #     h1 = self.conf['main_window']['size'][1]
-        #     self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
-        #     s = self.size()
-        #     p = self.pos()
-        #     w = s.width()
-        #     h = s.height()
-        #     x = p.x()
-        #     y = p.y()
-        #     print('resize', w1, h1, w, h)
-        #     # self.resize_hook = False
         t = time.strftime('%H:%M:%S')
         self.sb_clock.setText(t)
         # check if in parameters edit mode
@@ -1384,6 +1372,9 @@ class MainWindow(QMainWindow):
             return
         # check if data file locked
         if self.is_locked():
+            return
+        if self.conf.get('auto_switch_to_today', False):
+            self.select_today_file()
             return
         # check if data file exists
         if not (os.path.exists(self.log_file_name) and os.path.isfile(self.log_file_name)):
