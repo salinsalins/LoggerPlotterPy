@@ -22,8 +22,6 @@ axis_font.setPixelSize(16)
 class PlotWidget(pyqtgraph.PlotWidget):
     MENU = ['Hide plot', 'Show new plot', 'Show plot', 'Show parameters']
 
-    # print(QtWidgets.QMenu)
-
     def __init__(self, parent=None, height=300, width=300, background='#1d648da0',
                  foreground='k'):
         super().__init__(parent, background=background)
@@ -62,6 +60,7 @@ class PlotWidget(pyqtgraph.PlotWidget):
         vb.axHistoryPointer = -1  # pointer into the history
 
     def wheelEvent(self, ev, axis=None):
+        point = ev.screenPos().toPoint()
         ev.ignore()
 
     def mouseClickEvent(self, ev):
@@ -78,7 +77,7 @@ class PlotWidget(pyqtgraph.PlotWidget):
             elif action.text() == self.MENU[2]:
                 self.my_action.show_plot_on_right(self.my_name, self.my_index)
             elif action.text() == self.MENU[3]:
-                self.my_action.signal_params(self.my_name)
+                self.my_action.show_signal_params(self.my_name)
         elif ev.button() == QtCore.Qt.RightButton:
             if ev.double():
                 self.timer.cancel()

@@ -104,6 +104,13 @@ class SignalNotFoundError(ValueError):
 
 global sigg
 
+def on_range_changed(view_item, range_list):
+    item = view_item.addedItems[0]
+    index = np.where((item.curve.xData >= range_list[0][0]) & (item.curve.xData <= range_list[0][1]))[0]
+    if 0 < len(index) < 100:
+        item.setSymbol('o')
+    else:
+        item.setSymbol(None)
 
 @lru_cache(maxsize=256)
 def calculate_extra_plot(p, file_name):
@@ -713,6 +720,7 @@ class MainWindow(QMainWindow):
                 # create new plot widget
                 # mplw = MplWidget(height=self.conf['w_height'], width=self.conf['w_width'])
                 mplw = PlotWidget(height=self.conf['w_height'], width=self.conf['w_width'])
+                mplw.getViewBox().sigRangeChanged.connect(on_range_changed)
                 # mplw.ntb.setIconSize(QSize(18, 18))
                 # mplw.ntb.setFixedSize(self.conf['w_width'], 24)
                 layout.addWidget(mplw, row, col)

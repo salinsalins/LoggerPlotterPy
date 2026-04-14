@@ -146,6 +146,34 @@
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_5">
                      <item>
+                      <layout class="QHBoxLayout" name="horizontalLayout">
+                       <item>
+                        <widget class="QLabel" name="label_9">
+                         <property name="text">
+                          <string>File:  </string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QLineEdit" name="lineEdit"/>
+                       </item>
+                      </layout>
+                     </item>
+                     <item>
+                      <layout class="QHBoxLayout" name="horizontalLayout_3">
+                       <item>
+                        <widget class="QLabel" name="label_10">
+                         <property name="text">
+                          <string>Signal:</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QLineEdit" name="lineEdit_2"/>
+                       </item>
+                      </layout>
+                     </item>
+                     <item>
                       <widget class="QPushButton" name="pushButton_3">
                        <property name="text">
                         <string>PushButton</string>
@@ -158,9 +186,6 @@
                         <string>PushButton</string>
                        </property>
                       </widget>
-                     </item>
-                     <item>
-                      <widget class="QWidget" name="widget_2" native="true"/>
                      </item>
                     </layout>
                    </widget>
