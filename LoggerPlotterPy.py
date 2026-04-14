@@ -57,7 +57,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '15.3'
+APPLICATION_VERSION = '15.4'
 FMT = os.path.getmtime(__file__)
 FMTS = time.strftime("%d-%m-%Y-%H:%M:%S", time.gmtime(os.path.getmtime(__file__)))
 VERSION_DATE = FMTS
@@ -719,7 +719,7 @@ class MainWindow(QMainWindow):
             else:
                 # create new plot widget
                 # mplw = MplWidget(height=self.conf['w_height'], width=self.conf['w_width'])
-                mplw = PlotWidget(height=self.conf['w_height'], width=self.conf['w_width'])
+                mplw = PlotWidget(parent=self, height=self.conf['w_height'], width=self.conf['w_width'])
                 mplw.getViewBox().sigRangeChanged.connect(on_range_changed)
                 # mplw.ntb.setIconSize(QSize(18, 18))
                 # mplw.ntb.setFixedSize(self.conf['w_width'], 24)

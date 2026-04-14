@@ -60,7 +60,7 @@ class PlotWidget(pyqtgraph.PlotWidget):
         vb.axHistoryPointer = -1  # pointer into the history
 
     def wheelEvent(self, ev, axis=None):
-        point = ev.screenPos().toPoint()
+        # point = ev.screenPos().toPoint()
         ev.ignore()
 
     def mouseClickEvent(self, ev):
