@@ -11,6 +11,8 @@ import sys
 import threading
 
 import pyqtgraph
+import tango
+from PySide6.QtCore import Qt
 from pyqtgraph import PlotDataItem
 
 from LoggerPlotterPy import VLine, Signal, read_signal
@@ -130,8 +132,8 @@ class PlotWidget(pyqtgraph.PlotWidget):
         vb = self.getPlotItem().getViewBox()
         if len(vb.axHistory) > 0:
             vb.showAxRect(vb.axHistory[0])
-        vb.axHistory = []  # maintain a history of zoom locations
-        vb.axHistoryPointer = -1  # pointer into the history
+        vb.axHistory = []  # maintain a zip_file of zoom locations
+        vb.axHistoryPointer = -1  # pointer into the zip_file
 
     def wheelEvent(self, ev, axis=None):
         # point = ev.screenPos().toPoint()
@@ -173,7 +175,6 @@ class PlotWidget(pyqtgraph.PlotWidget):
 
 
 def on_range_changed(view_item, range_list):
-    # print("View Item:", view_item)
     # for item in view_item.addedItems:
     item = view_item.addedItems[0]
     index = np.where((item.curve.xData >= range_list[0][0]) & (item.curve.xData <= range_list[0][1]))[0]
@@ -181,18 +182,26 @@ def on_range_changed(view_item, range_list):
     #     item.last_opts = item.opts.copy()
     if 0 < len(index) < 100:
         item.setSymbol('o')
-        # print('Pen changed for', item)
     else:
         item.setSymbol(None)
         # item.opts = item.last_opts.copy()
         # delattr(item, 'last_opts')
 
-    # print("New View Range:", range_list)
-
-
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.conf = {
+            'w_height': 300,
+            'w_width': 300,
+            'colors': {'previous': PREVIOUS_COLOR,
+                       'trace': TRACE_COLOR,
+                       'mark': MARK_COLOR,
+                       'zero': ZERO_COLOR
+                       },
+            'file_name': FILE,
+            'signal_name': SIGNAL,
+            'log_file_name': ''
+       }
         # colors
         self.previous_color = PREVIOUS_COLOR
         self.trace_color = TRACE_COLOR
@@ -202,22 +211,35 @@ class MainWindow(QMainWindow):
         self.file_name = FILE
         self.signal_name = SIGNAL
         self.log_file_name = ''
+        self.tango_attribute = None
+        self.tango_device = None
 
         # Configure logging
         self.logger = config_logger(level=logging.DEBUG, format_string=LOG_FORMAT_STRING_SHORT)
+
         # Load the UI
         uic.loadUi(UI_FILE, self)
-        # name widgets aliases
-        self.sb = self.statusBar()
+
+        self.zip_file = self.comboBox
+        self.signals = self.comboBox_3
         # Connect signals with the slots
         # self.select.clicked.connect(self.select_log_file)
+        self.zip_file.currentIndexChanged.connect(self.file_selection_changed)
+        self.pushButton_4.clicked.connect(self.select_zip_file)
+        self.comboBox_3.currentIndexChanged.connect(self.signal_selection_changed)
+        # self.pushButton_5.clicked.connect(self.signal_selection_changed)
+
         # Menu actions connection
         self.actionQuit.triggered.connect(self.save_and_exit)
         # self.actionAbout.triggered.connect(show_about)
-        # main window decoration
+
+        # main window decorations
+        # icon
         self.setWindowIcon(QtGui.QIcon('icon.png'))
+        # title
         self.setWindowTitle(APPLICATION_NAME + ' version ' + APPLICATION_VERSION)
         # status bar
+        self.sb = self.statusBar()
         self.sb.reformat()
         self.sb.setStyleSheet('border: 0;')
         self.sb.setStyleSheet("QStatusBar::item {border: none;}")
@@ -248,23 +270,102 @@ class MainWindow(QMainWindow):
 
         # default settings
         self.set_default_settings()
+
         #
         print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'has been started')
         #
+
         # restore settings
         self.restore_settings()
         #
-        self.lineEdit.setText(self.file_name)
-        self.lineEdit_2.setText(self.signal_name)
+        self.zip_file.insertItem(-1, self.file_name)
+        self.file_name = ''
+        self.file_selection_changed(0)
+        # self.comboBox_3.insertItem(-1, self.signal_name)
+        # self.signal = read_signal(self.signal_name, self.file_name)
+        # self.plot_signal(self.signal)
 
+    def file_selection_changed(self, m):
+        self.logger.debug('File selection changed to %s' % m)
+        if m < 0:
+            return
+        new_file = str(self.zip_file.currentText())
+        new_file = os.path.abspath(new_file)
+        if not os.path.exists(new_file):
+            self.logger.warning('File %s not found' % new_file)
+            self.zip_file.removeItem(m)
+            return
+        if self.file_name != new_file:
+            self.logger.debug('New file selected %s' % new_file)
+            self.file_name = new_file
+            channel_list = []
+            blocked = self.comboBox_3.blockSignals(True)
+            i = 0
+            with zipfile.ZipFile(self.file_name, 'r') as zipobj:
+                for name in zipobj.NameToInfo:
+                    if 'paramchany' not in name:
+                        channel_list.append(name)
+                        self.comboBox_3.insertItem(-1, name)
+            if self.signal_name not in channel_list:
+                self.signal_name = channel_list[0]
+            else:
+                i = self.comboBox_3.findText(self.signal_name)
+            self.comboBox_3.blockSignals(blocked)
+            self.comboBox_3.setCurrentIndex(i)
+            # self.signal = read_signal(self.signal_name, self.file_name)
+            # self.plot_signal(self.signal)
+
+    @staticmethod
+    def fill_signal_widget(zip_file, widget):
+        channel_list = []
+        with zipfile.ZipFile(zip_file, 'r') as zipobj:
+            for name in zipobj.NameToInfo:
+                if 'paramchany' not in name:
+                    channel_list.append(name)
+                    widget.insertItem(-1, name)
+
+    def signal_selection_changed(self, m):
+        self.signal_name = str(self.comboBox_3.currentText())
         self.signal = read_signal(self.signal_name, self.file_name)
         self.plot_signal(self.signal)
+        params = self.signal_params_to_dict()
+        self.tableWidget_3.clearContents()
+        self.tableWidget_3.setRowCount(0)
+        self.tableWidget_3.horizontalHeader().setDefaultAlignment(Qt.AlignLeft)
+        for par in params:
+            self.tableWidget_3.insertRow(0)
+            item = QTableWidgetItem(par)
+            self.tableWidget_3.setItem(0, 0, item)
+            item = QTableWidgetItem(params[par])
+            self.tableWidget_3.setItem(0, 1, item)
+        self.tableWidget_3.resizeColumnsToContents()
+        self.tableWidget_3.resizeRowsToContents()
+        self.get_device_proxy()
+
+    def select_zip_file(self):
+        d = os.path.dirname(self.file_name)
+        file_open_dialog = QFileDialog(caption='Select Zip File', directory=d)
+        # open file selection dialog
+        fn = file_open_dialog.getOpenFileName()[0]
+        if fn is None or fn == '':
+            return
+        fn = os.path.abspath(fn)
+        # if it is the same file as being used
+        if self.file_name == fn:
+            return
+        # different file selected
+        i = self.zip_file.findText(fn)
+        if i < 0:
+            # add file name to zip_file
+            self.zip_file.insertItem(-1, fn)
+            i = 0
+        # change selection and fire callback
+        if self.zip_file.currentIndex() != i:
+            self.zip_file.setCurrentIndex(i)
+        else:
+            self.file_selection_changed(i)
 
     def restore_settings(self, folder='', file_name=None):
-        self.conf = {
-            'w_height': 300,
-            'w_width': 300
-        }
         global CONFIG_FILE
         if file_name is None:
             file_name = CONFIG_FILE
@@ -295,7 +396,36 @@ class MainWindow(QMainWindow):
             log_exception('Configuration restore error from %s' % full_name)
             return False
 
-
+    def get_device_proxy(self):
+        params = self.signal_params_to_dict()
+        tango_host = os.getenv('TANGO_HOST')
+        self.tango_device = None
+        self.tango_attribute = None
+        device = ''
+        local_name = ''
+        try:
+            name = params['Signal_Name']
+            # host = name.split(':')[0]
+            name_split = name.split('/')
+            device = '/'.join(name_split[1:4])
+            local_name = name.replace(name_split[0], '')
+            local_device = '/'.join(name_split[:4])
+            print(name, local_name, device, local_device)
+        except:
+            log_exception(exc_info=False)
+            return
+        try:
+            self.tango_device = tango.DeviceProxy(local_device)
+            self.tango_attribute = tango.AttributeProxy(name)
+            return
+        except:
+            # log_exception()
+            log_exception(exc_info=False)
+        try:
+            self.tango_device = tango.DeviceProxy(device)
+            self.tango_attribute = tango.AttributeProxy(local_name)
+        except:
+            log_exception(exc_info=False)
 
     @staticmethod
     def split_signal_name(name: str):
@@ -317,18 +447,18 @@ class MainWindow(QMainWindow):
         txt = str(signal.params).replace(",", "\n")
         txt = txt.replace("b'", "'")
         txt = txt.replace("'", "")
-        txt = txt.replace("{", " ")
+        txt = txt.replace("{", "")
         txt = txt.replace("}", "")
-        txt = txt.replace(":1", " #1")
-        txt = txt.replace(":", " =")
+        txt = txt.replace(":1", "#1")
+        txt = txt.replace(":", "=")
         txt = txt.replace("#1", ":1")
         return txt
 
     def signal_params_to_dict(self, signal=None):
-        arr = self.get_signal_params(signal)
+        arr = self.get_signal_params(signal).split("\n")
         result = {}
         for a in arr:
-            nv = a.split("\n")
+            nv = a.split("=")
             result[nv[0].strip()] = nv[1].strip()
         return result
 
@@ -344,13 +474,6 @@ class MainWindow(QMainWindow):
             layout.addWidget(self.mplw)
             # Connecting the hook
             self.mplw.getViewBox().sigRangeChanged.connect(on_range_changed)
-
-        # self.mplw.my_name = signal.name
-        # Show toolbar
-        # if self.show_toolbar:
-        #     mplw.ntb.show()
-        # else:
-        #     mplw.ntb.hide()
         self.mplw.clear()
         # Decorate the plot
         # mplw.showGrid(True, True)
@@ -410,6 +533,7 @@ class MainWindow(QMainWindow):
         layout.update()
         # self.logger.debug('End %s', time.time() - t0)
 
+
     def update_status_bar(self):
         if self.log_file_name is not None and self.log_table is not None:
             self.sb_text.setText('File: %s' % self.log_file_name)
@@ -441,7 +565,7 @@ class MainWindow(QMainWindow):
             p = self.pos()
             s = self.size()
             config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
-            # log file history
+            # log file zip_file
             # convert to JSON and write
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
@@ -452,19 +576,21 @@ class MainWindow(QMainWindow):
             return False
 
     def restore_window_position(self):
-        if 'main_window' in self.conf:
-            self.setMinimumSize(640, 480)  # resize hook
+        self.setMinimumSize(640, 480)  # resize hook
+        try:
             self.resize(QSize(self.conf['main_window']['size'][0], self.conf['main_window']['size'][1]))
-            x = self.conf['main_window']['position'][0]
-            y = self.conf['main_window']['position'][1]
-            scns = QtGui.QGuiApplication.screens()
-            for scn in scns:
-                sg = scn.geometry()
+            x = int(self.conf['main_window']['position'][0])
+            y = int(self.conf['main_window']['position'][1])
+            screens = QtGui.QGuiApplication.screens()
+            for screenn in screens:
+                sg = screenn.geometry()
                 if sg.left() < x < sg.left() + sg.width():
                     if sg.top() < y < sg.top() + sg.height():
                         self.move(QPoint(x, y))
                         return
             self.move(QPoint(20, 20))
+        except:
+            self.logger.info('Error restoring window position')
 
     def set_default_settings(self):
         try:

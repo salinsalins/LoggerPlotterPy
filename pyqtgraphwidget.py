@@ -80,8 +80,8 @@ class CustomViewBox(pyqtgraph.ViewBox):
     def clearScaleHistory(self):
         if len(self.axHistory) > 0:
             self.showAxRect(self.axHistory[0])
-        self.axHistory = []  # maintain a history of zoom locations
-        self.axHistoryPointer = -1  # pointer into the history. Allows forward/backward movement, not just "undo"
+        self.axHistory = []  # maintain a zip_file of zoom locations
+        self.axHistoryPointer = -1  # pointer into the zip_file. Allows forward/backward movement, not just "undo"
         # zoom = (s, s) if in_or_out == "in" else (1 / s, 1 / s)
         # self.plot.vb.scaleBy(zoom)
 

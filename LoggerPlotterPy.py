@@ -556,7 +556,7 @@ class MainWindow(QMainWindow):
         # different file selected
         i = self.history.findText(fn)
         if i < 0:
-            # add file name to history
+            # add file name to zip_file
             self.history.insertItem(-1, fn)
             i = 0
         # change selection and fire callback
@@ -581,7 +581,7 @@ class MainWindow(QMainWindow):
         # different file selected
         i = self.history.findText(fn)
         if i < 0:
-            # add file name to history
+            # add file name to zip_file
             self.history.insertItem(-1, fn)
             i = 0
         # change selection and fire callback
@@ -1172,9 +1172,9 @@ class MainWindow(QMainWindow):
             p = self.pos()
             s = self.size()
             config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
-            # log file history
+            # log file zip_file
             config['folder'] = self.log_file_name
-            config['history'] = [str(self.history.itemText(count)) for count in
+            config['zip_file'] = [str(self.history.itemText(count)) for count in
                                  range(min(self.history.count(), 10))]
             config['history_index'] = min(self.history.currentIndex(), 9)
             # other settings
@@ -1284,10 +1284,10 @@ class MainWindow(QMainWindow):
                 self.checkBox_6.setChecked(self.conf['cb_6'])
             if 'cb_7' in self.conf:
                 self.checkBox_7.setChecked(self.conf['cb_7'])
-            if 'history' in self.conf:
+            if 'zip_file' in self.conf:
                 self.history.currentIndexChanged.disconnect(self.file_selection_changed)
                 self.history.clear()
-                self.history.addItems(self.conf['history'])
+                self.history.addItems(self.conf['zip_file'])
                 self.history.currentIndexChanged.connect(self.file_selection_changed)
             if 'history_index' in self.conf:
                 self.history.setCurrentIndex(self.conf['history_index'])
@@ -1388,7 +1388,7 @@ class MainWindow(QMainWindow):
             return
         if self.conf.get('auto_switch_to_today', False) or self.checkBox_7.isChecked():
             self.select_today_file()
-            return
+            # return
         # check if data file exists
         if not (os.path.exists(self.log_file_name) and os.path.isfile(self.log_file_name)):
             # self.logger.debug('Data file does not exist')

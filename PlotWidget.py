@@ -56,8 +56,8 @@ class PlotWidget(pyqtgraph.PlotWidget):
         vb = self.getPlotItem().getViewBox()
         if len(vb.axHistory) > 0:
             vb.showAxRect(vb.axHistory[0])
-        vb.axHistory = []  # maintain a history of zoom locations
-        vb.axHistoryPointer = -1  # pointer into the history
+        vb.axHistory = []  # maintain a zip_file of zoom locations
+        vb.axHistoryPointer = -1  # pointer into the zip_file
 
     def wheelEvent(self, ev, axis=None):
         # point = ev.screenPos().toPoint()
