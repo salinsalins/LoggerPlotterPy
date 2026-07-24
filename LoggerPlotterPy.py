@@ -1202,11 +1202,7 @@ class MainWindow(QMainWindow):
             config['cb_6'] = self.checkBox_6.isChecked()
             config['cb_7'] = self.checkBox_7.isChecked()
             # make backup copy of settings
-            n = 0
-            while n < 5:
-                backup_file = f'{full_name}_{n}.bck'
-                if os.path.isfile(backup_file):
-                    n += 1
+            backup_file = f'{full_name}.bck'
             shutil.copy(full_name, backup_file)
             # convert to json and write
             with open(full_name, 'w') as configfile:
