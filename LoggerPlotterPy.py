@@ -57,7 +57,7 @@ np = numpy
 ORGANIZATION_NAME = 'BINP'
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '15.4'
+APPLICATION_VERSION = '15.5'
 FMT = os.path.getmtime(__file__)
 FMTS = time.strftime("%d-%m-%Y-%H:%M:%S", time.gmtime(os.path.getmtime(__file__)))
 VERSION_DATE = FMTS
@@ -105,11 +105,18 @@ class SignalNotFoundError(ValueError):
 global sigg
 
 def on_range_changed(view_item, range_list):
-    item = view_item.addedItems[0]
+    if len(view_item.addedItems) <= 0:
+        return
+    n = 0
+    if len(view_item.addedItems) > 1:
+        n = 1
+    item = view_item.addedItems[n]
     index = np.where((item.curve.xData >= range_list[0][0]) & (item.curve.xData <= range_list[0][1]))[0]
     if 0 < len(index) < 100:
+        # for item1 in view_item.addedItems:
         item.setSymbol('o')
     else:
+        # for item1 in view_item.addedItems:
         item.setSymbol(None)
 
 @lru_cache(maxsize=256)
@@ -572,6 +579,7 @@ class MainWindow(QMainWindow):
         logfn = datetime.datetime.today().strftime('%Y-%m-%d.log')
         rootfn = str(os.path.dirname(self.log_file_name))
         fn = os.path.abspath(os.path.join(rootfn[:-23], ydf, mdf, ddf, logfn))
+        # self.logger.debug(f"Today file {fn}")
         if not os.path.exists(fn):
             self.logger.error(f"Today file {fn} does not exist")
             return
