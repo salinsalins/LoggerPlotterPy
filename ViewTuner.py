@@ -60,13 +60,14 @@ FILE_NAME = os.path.basename(__file__).replace('.py', '')
 APPLICATION_NAME_SHORT = 'ViewTuner'
 APPLICATION_VERSION = '1.0'
 FMT = os.path.getmtime(__file__)
-FMTS = time.strftime("%d-%m-%Y-%H:%M:%S", time.gmtime(os.path.getmtime(__file__)))
+FMTS = time.strftime("%d-%m-%Y %H:%M:%S", time.gmtime(os.path.getmtime(__file__)))
 VERSION_DATE = FMTS
 CONFIG_FILE = FILE_NAME + '.json'
 UI_FILE = FILE_NAME + '.ui'
 ATTRIBUTE = 'localhost:10000/sys/tg_test/1/double_spectrum_ro'
 FILE = 'd:\\data\\2024\\2024-05\\2024-05-23\\2024-05-23_150741.zip'
 SIGNAL = 'ADC_0/chany37.txt'
+NVDT = APPLICATION_NAME + ' version ' + APPLICATION_VERSION + '  ' + FMTS
 
 # fonts
 CELL_FONT = QFont('Open Sans', 14)
@@ -213,6 +214,7 @@ class MainWindow(QMainWindow):
         self.log_file_name = ''
         self.tango_attribute = None
         self.tango_device = None
+        self.tango_device_timeout = 0.0
 
         # Configure logging
         self.logger = config_logger(level=logging.DEBUG, format_string=LOG_FORMAT_STRING_SHORT)
@@ -237,7 +239,7 @@ class MainWindow(QMainWindow):
         # icon
         self.setWindowIcon(QtGui.QIcon('icon.png'))
         # title
-        self.setWindowTitle(APPLICATION_NAME + ' version ' + APPLICATION_VERSION)
+        self.setWindowTitle(NVDT)
         # status bar
         self.sb = self.statusBar()
         self.sb.reformat()
@@ -272,7 +274,7 @@ class MainWindow(QMainWindow):
         self.set_default_settings()
 
         #
-        print(APPLICATION_NAME, 'version', APPLICATION_VERSION, 'has been started')
+        print(NVDT, 'has been started')
         #
 
         # restore settings
@@ -284,6 +286,7 @@ class MainWindow(QMainWindow):
         # self.comboBox_3.insertItem(-1, self.signal_name)
         # self.signal = read_signal(self.signal_name, self.file_name)
         # self.plot_signal(self.signal)
+        self.sb_text.setText("  Ready  ")
 
     def file_selection_changed(self, m):
         self.logger.debug('File selection changed to %s' % m)
@@ -340,7 +343,7 @@ class MainWindow(QMainWindow):
             self.tableWidget_3.setItem(0, 1, item)
         self.tableWidget_3.resizeColumnsToContents()
         self.tableWidget_3.resizeRowsToContents()
-        self.get_device_proxy()
+        # self.get_device_proxy()
 
     def select_zip_file(self):
         d = os.path.dirname(self.file_name)
@@ -397,6 +400,9 @@ class MainWindow(QMainWindow):
             return False
 
     def get_device_proxy(self):
+        # if time.time() < self.tango_device_timeout:
+        #     return
+        # self.tango_device_timeout = time.time() + 5.0
         params = self.signal_params_to_dict()
         tango_host = os.getenv('TANGO_HOST')
         self.tango_device = None
@@ -533,13 +539,11 @@ class MainWindow(QMainWindow):
         layout.update()
         # self.logger.debug('End %s', time.time() - t0)
 
-
     def update_status_bar(self):
         if self.log_file_name is not None and self.log_table is not None:
             self.sb_text.setText('File: %s' % self.log_file_name)
         else:
             self.sb_text.setText('Data file not found')
-
 
     def get_data_folder(self):
         if self.log_file_name is None:
@@ -632,6 +636,15 @@ class MainWindow(QMainWindow):
         QApplication.exit()
         # QApplication.quit()
 
+    def timer_handler(self):
+        t = time.strftime('%H:%M:%S')
+        self.sb_clock.setText(t)
+        # check if data file locked
+        if self.is_locked():
+            return
+        # if self.tango_device is None:
+        #     self.get_device_proxy()
+
 
 
 if __name__ == '__main__':
@@ -651,6 +664,10 @@ if __name__ == '__main__':
     # app.aboutToQuit.connect(dmw.on_quit)
     # show main window
     dmw.show()
+    # defile and start timer task
+    timer = QTimer()
+    timer.timeout.connect(dmw.timer_handler)
+    timer.start(1000)
     # start the Qt main loop execution,
     exec_result = app.exec_()
     # exiting from this script with the same return code of Qt application

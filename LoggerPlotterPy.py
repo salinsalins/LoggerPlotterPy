@@ -4,6 +4,8 @@ Created on Jul 2, 2017
 
 @author: sanin
 """
+from pathlib import Path
+
 # s='s=%r;print(s%%s)';print(s%s)
 
 import os
@@ -55,15 +57,15 @@ from log_exception import log_exception
 
 np = numpy
 
-ORGANIZATION_NAME = 'BINP'
+FILE_NAME = os.path.basename(__file__).replace('.py', '')
 APPLICATION_NAME = 'Plotter for Signals from Dumper'
-APPLICATION_NAME_SHORT = 'LoggerPlotterPy'
-APPLICATION_VERSION = '15.5'
+APPLICATION_NAME_SHORT = FILE_NAME
+CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
+UI_FILE = APPLICATION_NAME_SHORT + '.ui'
+APPLICATION_VERSION = '15.6'
 FMT = os.path.getmtime(__file__)
 FMTS = time.strftime("%d-%m-%Y-%H:%M:%S", time.gmtime(os.path.getmtime(__file__)))
 VERSION_DATE = FMTS
-CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
-UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 # fonts
 CELL_FONT = QFont('Open Sans', 14)
 CELL_FONT_BOLD = QFont('Open Sans', 14, QFont.Bold)
@@ -109,7 +111,7 @@ def on_range_changed(view_item, range_list):
     if len(view_item.addedItems) <= 0:
         return
     n = 0
-    if len(view_item.addedItems) > 1:
+    if len(view_item.addedItems) > 3:
         n = 1
     item = view_item.addedItems[n]
     index = np.where((item.curve.xData >= range_list[0][0]) & (item.curve.xData <= range_list[0][1]))[0]
@@ -329,7 +331,8 @@ class MainWindow(QMainWindow):
         except:
             pass
         self.sb_combo.clear()
-        arr = os.listdir()
+        config_folder = Path(CONFIG_FILE).parent
+        arr = os.listdir(config_folder)
         jsonarr = [x for x in arr if x.endswith('.json')]
         for x in jsonarr:
             if CONFIG_FILE in x:
@@ -1312,6 +1315,7 @@ class MainWindow(QMainWindow):
                 self.rmb = self.conf['right_mouse_button']
             #
             self.logger.debug('Configuration restored from %s' % full_name)
+            self.setWindowTitle(f'{APPLICATION_NAME} v.{APPLICATION_VERSION} {CONFIG_FILE}')
             return True
         except:
             log_exception('Configuration restore error from %s' % full_name)
