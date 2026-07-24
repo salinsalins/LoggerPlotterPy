@@ -7,6 +7,7 @@ Created on Jul 2, 2017
 # s='s=%r;print(s%%s)';print(s%s)
 
 import os
+import shutil
 import sys
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 # import gc
@@ -986,7 +987,7 @@ class MainWindow(QMainWindow):
             self.logger.info('Local configuration saved to %s', full_name)
             return True
         except:
-            log_exception('Local configuration save error to %s' % full_name)
+            log_exception('Local configuration save error')
             return False
 
     def log_level_index_changed(self, m: int) -> None:
@@ -1200,6 +1201,13 @@ class MainWindow(QMainWindow):
             config['cb_5'] = self.checkBox_5.isChecked()
             config['cb_6'] = self.checkBox_6.isChecked()
             config['cb_7'] = self.checkBox_7.isChecked()
+            # make backup copy of settings
+            n = 0
+            while n < 5:
+                backup_file = f'{full_name}_{n}.bck'
+                if os.path.isfile(backup_file):
+                    n += 1
+            shutil.copy(full_name, backup_file)
             # convert to json and write
             with open(full_name, 'w') as configfile:
                 configfile.write(json.dumps(self.conf, indent=4))
