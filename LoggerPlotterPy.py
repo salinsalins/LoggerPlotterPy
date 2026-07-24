@@ -706,6 +706,17 @@ class MainWindow(QMainWindow):
         self.hidden_plots.setPlainText(text)
         return ordered_plots
 
+    # plot previous line
+    def plot_previous_line(self, name, widget):
+        if self.plot_previous_line and self.last_selection >= 0:
+            for s1 in self.old_signal_list:
+                if s1.name == name:
+                    widget.plot(s1.x, s1.y, pen={'color': self.previous_color, 'width': 1})
+                    return
+
+    def plot_main_line(self, name, widget):
+        ...
+
     def plot_signals(self, signals=None):
         if signals is None:
             self.calculate_extra_plots()
@@ -758,10 +769,10 @@ class MainWindow(QMainWindow):
             else:
                 default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
             mplw.setTitle(self.from_params(b'title', s.params, default_title))
-            lbl = self.from_params(b'xlabel', s.params)
+            lbl = self.from_params(b'xlabel', s.params, '')
             if lbl:
                 mplw.setLabel('bottom', lbl)
-            lbl = self.from_params(b'ylabel', s.params)
+            lbl = self.from_params(b'ylabel', s.params, '')
             if lbl:
                 mplw.setLabel('left', lbl)
             # plot previous line
@@ -791,6 +802,20 @@ class MainWindow(QMainWindow):
                     mplw.setXRange(x_min, x_max)
             except:
                 pass
+            try:
+                x_zero = float(self.from_params(b'x_zero', s.params, 0.0))
+                y_zero = float(self.from_params(b'y_zero', s.params, 0.0))
+                s.x = s.x - x_zero
+                s.y = s.y - y_zero
+            except:
+                pass
+            try:
+                flag = float(self.from_params(b'subtract_zero', s.params, False))
+                if flag:
+                    s.y = s.y - s.zero_value
+            except:
+                pass
+            # plot signal
             if len(s.x) > 100:
                 mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1})
             else:
@@ -1449,6 +1474,8 @@ class Signal:
         self.unit = unit
         self.scale = scale
         self.value = value
+        self.mark_value = 0.0
+        self.zero_value = 0.0
         self.marks = marks
         if x is None:
             x = numpy.zeros(1)
@@ -1550,22 +1577,19 @@ class Signal:
                                   level=logging.INFO)
 
     def calculate_value(self):
-        # calculate value
-        s = self
         try:
-            if math.isnan(s.value) and 'mark' in s.marks:
-                mark = s.marks['mark']
-                mark_value = s.y[mark[0]: mark[0] + mark[1]].mean()
-                if 'zero' in s.marks:
-                    zero = s.marks['zero']
-                    zero_value = s.y[zero[0]: zero[0] + zero[1]].mean()
+            if math.isnan(self.value) and 'mark' in self.marks:
+                mark = self.marks['mark']
+                self.mark_value = self.y[mark[0]: mark[0] + mark[1]].mean()
+                if 'zero' in self.marks:
+                    zero = self.marks['zero']
+                    self.zero_value = self.y[zero[0]: zero[0] + zero[1]].mean()
                 else:
-                    zero_value = 0.0
-                v = mark_value - zero_value
-                s.value = v
+                    self.zero_value = 0.0
+                self.value = self.mark_value - self.zero_value
         except:
             self.value = float('nan')
-            # self.logger.debug(f'No signal value for {s.name}')
+            # self.logger.debug(f'No value for {s.name}')
         return self.value
 
     def __add__(self, other):
