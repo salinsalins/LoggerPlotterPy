@@ -51,7 +51,6 @@ class PlotWidget(pyqtgraph.PlotWidget):
     def setTitle(self, text, *args, **kwargs):
         self.getPlotItem().setTitle(text, *args, size='14pt', **kwargs)
 
-
     def clearScaleHistory(self):
         vb = self.getPlotItem().getViewBox()
         if len(vb.axHistory) > 0:

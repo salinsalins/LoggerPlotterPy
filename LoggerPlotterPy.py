@@ -111,12 +111,19 @@ class SignalNotFoundError(ValueError):
 global sigg
 
 def on_range_changed(view_item, range_list):
-    if len(view_item.addedItems) <= 0:
+    l0 = len(view_item.addedItems)
+    if l0 <= 0:
         return
-    n = 0
-    if len(view_item.addedItems) > 3:
-        n = 1
-    item = view_item.addedItems[n]
+    if l0 == 1:
+        item = view_item.addedItems[0]
+    elif l0 > 3:
+        item = view_item.addedItems[1]
+    else:
+        item = view_item.addedItems[1]
+        l1 = len(view_item.addedItems[0].curve.xData)
+        l2 = len(view_item.addedItems[1].curve.xData)
+        if l1 > l2:
+            item = view_item.addedItems[0]
     index = np.where((item.curve.xData >= range_list[0][0]) & (item.curve.xData <= range_list[0][1]))[0]
     if 0 < len(index) < 100:
         # for item1 in view_item.addedItems:
@@ -714,15 +721,68 @@ class MainWindow(QMainWindow):
         return ordered_plots
 
     # plot previous line
-    def plot_previous_line(self, name, widget):
-        if self.plot_previous_line and self.last_selection >= 0:
-            for s1 in self.old_signal_list:
-                if s1.name == name:
-                    widget.plot(s1.x, s1.y, pen={'color': self.previous_color, 'width': 1})
-                    return
+    # def plot_previous_line(self, name, widget):
+    #     if self.plot_previous_line and self.last_selection >= 0:
+    #         for s1 in self.old_signal_list:
+    #             if s1.name == name:
+    #                 widget.plot(s1.x, s1.y, pen={'color': self.previous_color, 'width': 1})
+    #                 return
 
-    def plot_main_line(self, name, widget):
-        ...
+    def decorate_widget(self, signal, widget):
+        # widget.showGrid(True, True)
+        if math.isnan(signal.value) or signal.value is None:
+            default_title = signal.name
+        else:
+            default_title = '{0} = {1:5.2f} {2}'.format(signal.name, signal.value, signal.unit)
+        widget.setTitle(self.from_params(b'title', signal.params, default_title))
+        lbl = self.from_params(b'xlabel', signal.params, '')
+        if lbl:
+            widget.setLabel('bottom', lbl)
+        lbl = self.from_params(b'ylabel', signal.params, '')
+        if lbl:
+            widget.setLabel('left', lbl)
+        try:
+            y_min = float(self.from_params(b'plot_y_min', signal.params, 'inf'))
+            y_max = float(self.from_params(b'plot_y_max', signal.params, '-inf'))
+            if y_max > y_min:
+                widget.setYRange(y_min, y_max)
+        except:
+            pass
+        try:
+            x_min = float(self.from_params(b'plot_x_min', signal.params, 'inf'))
+            x_max = float(self.from_params(b'plot_x_max', signal.params, '-inf'))
+            if x_max > x_min:
+                widget.setXRange(x_min, x_max)
+        except:
+            pass
+        try:
+            if self.checkBox_3.isChecked():
+                widget.clearScaleHistory()
+                if not (y_max > y_min) and not (x_max > x_min):
+                    widget.autoRange()
+        except:
+            log_exception()
+
+    def decorate_signal(self, signal, widget):
+        try:
+            x_zero = float(self.from_params(b'x_zero', signal.params, '0.0'))
+            y_zero = float(self.from_params(b'y_zero', signal.params, '0.0'))
+            signal.x = signal.x - x_zero
+            signal.y = signal.y - y_zero
+        except:
+            pass
+        try:
+            flag = bool(int(self.from_params(b'subtract_zero', signal.params, '0')))
+            if flag:
+                signal.y = signal.y - signal.zero_value
+        except:
+            pass
+
+    def plot_signal(self, signal, widget):
+        if len(signal.x) > 100:
+            widget.plot(signal.x, signal.y, pen={'color': self.trace_color, 'width': 1})
+        else:
+            widget.plot(signal.x, signal.y, pen={'color': self.trace_color, 'width': 1}, symbol='o', symbolSize=8, pxMode=True)
 
     def plot_signals(self, signals=None):
         if signals is None:
@@ -770,18 +830,19 @@ class MainWindow(QMainWindow):
             #     mplw.ntb.hide()
             mplw.clear()
             # Decorate the plot
+            # self.decorate_widget(s, mplw)
             # mplw.showGrid(True, True)
-            if math.isnan(s.value) or s.value is None:
-                default_title = s.name
-            else:
-                default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
-            mplw.setTitle(self.from_params(b'title', s.params, default_title))
-            lbl = self.from_params(b'xlabel', s.params, '')
-            if lbl:
-                mplw.setLabel('bottom', lbl)
-            lbl = self.from_params(b'ylabel', s.params, '')
-            if lbl:
-                mplw.setLabel('left', lbl)
+            # if math.isnan(s.value) or s.value is None:
+            #     default_title = s.name
+            # else:
+            #     default_title = '{0} = {1:5.2f} {2}'.format(s.name, s.value, s.unit)
+            # mplw.setTitle(self.from_params(b'title', s.params, default_title))
+            # lbl = self.from_params(b'xlabel', s.params, '')
+            # if lbl:
+            #     mplw.setLabel('bottom', lbl)
+            # lbl = self.from_params(b'ylabel', s.params, '')
+            # if lbl:
+            #     mplw.setLabel('left', lbl)
             # plot previous line
             if self.plot_previous_line and self.last_selection >= 0:
                 for s1 in self.old_signal_list:
@@ -789,39 +850,39 @@ class MainWindow(QMainWindow):
                         mplw.plot(s1.x, s1.y, pen={'color': self.previous_color, 'width': 1})
                         break
             # plot main line
-            y_min = float('inf')
-            y_max = float('-inf')
-            x_min = float('inf')
-            x_max = float('-inf')
-            try:
-                y_min = float(self.from_params(b'plot_y_min', s.params, 'inf'))
-                y_max = float(self.from_params(b'plot_y_max', s.params, '-inf'))
-                if y_max > y_min:
-                    mplw.setYRange(y_min, y_max)
-            except KeyboardInterrupt:
-                raise
-            except:
-                pass
-            try:
-                x_min = float(self.from_params(b'plot_x_min', s.params, 'inf'))
-                x_max = float(self.from_params(b'plot_x_max', s.params, '-inf'))
-                if x_max > x_min:
-                    mplw.setXRange(x_min, x_max)
-            except:
-                pass
-            try:
-                x_zero = float(self.from_params(b'x_zero', s.params, 0.0))
-                y_zero = float(self.from_params(b'y_zero', s.params, 0.0))
-                s.x = s.x - x_zero
-                s.y = s.y - y_zero
-            except:
-                pass
-            try:
-                flag = float(self.from_params(b'subtract_zero', s.params, False))
-                if flag:
-                    s.y = s.y - s.zero_value
-            except:
-                pass
+            # y_min = float('inf')
+            # y_max = float('-inf')
+            # x_min = float('inf')
+            # x_max = float('-inf')
+            # try:
+            #     y_min = float(self.from_params(b'plot_y_min', s.params, 'inf'))
+            #     y_max = float(self.from_params(b'plot_y_max', s.params, '-inf'))
+            #     if y_max > y_min:
+            #         mplw.setYRange(y_min, y_max)
+            # except KeyboardInterrupt:
+            #     raise
+            # except:
+            #     pass
+            # try:
+            #     x_min = float(self.from_params(b'plot_x_min', s.params, 'inf'))
+            #     x_max = float(self.from_params(b'plot_x_max', s.params, '-inf'))
+            #     if x_max > x_min:
+            #         mplw.setXRange(x_min, x_max)
+            # except:
+            #     pass
+            # try:
+            #     x_zero = float(self.from_params(b'x_zero', s.params, '0.0'))
+            #     y_zero = float(self.from_params(b'y_zero', s.params, '0.0'))
+            #     s.x = s.x - x_zero
+            #     s.y = s.y - y_zero
+            # except:
+            #     pass
+            # try:
+            #     flag = bool(int(self.from_params(b'subtract_zero', s.params, '0')))
+            #     if flag:
+            #         s.y = s.y - s.zero_value
+            # except:
+            #     pass
             # plot signal
             if len(s.x) > 100:
                 mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1})
@@ -838,13 +899,14 @@ class MainWindow(QMainWindow):
                 m2 = m1 + s.marks['zero'][1]
                 mplw.plot(s.x[m1:m2], s.y[m1:m2], pen={'color': self.zero_color, 'width': 1})
             # Show plot
-            try:
-                if self.checkBox_3.isChecked():
-                    mplw.clearScaleHistory()
-                    if not (y_max > y_min) and not (x_max > x_min):
-                        mplw.autoRange()
-            except:
-                log_exception()
+            self.decorate_widget(s, mplw)
+            # try:
+            #     if self.checkBox_3.isChecked():
+            #         mplw.clearScaleHistory()
+            #         if not (y_max > y_min) and not (x_max > x_min):
+            #             mplw.autoRange()
+            # except:
+            #     log_exception()
             # mplw.canvas.draw()
             jj += 1
         # Remove unused plot widgets
