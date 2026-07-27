@@ -77,7 +77,7 @@ class PlotWidget(pyqtgraph.PlotWidget):
             elif action.text() == self.MENU[2]:
                 self.my_action.show_plot_on_right(self.my_name, self.my_index)
             elif action.text() == self.MENU[3]:
-                self.my_action.show_signal_params(self.my_name)
+                self.my_action.signal_params(self.my_name)
         elif ev.button() == QtCore.Qt.RightButton:
             if ev.double():
                 self.timer.cancel()
