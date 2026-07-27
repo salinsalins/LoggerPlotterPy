@@ -4,17 +4,12 @@ Created on Jul 2, 2017
 
 @author: sanin
 """
-from pathlib import Path
-
 # s='s=%r;print(s%%s)';print(s%s)
 
 import os
-import shutil
 import sys
-
-from DequeLogHandler import DequeLogHandler
-
-if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
+import shutil
+from pathlib import Path
 # import gc
 import json
 import logging
@@ -24,6 +19,8 @@ import zipfile
 import datetime
 from functools import lru_cache
 import numpy
+
+if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
 # try:
 #     __import__('PySide6')
@@ -57,6 +54,8 @@ from QtUtils import WidgetLogHandler
 from Configuration import Configuration
 from config_logger import config_logger, LOG_FORMAT_STRING_SHORT
 from log_exception import log_exception
+from DequeLogHandler import DequeLogHandler
+
 
 np = numpy
 
