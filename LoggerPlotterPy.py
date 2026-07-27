@@ -11,6 +11,9 @@ from pathlib import Path
 import os
 import shutil
 import sys
+
+from DequeLogHandler import DequeLogHandler
+
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 # import gc
 import json
@@ -62,7 +65,7 @@ APPLICATION_NAME = 'Plotter for Signals from Dumper'
 APPLICATION_NAME_SHORT = FILE_NAME
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
-APPLICATION_VERSION = '15.7'
+APPLICATION_VERSION = '15.8'
 FMT = os.path.getmtime(__file__)
 FMTS = time.strftime("%d-%m-%Y-%H:%M:%S", time.gmtime(os.path.getmtime(__file__)))
 VERSION_DATE = FMTS
@@ -209,6 +212,8 @@ class MainWindow(QMainWindow):
         self.fill_empty_lists = True
         # Configure logging
         self.logger = config_logger(level=logging.INFO, format_string=LOG_FORMAT_STRING_SHORT)
+        self.dlh = DequeLogHandler(100)
+        self.logger.addHandler(self.dlh)
         # Load the UI
         uic.loadUi(UI_FILE, self)
         # name widgets aliases
@@ -543,6 +548,8 @@ class MainWindow(QMainWindow):
         self.sort_text_edit_widget(self.hidden_columns)
         self.sort_text_edit_widget(self.hidden_plots)
         self.fill_config_widget()
+        txt = '\n'.join(self.dlh.get_value())
+        self.textBrowser.setText(txt)
 
     def select_log_file(self):
         """Opens a file select dialog"""

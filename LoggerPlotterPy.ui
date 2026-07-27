@@ -319,7 +319,7 @@
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout">
+          <layout class="QVBoxLayout" name="verticalLayout" stretch="2,2,3,3,1">
            <property name="spacing">
             <number>3</number>
            </property>
@@ -632,16 +632,13 @@ File</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
-               <widget class="QPlainTextEdit" name="plainTextEdit_2">
+              <item row="1" column="2">
+               <widget class="QPlainTextEdit" name="plainTextEdit_5">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                  <horstretch>1</horstretch>
+                  <horstretch>3</horstretch>
                   <verstretch>1</verstretch>
                  </sizepolicy>
-                </property>
-                <property name="plainText">
-                 <string>Time</string>
                 </property>
                </widget>
               </item>
@@ -655,30 +652,33 @@ File</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="1">
-               <widget class="QLabel" name="label_4">
+              <item row="0" column="2">
+               <widget class="QLabel" name="label_6">
                 <property name="text">
-                 <string>Hidden Columns</string>
+                 <string>Additional columns</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
                 </property>
                </widget>
               </item>
-              <item row="1" column="2">
-               <widget class="QPlainTextEdit" name="plainTextEdit_5">
+              <item row="1" column="0">
+               <widget class="QPlainTextEdit" name="plainTextEdit_2">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                  <horstretch>3</horstretch>
+                  <horstretch>1</horstretch>
                   <verstretch>1</verstretch>
                  </sizepolicy>
                 </property>
+                <property name="plainText">
+                 <string>Time</string>
+                </property>
                </widget>
               </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="label_6">
+              <item row="0" column="1">
+               <widget class="QLabel" name="label_4">
                 <property name="text">
-                 <string>Additional columns</string>
+                 <string>Hidden Columns</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -728,19 +728,6 @@ File</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
-               <widget class="QPlainTextEdit" name="plainTextEdit_6">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                  <horstretch>1</horstretch>
-                  <verstretch>1</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="plainText">
-                 <string/>
-                </property>
-               </widget>
-              </item>
               <item row="0" column="1">
                <widget class="QLabel" name="label_8">
                 <property name="text">
@@ -787,8 +774,24 @@ File</string>
                 </property>
                </widget>
               </item>
+              <item row="1" column="1">
+               <widget class="QPlainTextEdit" name="plainTextEdit_6">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>1</horstretch>
+                  <verstretch>1</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="plainText">
+                 <string/>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
+           </item>
+           <item>
+            <widget class="QTextBrowser" name="textBrowser"/>
            </item>
           </layout>
          </widget>
