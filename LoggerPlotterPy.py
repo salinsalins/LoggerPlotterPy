@@ -714,12 +714,12 @@ class MainWindow(QMainWindow):
         return ordered_plots
 
     # plot previous line
-    def plot_previous_line(self, name, widget):
-        if self.plot_previous_line and self.last_selection >= 0:
-            for s1 in self.old_signal_list:
-                if s1.name == name:
-                    widget.plot(s1.x, s1.y, pen={'color': self.previous_color, 'width': 1})
-                    return
+    # def plot_previous_line(self, name, widget):
+    #     if self.plot_previous_line and self.last_selection >= 0:
+    #         for s1 in self.old_signal_list:
+    #             if s1.name == name:
+    #                 widget.plot(s1.x, s1.y, pen={'color': self.previous_color, 'width': 1})
+    #                 return
 
     def plot_main_line(self, name, widget):
         ...
@@ -810,14 +810,14 @@ class MainWindow(QMainWindow):
             except:
                 pass
             try:
-                x_zero = float(self.from_params(b'x_zero', s.params, 0.0))
-                y_zero = float(self.from_params(b'y_zero', s.params, 0.0))
+                x_zero = float(self.from_params(b'x_zero', s.params, '0.0'))
+                y_zero = float(self.from_params(b'y_zero', s.params, '0.0'))
                 s.x = s.x - x_zero
                 s.y = s.y - y_zero
             except:
                 pass
             try:
-                flag = float(self.from_params(b'subtract_zero', s.params, False))
+                flag = bool(int(self.from_params(b'subtract_zero', s.params, '0')))
                 if flag:
                     s.y = s.y - s.zero_value
             except:
