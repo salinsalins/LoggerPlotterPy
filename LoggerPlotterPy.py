@@ -741,6 +741,10 @@ class MainWindow(QMainWindow):
         lbl = self.from_params(b'ylabel', signal.params, '')
         if lbl:
             widget.setLabel('left', lbl)
+        y_min = float('inf')
+        y_max = float('-inf')
+        x_min = float('inf')
+        x_max = float('-inf')
         try:
             y_min = float(self.from_params(b'plot_y_min', signal.params, 'inf'))
             y_max = float(self.from_params(b'plot_y_max', signal.params, '-inf'))
@@ -763,7 +767,7 @@ class MainWindow(QMainWindow):
         except:
             log_exception()
 
-    def decorate_signal(self, signal, widget):
+    def decorate_signal(self, signal):
         try:
             x_zero = float(self.from_params(b'x_zero', signal.params, '0.0'))
             y_zero = float(self.from_params(b'y_zero', signal.params, '0.0'))
@@ -883,6 +887,7 @@ class MainWindow(QMainWindow):
             #         s.y = s.y - s.zero_value
             # except:
             #     pass
+            self.decorate_signal(s)
             # plot signal
             if len(s.x) > 100:
                 mplw.plot(s.x, s.y, pen={'color': self.trace_color, 'width': 1})
