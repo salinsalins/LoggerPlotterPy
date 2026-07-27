@@ -314,9 +314,9 @@ class MainWindow(QMainWindow):
         self.sb.addWidget(self.sb_log)
         # status bar: log show widget: log handler
         sbhandler = WidgetLogHandler(self.sb_log)
-        sbhandler.setLevel(logging.INFO)
-        sbhandler.setFormatter(config_logger.log_formatter)
-        self.logger.addHandler(sbhandler)
+        # sbhandler.setLevel(logging.INFO)
+        # sbhandler.setFormatter(config_logger.log_formatter)
+        # self.logger.addHandler(sbhandler)
         # status bar: END
 
         # default settings
