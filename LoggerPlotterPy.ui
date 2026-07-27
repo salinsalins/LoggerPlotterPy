@@ -319,7 +319,7 @@
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout" stretch="2,2,3,3,1">
+          <layout class="QVBoxLayout" name="verticalLayout" stretch="2,2,3,3">
            <property name="spacing">
             <number>3</number>
            </property>
@@ -789,9 +789,6 @@ File</string>
               </item>
              </layout>
             </widget>
-           </item>
-           <item>
-            <widget class="QTextBrowser" name="textBrowser"/>
            </item>
           </layout>
          </widget>

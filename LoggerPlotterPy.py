@@ -548,8 +548,8 @@ class MainWindow(QMainWindow):
         self.sort_text_edit_widget(self.hidden_columns)
         self.sort_text_edit_widget(self.hidden_plots)
         self.fill_config_widget()
-        txt = '\n'.join(self.dlh.get_value())
-        self.textBrowser.setText(txt)
+        # txt = '\n'.join(self.dlh.get_value())
+        # self.textBrowser.setText(txt)
 
     def select_log_file(self):
         """Opens a file select dialog"""
