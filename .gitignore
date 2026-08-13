@@ -20,3 +20,4 @@ build/*
 *.bak
 .idea/
 /LoggerPlotterPy.bat
+.vscode/
