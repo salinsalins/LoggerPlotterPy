@@ -21,3 +21,4 @@ build/*
 .idea/
 /LoggerPlotterPy.bat
 .vscode/
+LoggerPlotterPy.code-workspace
