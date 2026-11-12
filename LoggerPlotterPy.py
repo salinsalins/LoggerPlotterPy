@@ -1648,18 +1648,22 @@ class Signal:
 
     def calculate_value(self):
         try:
-            if math.isnan(self.value) and 'mark' in self.marks:
-                mark = self.marks['mark']
-                self.mark_value = self.y[mark[0]: mark[0] + mark[1]].mean()
-                if 'zero' in self.marks:
-                    zero = self.marks['zero']
-                    self.zero_value = self.y[zero[0]: zero[0] + zero[1]].mean()
-                else:
-                    self.zero_value = 0.0
-                self.value = self.mark_value - self.zero_value
+            zero = self.marks['zero']
+            self.zero_value = self.y[zero[0]: zero[0] + zero[1]].mean()
+        except KeyboardInterrupt:
+            raise
+        except:
+            self.zero_value = 0.0
+            self.logger.debug(f'Zero for {self.name} cannot be calculated')
+        try:
+            mark = self.marks['mark']
+            self.mark_value = self.y[mark[0]: mark[0] + mark[1]].mean()
+            self.value = self.mark_value - self.zero_value
+        except KeyboardInterrupt:
+            raise
         except:
             self.value = float('nan')
-            # self.logger.debug(f'No value for {s.name}')
+            self.logger.debug(f'Value for {self.name} cannot be calculated')
         return self.value
 
     def __add__(self, other):
